@@ -1,0 +1,49 @@
+3000 random pairs of numbers, 1420 convertible: the verdict is that of the reference under 6 policies and three random advices each; a smaller price gives out
+600 of the pairs searched for the cheapest advice: it is cheaper than every policy for 31; the largest ratio between a policy and the cheapest advice is 38.1
+policies beaten by the cheapest advice on the searched pairs: left 350, right 350, both 168, arguments first 154, later first 283, earlier first 220
+8 pairs under binders, in both directions and under every policy: as expected
+a value that is needed again is not computed again: 260 steps the first time, one step the second
+left, equal arguments: n=4: 305 against 22, n=6: 969 against 28, n=8: 3505 against 34, n=10: 13529 against 40
+right, equal arguments: n=4: 305 against 22, n=6: 969 against 28, n=8: 3505 against 34, n=10: 13529 against 40
+both, equal arguments: n=4: 304 against 22, n=6: 968 against 28, n=8: 3504 against 34, n=10: 13528 against 40
+arguments first, ignored arguments: n=4: 431 against 16, n=6: 1385 against 16, n=8: 5075 against 16, n=10: 19709 against 16
+later first, ignored arguments: n=4: 431 against 16, n=6: 1385 against 16, n=8: 5075 against 16, n=10: 19709 against 16
+earlier first, ignored arguments: n=4: 431 against 16, n=6: 1385 against 16, n=8: 5075 against 16, n=10: 19709 against 16
+300 of 300 random policies by ranks: from n=5 to n=9 the steps of the policy grow at least eightfold and those of the cheapest advice by at most 60
+equation {pow2} 10 = {id} ({pow2} 10): left 124081, right 124081, both 122034, arguments first 1220, later first 1241, earlier first 48, least found 48
+equation {wrap} ({pow2} 10) = {pow2} 10: left 124081, right 124081, both 122034, arguments first 1220, later first 48, earlier first 1241, least found 48
+equation {const0} ({pow2} 10) = {const0} ({pow2} 11): left 17, right 17, both 16, arguments first 7011858, later first 7068860, earlier first 7068860, least found 16
+equation {add} 0 ({pow2} 10) = {pow2} 10: left 124089, right 124089, both 122042, arguments first 1228, later first 1537, earlier first 56, least found 56
+equation {double} ({pow2} 9) = {pow2} 10: left 124150, right 124150, both 122103, arguments first 1229, later first 214, earlier first 2195, least found 214
+equation {pow2} 10 = {pow2} 10: left 124073, right 124073, both 122026, arguments first 40, later first 40, earlier first 40, least found 40
+equation {mul} 2 ({pow2} 9) = {pow2} 10: left 128283, right 128283, both 126236, arguments first 793165, later first 2396893, earlier first 721703, least found 73393
+equation {pred} ({pow2} 5) = 31: left 1409, right 1409, both 1409, arguments first 1409, later first 1409, earlier first 1409, least found 1409
+200 user equations, left: within twice the least for 17, over a hundred times for 143, largest ratio 1187
+200 user equations, right: within twice the least for 17, over a hundred times for 143, largest ratio 1187
+200 user equations, both: within twice the least for 17, over a hundred times for 143, largest ratio 1166
+200 user equations, arguments first: within twice the least for 0, over a hundred times for 17, largest ratio 47546
+200 user equations, later first: within twice the least for 95, over a hundred times for 17, largest ratio 64883
+200 user equations, earlier first: within twice the least for 98, over a hundred times for 17, largest ratio 75856
+searching the advice of the first equation: 40 runs of the test, 1099566 steps in all, for an advice that checks in 48
+a wrapper defined after or before the function that it wraps: later first 48 and 13537 steps, earlier first 13537 and 48, advice RS 48 and 48
+pow2 10 against id (pow2 10): 122034 steps without advice, 48 with RS, 122035 with L
+walk with RS: step 7: ask pow2 id R
+walk with RS: step 8: unfold id
+walk with RS: step 15: ask pow2 pow2 S
+walk with RS: 3 questions and unfoldings, yes after 48 steps
+walk with L: step 7: ask pow2 id L
+walk with L: step 8: unfold pow2
+walk with L: step 22: ask double id B
+walk with L: step 23: unfold double
+walk with L: step 31: unfold id
+walk with L: 6142 questions and unfoldings, yes after 122035 steps
+theorem four: advice '', price 63; without advice 63 steps
+theorem sixteen: advice '', price 855; without advice 855 steps
+theorem wrapped: advice 'RS', price 84; without advice 122070 steps
+theorem ignored: advice 'B', price 57; without advice 57 steps
+theorem parity: advice '', price 7315; without advice 7315 steps
+theorem unit: advice '', price 33; without advice 33 steps
+theorem use: advice 'SSS', price 143; without advice 244132 steps
+the library costs 8550 steps with advice and 374525 without; a false equation is refused
+5 deliberate mistakes, each noticed: out-is-yes, no-fallback, one-sided, no-eta, by-name
+14 sentences of the paper checked: adversary, advice-rs, all-noticed, binders, equations, literal, order, overview, search, sharing, theorems, users, verdicts, walk

@@ -1,0 +1,829 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\lamx}[1]{\lambda #1.\,}
+\newcommand{\rec}{\kw{rec}}
+\newcommand{\suc}{\kw{S}}
+\newcommand{\refl}{\kw{refl}}
+\newcommand{\Nat}{\kw{Nat}}
+\newcommand{\Eq}[3]{\kw{Eq}_{#1}(#2, #3)}
+\newcommand{\conv}{\equiv}
+\newcommand{\chk}[4]{\kw{check}(#1, #2, #3, #4)}
+\newcommand{\yes}{\kw{yes}}
+\newcommand{\no}{\kw{no}}
+\newcommand{\out}{\kw{out}}
+\newcommand{\cost}[3]{\kw{cost}(#1, #2, #3)}
+\newcommand{\adv}[1]{\textup{\texttt{#1}}}
+
+% A sentence that states a fact in words. The script has one check for every name.
+\newcommand{\claim}[2]{#2}
+
+% The rows of a table that the script writes.
+\makeatletter
+\newcommand{\rows}[1]{\@@input artifact/expected/#1.tex }
+\makeatother
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{The Prover Pays: Advice and a Price for Conversion in Proof Checking}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script implements the checker and tests the theorems on random terms. At the time of writing
+nobody has reviewed the paper.}
+
+\begin{abstract}
+A proof in type theory may be a single word, $\refl$, and checking it may take longer than
+anyone is willing to wait, because the checker has to find out by computation that two terms
+are equal. How it computes is decided by a strategy that is built into the checker: which of
+two definitions to unfold first, and whether to compare the arguments of a function before
+looking inside it. A good strategy is fast on the proofs that its authors had in mind.
+When proofs are written by programs and submitted in bulk, the time to check one becomes part
+of what the proof costs, and the submitter is the one who knows how the computation should
+go. We let the submitter say it. A proof is a term together with \emph{advice}, a string of
+answers to the questions that the conversion test asks, and a \emph{price}, a number of steps
+that the checker will not exceed. We prove that advice cannot change the verdict, only the
+cost; that the checker stops within the price; and that advice cannot be replaced by a
+strategy of the kind that kernels have: for every strategy that decides by the ranks of the
+two constants in question there are equations of size $n$ that it checks in more than $2^n$
+steps and that two letters of advice check in a number of steps linear in $n$. A library of
+\exTheorems{} small theorems costs \exLibraryPrice{} steps with advice and
+\exLibraryBlind{} without. A script tests the claims on \exPairs{} random pairs of terms
+against a separate evaluator and notices \exMutants{} deliberate mistakes.
+\end{abstract}
+
+\keywords{type theory, conversion, proof checking, proof certificates, definitional equality, cost}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+In a type theory with computation, the terms $2 + 2$ and $4$ are the same by definition, and
+the proof that they are equal is $\refl$. The same holds for $2^{1000} \bmod 7$ and its
+value, and for the result of running a verified decision procedure on a large formula. This
+is what makes such theories practical: computation is not written into proofs. It is also
+what makes the time to check a proof unpredictable. The size of a proof says nothing about
+it. The checker has to decide whether two terms are \emph{convertible}, and the decision is
+a computation whose length depends on the terms and on how the checker goes about it.
+
+How it goes about it is a matter of strategy. When the two terms are applications of
+different defined constants, the checker must unfold one of them, and unfolding the wrong
+one can turn a comparison of two short terms into a comparison of two enormous ones. When
+they are applications of the same constant, it can compare the arguments first, which is
+fast when the arguments are equal and wasted when the function ignores them. Kernels decide
+such questions by rules of thumb. The kernel of Rocq, for one, gives every constant a level
+and unfolds ``the one with lower level'' first, and users can set the levels by a
+command~\cite{rocqstrategy}. The kernels of Lean give every definition a height, unfold the
+higher of two, and compare arguments first when the two are the same~\cite{bailey2024}. The rules work well on the proofs that their authors have seen.
+Users of proof assistants know the other case: a proof that should check at once and does not
+return, repaired by marking a definition opaque or by restating a goal.
+
+This was a nuisance when proofs were written by people who wait for their own checker. It is
+a different matter when proofs are produced by programs and checked by somebody else. A
+registry that accepts machine-written proofs in bulk has to run each one, and a proof whose
+check does not return is an attack on the registry, whether or not it was meant as one. The
+time to check a proof becomes part of what the proof costs, and the question is who pays and
+who decides how the computation is done.
+
+Our answer is that the prover does both. The prover knows why the two terms are equal: it
+constructed them. So it can tell the checker how to see it, and it can say in advance how
+long the check will take.
+
+\paragraph{The proposal.} A proof is a triple of a term, \emph{advice}, and a \emph{price}.
+The advice is a string over four letters. The conversion test of the checker is the usual
+one, with one change: at each point where a strategy would decide, it reads the next letter
+of the advice. The price is a number of steps. The checker counts its steps and gives up
+when the count passes the price. Nothing else is new, and the checker is, if anything,
+simpler than before, since it contains no strategy.
+
+\paragraph{The results.} Advice is not trusted and need not be. Whatever the advice, the
+checker never accepts terms that are not convertible, and never rejects terms that are, as
+long as the price suffices (Theorems~\ref{thm:sound} and~\ref{thm:advice}): advice changes
+the cost and nothing else. The checker stops within the price (Theorem~\ref{thm:price}), so
+a registry knows the cost of a submission before it runs it and can refuse what it does not
+want to pay for. And advice does something that no strategy of the kernel kind can do. For
+every strategy that decides by the ranks of the two constants, as the levels above do, we
+construct definitions and equations of size $n$ on which the strategy takes more than $2^n$
+steps while two letters of advice suffice for a number of steps linear in $n$
+(Theorem~\ref{thm:adversary}). The strategy cannot know which of the two constants is the
+expensive one. The prover does.
+
+Our main contributions are as follows:
+\begin{itemize}
+\item The conversion test with advice and a price, for a type theory with functions,
+  numbers with recursion, definitions, and equations proved by computation
+  (Section~\ref{sec:test}).
+\item The theorems that advice is only advice and that the price is kept
+  (Theorems~\ref{thm:sound}, \ref{thm:advice}, and~\ref{thm:price}).
+\item The theorem that no strategy by ranks can replace advice
+  (Theorem~\ref{thm:adversary}), with an adversary that is a program: given a strategy, it
+  returns the definitions and the equations.
+\item Proofs as triples, with a checker for the type theory whose every use of conversion
+  draws on one string of advice and one price, so that the price of a library is the sum of
+  the prices of its theorems and a theorem that is used is not paid for again
+  (Section~\ref{sec:proofs}).
+\item An implementation, tested on \exPairs{} random pairs of terms against an evaluator
+  that shares nothing with it (Section~\ref{sec:eval}).
+\end{itemize}
+
+The parts of the proposal are not new one by one. Proofs that carry hints for their checker
+go back to proof-carrying code, where an oracle resolves the choices of a proof
+search~\cite{necula2001}, and proofs of unsatisfiability are enriched with hints so that a
+verified checker need not search~\cite{cruzfilipe2017}. Conversion has been made
+explicit in the terms of pure type systems~\cite{vandoorn2013}. What we add is the
+combination for conversion in a kernel: advice at exactly the points where kernels have a
+strategy, a price, the proof that the advice is harmless, and the proof that it is needed.
+
+\section{Overview}
+\label{sec:overview}
+
+Take numbers with a successor $\suc$ and a recursor, and these definitions: $\nm{id}$ is the
+identity, $\nm{double}\ n$ adds $n$ to itself by recursion, and $\nm{pow2}\ n$ doubles $1$
+for $n$ times. Consider the equation
+\[
+  \nm{pow2}\ 10 \;=\; \nm{id}\ (\nm{pow2}\ 10) .
+\]
+It holds by computation, and its proof is $\refl$. To check the proof, the checker must
+decide that the two sides are convertible. Both sides are applications of a constant, and
+the constants differ. A checker that unfolds both computes $\nm{pow2}\ 10$, a tower of
+$2^{10}$ successors, then finds on the right $\nm{pow2}\ 10$ again after unfolding
+$\nm{id}$, computes the second tower, and compares the two.
+\claim{overview}{That takes \exOverviewBlind{} steps of the machine of this paper.}
+
+A checker that unfolds the right side first sees $\nm{pow2}\ 10$ against $\nm{pow2}\ 10$: the
+same constant with arguments that can be compared without unfolding anything. \claim{advice-rs}{That
+takes \exOverviewAdvised{} steps.} The two decisions, \emph{unfold on the right} and then
+\emph{compare the arguments}, are the advice \adv{RS}. The prover that produced the equation
+knows them; the checker cannot. \claim{walk}{Table~\ref{tab:walk} shows both runs: what the
+test asks, what the advice answers, and what is unfolded.} With \adv{RS} two questions are
+asked and one constant is unfolded. With \adv{L} the first answer is wrong, the advice is
+used up, and everything is unfolded.
+
+\begin{table}
+\caption{The test on $\nm{pow2}\ 10 = \nm{id}\ (\nm{pow2}\ 10)$ under two strings of advice.
+The second column is the number of the step at which the event happens, and for the last
+line of each run the number of steps in all.}
+\label{tab:walk}
+\begin{tabular}{lrl}
+\toprule
+advice & step & event \\
+\midrule
+\rows{walk}
+\bottomrule
+\end{tabular}
+\end{table}
+
+One might hope that a better rule of thumb does as well. The rule ``unfold the constant that
+was defined later'' gets this example right if $\nm{id}$ was defined after $\nm{pow2}$ and
+wrong if it was defined before. The rule ``compare arguments first'' is right here and wrong
+for $\nm{const0}\ (\nm{pow2}\ 10) = \nm{const0}\ (\nm{pow2}\ 11)$, where $\nm{const0}$ ignores
+its argument: the arguments are different numbers, and the checker computes both of them
+before it gives up and unfolds $\nm{const0}$. Section~\ref{sec:need} shows that this is not
+bad luck with these rules. Every rule of this kind has its example.
+
+Advice may be wrong, by error or by intent. With the advice \adv{L} the checker of the
+equation above does the slow thing. It still reaches the right verdict, if the price allows,
+and if the price does not allow, it stops and says so. A proof with bad advice is a proof
+that is expensive, and the price that comes with it says how expensive.
+
+\section{Terms and Conversion}
+\label{sec:terms}
+
+The terms are those of the lambda calculus with numbers, a recursor, and constants:
+\[
+  t, u \;::=\; x \mid \lamx{x} t \mid t\ u \mid c \mid 0 \mid \suc\ t \mid \rec\ t\ u\ n
+\]
+A \emph{library} is a list of definitions $c := t$ with closed bodies, in which a body uses
+only earlier constants. The \emph{rank} of a constant is its position in the library.
+\emph{Conversion} $t \conv u$ is the least congruence that contains
+\[
+\begin{array}{r@{\;\conv\;}l@{\qquad}r@{\;\conv\;}l}
+  (\lamx{x} t)\ u & t[u/x] & c & t \quad \text{for a definition } c := t \\
+  \rec\ z\ s\ 0 & z & \rec\ z\ s\ (\suc\ n) & s\ n\ (\rec\ z\ s\ n) \\
+  \lamx{x} t\ x & t \quad (x \text{ not free in } t)
+\end{array}
+\]
+The first four equations, read from left to right, are the rules of reduction. We consider
+terms that have types in the system of Section~\ref{sec:proofs}, which is the system T of
+G\"odel with definitions and equations. For such terms reduction is confluent and every
+reduction sequence ends~\cite{tait1967}, and two terms of the same type are convertible
+exactly if their normal forms are equal up to the last equation.
+
+\section{The Test}
+\label{sec:test}
+
+\subsection{The Machine}
+
+The checker reduces terms to \emph{weak head normal form} on a machine with environments, in
+the style of the algorithm of \citet{coquand1996}. A value is a closure $\langle \rho, \lamx{x}
+t\rangle$, a number $0$ or $\suc\ \theta$, or a \emph{neutral} value $h\ \vec{e}$: a head that
+is a variable or a constant, with a spine of eliminations, each the application to an
+argument or a recursion. Arguments are thunks $\theta$: a term with an environment that is
+evaluated when it is needed and at most once. The machine does not unfold constants by
+itself. A constant evaluates to a neutral value with the constant as its head, and a separate
+operation $\kw{unfold}$ replaces the head by the value of its definition and applies the
+spine. This is what leaves the decision about unfolding to the test.
+
+Every entry into the evaluator, every application, every step of a recursion, every
+unfolding, and every comparison of the test counts as one \emph{step}. A step takes constant
+time on a machine with pointers, except that the lookup of a variable takes time
+proportional to its index~\cite{debruijn1972}.
+
+\subsection{The Test with Advice}
+
+The test compares two values, and we write $v \approx w$ when it succeeds. Its structural
+part is standard and is given in Figure~\ref{fig:test}. Two numbers are compared by their
+constructors. If one of the values is a closure, both are applied to a fresh variable, which
+gives the last equation of conversion. Two neutral values with the same variable as head are
+compared spine by spine, and two spines are compared elimination by elimination. Values that
+are the same object are convertible without a further look, which is what makes a shared
+argument cheap. When no rule applies, the test fails.
+
+\begin{figure}
+\begin{mathpar}
+\inferrule{v \text{ and } w \text{ are the same object}}{v \approx w}
+\and
+\inferrule{ }{0 \approx 0}
+\and
+\inferrule{\theta{\downarrow} \approx \theta'{\downarrow}}{\suc\ \theta \approx \suc\ \theta'}
+\and
+\inferrule{v \text{ or } w \text{ is a closure} \\ v\ x \approx w\ x \quad (x \text{ fresh})}{v \approx w}
+\and
+\inferrule{\vec{e} \approx \vec{e}'}{x\ \vec{e} \approx x\ \vec{e}'}
+\and
+\inferrule{\theta_i{\downarrow} \approx \theta_i'{\downarrow} \text{ for the thunks of } e_i \text{ and } e_i', \text{ of one kind, for all } i}
+          {e_1 \cdots e_k \approx e_1' \cdots e_k'}
+\and
+\inferrule{\kw{unfold}(c\ \vec{e}) \approx w \\ w \text{ has no constant at its head}}{c\ \vec{e} \approx w}
+\and
+\inferrule{v \approx \kw{unfold}(d\ \vec{e}') \\ v \text{ has no constant at its head}}{v \approx d\ \vec{e}'}
+\end{mathpar}
+\caption{The rules of the test that involve no choice. $\theta{\downarrow}$ is the value of a
+thunk, computed at most once.}
+\Description{Eight inference rules: identical objects, zero, successor, closures applied to a
+fresh variable, neutral values with a variable at the head, spines, and the two rules that
+unfold a constant when only one side has one at its head.}
+\label{fig:test}
+\end{figure}
+
+The test has a choice exactly when both values are neutral with constants as heads.
+Figure~\ref{fig:choice} gives the four things that it can do, and the advice says which. If
+only one value has a constant as its head, that constant is unfolded and nothing is asked,
+by the last two rules of Figure~\ref{fig:test}.
+
+\begin{figure}
+\[
+\begin{array}{c@{\quad}l@{\quad}l}
+\text{letter} & \text{the test continues with} & \text{allowed when} \\[2pt]
+\adv{L} & \kw{unfold}(c\ \vec{e}) \text{ against } d\ \vec{e}' & \text{always} \\
+\adv{R} & c\ \vec{e} \text{ against } \kw{unfold}(d\ \vec{e}') & \text{always} \\
+\adv{B} & \kw{unfold}(c\ \vec{e}) \text{ against } \kw{unfold}(d\ \vec{e}') & \text{always} \\
+\adv{S} & \vec{e} \text{ against } \vec{e}', \text{ and if they differ, as for } \adv{B} & c = d,\ \vec{e} \text{ and } \vec{e}' \text{ of one length}
+\end{array}
+\]
+\caption{The choice of the test for $c\ \vec{e}$ against $d\ \vec{e}'$, where $c$ and $d$ are
+constants. A letter \adv{S} where it is not allowed is read as \adv{B}, and so is the end of
+the advice.}
+\Description{A table of the four letters of advice: L unfolds the left constant, R the right
+one, B both, and S compares the spines first and falls back to B if they differ.}
+\label{fig:choice}
+\end{figure}
+
+The letter \adv{S} deserves a remark. If the spines are convertible, so are the two values,
+by congruence. If they are not, nothing follows, because a function may give equal results
+for different arguments, and the test goes on by unfolding. A comparison of spines that
+fails has cost steps and decided nothing.
+
+\begin{definition}[Check]
+\label{def:check}
+For closed terms $t$ and $u$, advice $\alpha$, which is a string of the four letters, and a
+price $p$, $\chk{t}{u}{\alpha}{p}$ evaluates both terms, runs the test
+with the letters of $\alpha$ in order, and returns $\yes$ or $\no$ if the test finishes
+within $p$ steps and $\out$ otherwise. The cost $\cost{t}{u}{\alpha}$ is the number of steps
+of the run without a price.
+\end{definition}
+
+\begin{theorem}[Soundness]
+\label{thm:sound}
+Let $t$ and $u$ be terms of one type. If $\chk{t}{u}{\alpha}{p} = \yes$ then $t \conv u$. If
+$\chk{t}{u}{\alpha}{p} = \no$ then $t \not\conv u$.
+\end{theorem}
+
+\begin{proof}
+Every value $v$ stands for a term $\lceil v \rceil$, its \emph{readback}: a closure for its
+abstraction with the environment substituted, a thunk for its term likewise, a neutral value
+for its head applied to the readbacks of its spine. The machine keeps conversion in this
+sense: if a term $t$ evaluates in an environment $\rho$ to $v$, then $\lceil v \rceil \conv
+t\rho$, and $\lceil \kw{unfold}(v) \rceil \conv \lceil v \rceil$. Both hold because every
+step of the evaluator, of $\kw{unfold}$, and of the recursion is a reduction or the
+bookkeeping of an environment, and because a thunk is evaluated in the environment in which
+it was made. We show that $v \approx w$ implies $\lceil v \rceil \conv \lceil w \rceil$, by
+induction on the run. The test answers $\yes$ only where
+congruence, the last equation, or the identity of two values justifies it. For \adv{S} this
+is the remark above. It answers $\no$ only for two values in weak head normal form with no
+constant at the head that differ in their constructor, or that have different variables as
+heads, or the same variable with spines that are not convertible. By confluence, terms with
+such forms are not convertible. A comparison of spines under \adv{S} that fails does not
+answer $\no$; the test unfolds and goes on.
+\end{proof}
+
+\begin{theorem}[Advice is advice]
+\label{thm:advice}
+Let $t$ and $u$ be terms of one type.
+\begin{enumerate}
+\item For every advice $\alpha$ the cost $\cost{t}{u}{\alpha}$ is finite.
+\item For all advice $\alpha$ and $\alpha'$ and all prices $p$ and $p'$: if neither
+  $\chk{t}{u}{\alpha}{p}$ nor $\chk{t}{u}{\alpha'}{p'}$ is $\out$, they are equal.
+\item $\chk{t}{u}{\alpha}{p} = \out$ exactly if $p < \cost{t}{u}{\alpha}$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(1) Give a call of the test on $v$ and $w$ the measure that consists of the length of the
+longest reduction sequence of $\lceil v \rceil$ and of $\lceil w \rceil$ together, then the
+size of the two normal forms, and then one bit that says whether the letter \adv{S} is still
+to be tried. An unfolding, an application of a closure, and a step of the recursion are
+reductions and lower the first component, which is finite because the terms have types. A
+descent into constructors or spines keeps it and lowers the second. A comparison of spines
+under \adv{S} that fails is followed by an unfolding. So the run ends whatever the letters
+are. (2) By Theorem~\ref{thm:sound} both verdicts say whether $t \conv u$. (3) The run with a
+price is the run without, cut off when the count passes $p$.
+\end{proof}
+
+\begin{theorem}[The price is kept]
+\label{thm:price}
+$\chk{t}{u}{\alpha}{p}$ makes at most $p + 1$ steps, and reads at most $p$ letters of
+$\alpha$.
+\end{theorem}
+
+\begin{proof}
+The count is tested at every step, and reading a letter is part of a step.
+\end{proof}
+
+Advice cannot make a computation shorter than its result.
+
+\begin{proposition}[The written answer]
+\label{prop:literal}
+If $u$ is the numeral for $m$, written out with $m$ successors, and $t$ is any term with $t
+\conv u$, then $\cost{t}{u}{\alpha} \ge m$ for every advice $\alpha$.
+\end{proposition}
+
+\begin{proof}
+The value of $u$ is built by the evaluator one successor at a time, each in a step of its
+own, and only when the test asks for it. The test can answer $\yes$ only after it has
+compared every successor of the value of $u$ with one of the value of $t$, or has found the
+two values to be the same object, which they are not, since the successors of $u$ are made
+by its own evaluation.
+\end{proof}
+
+\claim{literal}{For \exLiteralPairs{} random terms against their written values the bound holds
+under every policy and under the cheapest advice.} The proposition marks the line between the
+two parts of a cost. An equation between a program and its written result has a price that
+is at least the size of the result, and no advice changes that. An equation between two
+terms that are related by their shape, such as a term and the same term under an identity,
+has a price that depends on seeing the shape, and that is what advice is for.
+
+\paragraph{Other choices.} Unfolding is the choice that this test has, and it is the one that
+decides between a short check and a long one in the examples that we know. A kernel for a
+richer theory has more. It chooses the order in which the parts of two spines or two types
+are compared, which matters when one part fails early; whether to try a cached answer; and,
+with records and proofs that are irrelevant, when to apply the rules that are specific to
+them. Each of these is a place for a further letter, and the theorems of this section do not
+depend on how many letters there are: a letter selects among ways to continue that are each
+sound, and all ways end.
+
+The three theorems divide the work. The verdict belongs to the terms alone. The cost belongs
+to the terms and the advice. The checker is responsible for neither a good strategy nor a
+bound on its own running time: it follows and it counts. For a pair of convertible terms,
+the least cost over all advice is a property of the pair, and we call it the \emph{price of
+the equation}. Finding advice that attains it is a search, and the search is the prover's.
+
+\section{Why Advice Is Needed}
+\label{sec:need}
+
+A \emph{policy} answers the question of Figure~\ref{fig:choice} without advice: it is a
+function from the two constants, and from whether the letter \adv{S} is allowed, to a letter.
+A policy \emph{decides by ranks} if it depends on the constants only through their ranks in
+the library. The levels of the kernel mentioned in the introduction are ranks that the user
+may reorder; heights of definitions and the order of declaration are ranks. Six policies of
+this kind are: always \adv{L}; always \adv{R}; always \adv{B}; \emph{arguments first}, which
+is \adv{S} where allowed and \adv{B} otherwise; and \emph{later first} and \emph{earlier
+first}, which are \adv{S} where allowed and otherwise unfold the constant of the higher or
+the lower rank.
+
+\begin{theorem}[No policy by ranks]
+\label{thm:adversary}
+For every policy $\pi$ that decides by ranks there are a library and closed terms $t_n$ and
+$u_n$ of the type of numbers, of size linear in $n$ and convertible, such that the test under
+$\pi$ takes more than $2^n$ steps on $t_n$ and $u_n$, and there is advice of at most two
+letters under which it takes a number of steps linear in $n$.
+\end{theorem}
+
+\begin{proof}
+Let $\nm{big}$ be a closed term that maps the numeral $n$ to the numeral $2^n$ and contains
+no constant, and let $\nm{thin}$ be $\lamx{x} x$. We ask $\pi$ four questions, in this order,
+and build the library after its answers. Let $e$ and $l$ be two constants, $e$ of lower rank
+than $l$, and let $\nm{const0}$ be a constant with the body $\lamx{x} 0$.
+
+\emph{Case 1: $\pi$ answers \adv{S} for $\nm{const0}$ against itself.} Let $e := \nm{big}$,
+$t_n = \nm{const0}\ (e\ n)$, and $u_n = \nm{const0}\ (e\ (n + 1))$. Under $\pi$ the test
+compares $e\ n$ with $e\ (n+1)$. Whatever $\pi$ answers there, the arguments $n$ and $n + 1$
+differ, both sides are unfolded, and the numerals $2^n$ and $2^{n+1}$ are compared, which
+takes more than $2^n$ steps before they are found different. The advice \adv{B} unfolds
+$\nm{const0}$ on both sides at once.
+
+\emph{Case 2: otherwise, and $\pi$ does not answer \adv{S} for $e$ against itself.} Let
+$e := \nm{big}$ and $t_n = u_n = e\ n$, written twice. Under $\pi$ one side is unfolded, the
+other must follow, and two numerals $2^n$ are compared. The advice \adv{S} compares $n$ with
+$n$.
+
+\emph{Case 3: otherwise, and $\pi$ answers \adv{L} or \adv{B} for $e$ against $l$.} Let
+$e := \nm{big}$, $l := \nm{thin}$, $t_n = e\ n$, and $u_n = l\ (e\ n)$. Under $\pi$ the left
+side is unfolded to the numeral $2^n$. The right side then has a constant at its head and the
+left side has not, so it is unfolded, twice, to the same numeral, and the numerals are
+compared. The advice \adv{RS} unfolds $l$ and compares $n$ with $n$.
+
+\emph{Case 4: otherwise.} Then $\pi$ answers \adv{R} for $e$ against $l$. Let
+$e := \nm{thin}$, $l := \nm{big}$, $t_n = e\ (l\ n)$, and $u_n = l\ n$. Under $\pi$ the right
+side is unfolded to the numeral, the left side must follow, and the numerals are compared.
+The advice \adv{LS} unfolds $e$ and compares $n$ with $n$.
+
+In each case the body of $\nm{big}$ has no constant, so that the test meets no further
+choice once $\nm{big}$ is unfolded, and the comparison of two numerals takes at least as many
+steps as the smaller one has successors. Under the advice named, the test compares the
+numerals $n$ or constructors of constant size, after a constant number of unfoldings.
+\end{proof}
+
+The proof uses that the policy cannot tell which of two ranks holds the expensive
+definition. A policy that reads the bodies of the definitions escapes this proof and not the
+problem: whether unfolding a constant is expensive is a question about the value of a
+program. A checker could also try the letters of Figure~\ref{fig:choice} side by side and
+stop when one branch finishes. That costs a factor of at most four for every question on the
+cheapest path, which is exponential in the length of the advice that it replaces, and it is
+the search that the prover does once so that no checker has to do it again.
+
+\begin{table}
+\caption{The equations of Theorem~\ref{thm:adversary} for six policies: the case of the proof,
+the steps of the test under the policy for four sizes, and the steps under the cheapest
+advice for the largest size.}
+\label{tab:adversary}
+\begin{tabular}{llrrrrr}
+\toprule
+policy & case & $n = 4$ & $n = 6$ & $n = 8$ & $n = \exAdversaryLargest$ & with advice \\
+\midrule
+\rows{adversary}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{\exEquations{} equations: the steps of the test under the six policies, and the least
+number of steps that we found with advice of at most five letters or with one of the
+policies.}
+\label{tab:equations}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lrrrrrrr}
+\toprule
+equation & left & right & both & arguments & later & earlier & least \\
+\midrule
+\rows{equations}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Without an adversary.} The equations of the proof are built against a policy. The
+equations of Table~\ref{tab:equations} are not. They are what a user writes: a term against
+itself under an identity, a unit law, a doubling. \claim{equations}{For five of the
+\exEquations{}, the worst policy takes more than a hundred times the steps of the best
+advice, at least three different policies are the best one for some line, and for one line
+advice makes no difference at all.} The first two lines are the same equation with two
+identities that differ only in where they stand in the library, and the policies that
+decide by rank exchange their columns. The third line punishes the policies that compare
+arguments first, by seven million steps to sixteen. The last two lines have a cost that no
+advice removes: the two sides have to be computed, because the equation is about their
+values. A price has both parts in it, the cost of the computation that the equation needs
+and the cost of the way in which the checker goes about it, and advice removes the second.
+
+\begin{table}
+\caption{\exUserEquations{} random equations of seven kinds that users write, with sizes
+between five and eight: for how many a policy is within twice the least number of steps that
+we found, for how many it takes more than a hundred times that number, and its largest
+ratio.}
+\label{tab:users}
+\begin{tabular}{lrrr}
+\toprule
+policy & within twice & over a hundred times & largest ratio \\
+\midrule
+\rows{users}
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:users} repeats the comparison on \exUserEquations{} equations drawn at random
+from seven such kinds: a term against itself under one or two identities, the unit law, a
+doubling written in two ways, a power against the doubling of the power below, a function
+that ignores its argument, and a function applied to a wrapped argument. \claim{users}{No
+policy is within twice the least cost for all of them, and every policy is more than a
+hundred times above it for some.} The two policies that decide by rank and compare arguments
+first are the best, as one expects from the kernels that use them, and they are near the
+least cost for about half of the equations.
+
+\claim{adversary}{Table~\ref{tab:adversary} shows the equations that the adversary of the
+proof, run as a program, builds for the six policies; the same program builds equations with
+the same growth for each of \exRandomPolicies{} random policies that decide by ranks, of which
+\exCaseThree{} fall under the third or fourth case of the proof.} The steps under a policy
+grow by a factor of about four when $n$ grows by two, as the numerals do. The steps under
+advice grow by six.
+
+\section{Proofs with a Price}
+\label{sec:proofs}
+
+Conversion is used by a type checker. We give the smallest type theory in which proofs by
+computation exist: types are $\Nat$, dependent function types, and equations between terms
+of a type,
+\[
+  A, B \;::=\; \Nat \mid \Pi x{:}A.\, B \mid \Eq{A}{t}{u}
+\]
+and terms have the additional form $\refl$. There is no universe and no induction principle,
+so that an equation is proved by $\refl$ or by applying a function that returns such a proof.
+Figure~\ref{fig:typing} gives the rules. They are those of a logical framework~\cite{harper1993}
+with numbers; a library now gives every constant a type, and the body of a definition is
+checked against it.
+
+\begin{figure}
+\begin{mathpar}
+\inferrule{x : A \in \Gamma}{\Gamma \vdash x : A}
+\and
+\inferrule{c : A := t \text{ in the library}}{\Gamma \vdash c : A}
+\and
+\inferrule{\Gamma, x : A \vdash t : B}{\Gamma \vdash \lamx{x} t : \Pi x{:}A.\, B}
+\and
+\inferrule{\Gamma \vdash t : \Pi x{:}A.\, B \\ \Gamma \vdash u : A}{\Gamma \vdash t\ u : B[u/x]}
+\and
+\inferrule{ }{\Gamma \vdash 0 : \Nat}
+\and
+\inferrule{\Gamma \vdash t : \Nat}{\Gamma \vdash \suc\ t : \Nat}
+\and
+\inferrule{\Gamma \vdash z : \Nat \\ \Gamma \vdash s : \Nat \to \Nat \to \Nat \\ \Gamma \vdash n : \Nat}
+          {\Gamma \vdash \rec\ z\ s\ n : \Nat}
+\and
+\inferrule{\Gamma \vdash t : A \\ \Gamma \vdash u : A \\ t \conv u}{\Gamma \vdash \refl : \Eq{A}{t}{u}}
+\and
+\inferrule{\Gamma \vdash t : A \\ A \conv B}{\Gamma \vdash t : B}
+\end{mathpar}
+\caption{Typing. The two rules of the last line use conversion.}
+\Description{Nine typing rules: variables, constants, abstraction, application, zero,
+successor, recursion at the type of numbers, reflexivity for convertible terms, and
+conversion of types.}
+\label{fig:typing}
+\end{figure}
+
+\begin{definition}[Proof]
+\label{def:proof}
+A \emph{proof} of a type $A$ is a triple of a term $t$, advice $\alpha$, and a price $p$. The
+checker is bidirectional: it checks abstractions and $\refl$ against the given type and
+infers the types of the other terms. Where the rules of Figure~\ref{fig:typing} use
+conversion, it runs the test of Section~\ref{sec:test}. All runs of the test in the check of
+one proof read from the one string $\alpha$, in order, and count against the one price $p$,
+as does every other step of the checker. The proof is \emph{accepted} if the check ends
+without a refusal within $p$ steps.
+\end{definition}
+
+\begin{theorem}[Proofs]
+\label{thm:proofs}
+If the proof $(t, \alpha, p)$ of $A$ is accepted, then $\vdash t : A$. Whether $t$ is
+accepted at some price does not depend on $\alpha$. The check takes at most $p + 1$ steps.
+A library whose definitions are checked one after the other is checked in at most the sum
+of their prices and one step for each, and the check of a definition does not repeat the
+check of an earlier one.
+\end{theorem}
+
+\begin{proof}
+The checker follows the rules of Figure~\ref{fig:typing}, and by Theorem~\ref{thm:sound} it
+uses the two rules with conversion only for convertible terms. A use of the test that
+answers $\no$ refuses the proof, and by Theorem~\ref{thm:advice} that answer does not depend
+on the advice. The steps are counted as in Theorem~\ref{thm:price}. The rule for a constant
+reads the type of the constant from the library and does not look at its body.
+\end{proof}
+
+\begin{table}
+\caption{A library of \exTheorems{} theorems: the advice, the price with it, and the steps of
+the check when the advice is empty, which unfolds both sides at every choice.}
+\label{tab:theorems}
+\begin{tabular}{llrr}
+\toprule
+theorem & advice & price & without advice \\
+\midrule
+\rows{theorems}
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:theorems} shows a small library. $\nm{four}$ is $2 + 2 = 4$ and
+$\nm{sixteen}$ is $2^4 = 4 \cdot 4$; they are cheap either way. $\nm{wrapped}$ is the
+equation of Section~\ref{sec:overview}. $\nm{ignored}$ is $\nm{const0}\ (\nm{pow2}\ 10) =
+\nm{const0}\ (\nm{pow2}\ 11)$, for which unfolding both sides happens to be right.
+$\nm{parity}$ says that $2^6$ is even, by running a function that decides evenness; it is a
+proof by reflection in miniature, its cost is the computation, and no advice is needed or
+useful. $\nm{unit}$ is the function that proves $0 + n = n$ for every $n$, by $\refl$ under a
+binder. $\nm{use}$ applies it to $\nm{pow2}\ 10$: the type of the application and the type
+that is asked for are the same equation, written twice, and the checker has to see that.
+With the advice \adv{SSS} it compares the two types part by part without unfolding
+$\nm{pow2}$. Without advice it unfolds, and compares numerals of $2^{10}$ successors, twice.
+\claim{theorems}{The library costs \exLibraryPrice{} steps with its advice and
+\exLibraryBlind{} without, \exLibraryRatio{} times as much, each proof is accepted at exactly
+its price and not below it, and a proof of a false equation is refused whatever its advice.}
+
+\paragraph{Who pays.} Consider a registry that receives proofs from provers that it does not
+know.
+
+\begin{proposition}[Budget]
+\label{prop:budget}
+A registry that checks proofs $(t_i, \alpha_i, p_i)$ in turn takes at most $\sum_i (p_i + 1)$
+steps, whatever the proofs are. If it refuses every proof with $p_i > P$ before it runs it,
+no submission costs it more than $P + 1$ steps, and the proofs that it refuses for this
+reason are exactly those whose provers did not claim that $P$ steps suffice.
+\end{proposition}
+
+\begin{proof}
+By Theorem~\ref{thm:proofs}, and because the price is read before the check starts.
+\end{proof}
+
+Without prices the registry has no such bound: a proof of one word may run for longer than
+the registry exists, and a time limit that the registry sets by itself refuses proofs that
+are correct and merely checked in the wrong way. A price is a promise by the prover and a
+limit for the checker. A
+registry can publish what it charges for a step, or the largest price that it accepts, and
+refuse a submission after reading one number. A prover that understates the price has its
+proof refused after the stated number of steps, and one that overstates it pays for steps
+that are not taken. Advice that is wrong makes the proof more expensive than it had to be
+and nothing worse. The reader of a library sees, next to each theorem, what it costs to
+believe it, which is a fact about a proof that its size does not show~\cite{tpp1}.
+
+\paragraph{Prices are stable.} A proof with advice is checked in the same way wherever it
+stands. A proof under a policy is not.
+
+\begin{proposition}[Stability]
+\label{prop:stable}
+The cost of checking a proof with its advice depends on the proof and on the definitions that
+its terms reach, and not on the ranks of these definitions or on the rest of the library. For
+each of the policies \emph{later first} and \emph{earlier first} there are two libraries that
+differ only in the order of two definitions, and an equation of size $n$, such that the test
+under the policy takes more than $2^n$ steps in one library and a number of steps linear in
+$n$ in the other.
+\end{proposition}
+
+\begin{proof}
+The test with advice consults nothing but the two values and the next letter. For the
+second claim take the third and fourth cases of the proof of Theorem~\ref{thm:adversary}:
+the equation of a term with a wrapper around itself, where the wrapper is defined after the
+expensive function in one library and before it in the other.
+\end{proof}
+
+\claim{order}{For $n = 10$ the test under \emph{later first} takes \exOrderGood{} steps when
+the wrapper is defined after the function that it wraps and \exOrderBad{} when it is defined
+before; under \emph{earlier first} the numbers are exchanged; under the advice \adv{RS} it
+takes \exOrderAdvice{} steps in both libraries.} A library that is reorganized, or a
+definition that is given another level for the sake of one proof, can make other proofs slow
+that nobody touched. Users of proof assistants know the effect. With advice, what a proof
+costs is settled when the proof is made.
+
+\paragraph{Finding advice.} The prover finds advice by running the test itself, with any
+strategy it likes or with a search. The search over all advice of a given length is
+exponential in the length, and the lengths are short: the advice of
+Table~\ref{tab:theorems} has at most three letters. \claim{search}{For the equation of
+Section~\ref{sec:overview}, a search that tries the letters in a fixed order and cuts every
+run off at the best cost found so far runs the test \exSearchRuns{} times, for
+\exSearchSteps{} steps in all, and returns \adv{RS}.} That is the cost of nine checks without
+advice, paid once by the prover, against a saving at every later check. A prover that has constructed two terms
+to be convertible, by a rewriting step or by a decision procedure, usually knows the
+unfolding that makes it so.
+
+\section{Evaluation}
+\label{sec:eval}
+
+The artifact is one Python script of about \exLines{} lines with no dependencies. It
+implements the machine, the test with advice and a price, six policies, the search for the
+cheapest advice, the adversary of Theorem~\ref{thm:adversary}, and the checker of
+Section~\ref{sec:proofs}. For reference it has a second evaluator, which maps a term to a
+Python number or function and shares nothing with the machine. The command \texttt{make -C
+artifact check} runs the script and compares its output with the files from which this
+paper takes its numbers and the rows of its tables.
+
+\paragraph{Verdicts.} The script draws \exPairs{} pairs of closed terms of the type of
+numbers from a generator with seed \exSeed{}, over a library with addition, doubling,
+multiplication, powers of two, a predecessor, two identities, and a constant function;
+\exConvertible{} of the pairs are convertible. \claim{verdicts}{For every pair the verdict of
+the test is that of the reference, under each of the \exPolicies{} policies and under three
+random strings of advice; with a price below the cost the answer is $\out$, after exactly
+one step more than the price, and with a price equal to the cost it is the verdict}
+(Theorems~\ref{thm:sound}, \ref{thm:advice}, and~\ref{thm:price}). \claim{binders}{For
+\exBinders{} pairs of functions, among them pairs that are convertible only by the last
+equation of conversion and a pair that is equal only by induction, the test gives the
+expected verdict in both directions under every policy.} \claim{sharing}{A value that is
+needed a second time costs no further step.}
+
+\paragraph{Policies and advice.} For \exSearched{} of the random pairs the script searches
+all advice of at most six letters for the cheapest. On random terms, which are small, the
+policies do well: the cheapest advice beats every policy for \exBetter{} of the pairs, and the
+worst ratio between a policy and the cheapest advice is \exRatio{}. The equations of
+Table~\ref{tab:adversary} are not found by chance; they are built.
+
+\paragraph{Deliberate mistakes.} The script plants \exMutants{} mistakes in the checker and
+runs its tests against each. A checker that answers $\yes$ when the price runs out is
+unsound. One that answers $\no$ when a comparison of spines under \adv{S} fails, or when only
+the right value has a constant at its head, rejects convertible terms. One that does not
+apply the last equation of conversion misses functions that are equal. One that evaluates a
+thunk every time it is needed gives the right verdicts at a higher cost.
+\claim{all-noticed}{Each of the five is noticed.}
+
+\paragraph{What the tests do not show.} The reference decides conversion only for closed
+terms of the type of numbers, where it is equality of values. For open terms and functions
+the tests rest on a few chosen pairs and on the agreement between policies. The steps are
+steps of this machine, which is an interpreter in Python; the numbers compare ways to check
+on one machine and say nothing about the speed of a compiled kernel.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Proofs that help their checker.} Proof-carrying code ships a proof with a program
+so that the receiver checks instead of trusting~\cite{necula1997}. \citet{necula2001} replace
+the proof by an oracle, a string of bits that resolves the choices of a nondeterministic
+checker, which makes proofs far smaller. Our advice is an oracle in this sense for one part
+of a checker, conversion, and it is added to a proof and not put in its place.
+In propositional satisfiability, proofs in the format of \citet{wetzler2014} are checked by
+a search, and \citet{cruzfilipe2017} add hints that name the clauses each step uses, so that
+a checker which is itself verified follows the proof without searching. The division of labor is
+ours: the untrusted side searches once, the trusted side follows. An earlier paper of this
+series studies programs that generate and check under a budget~\cite{tpp3}; a price is such
+a budget, set by the party that generated.
+
+\paragraph{Conversion in kernels.} Conversion by evaluation to weak head normal form with a
+structural comparison is the algorithm of \citet{coquand1996}, and \citet{abel2017} prove a
+version of it correct for a type theory with a universe. Kernels speed up the evaluation by
+compilation~\cite{gregoire2002,boespflug2011}, which makes each step cheaper and leaves the
+choice of steps where it was. The choice is made by levels, heights, and flags that users
+can set~\cite{rocqstrategy,bailey2024}, which is advice of a kind, given once for a constant and not for
+an equation; Theorem~\ref{thm:adversary} is about what such advice cannot express. In the
+other direction, conversion can be removed from the checker altogether by making every
+conversion step a part of the term: \citet{vandoorn2013} give pure type systems with
+explicit convertibility proofs and show them equivalent to the usual
+ones~\cite{adams2006,siles2012}, and frameworks based on rewriting make the rules of
+computation a parameter~\cite{cousineau2007}. A term with all its conversion steps is as
+large as the computation is long. Advice with a price keeps the term and the computation
+apart, records only the decisions, and states the length.
+
+\paragraph{Cost.} That the steps of an abstract machine are a sound measure of time is the
+subject of a line of work on cost semantics~\cite{blelloch1996,accattoli2014}; our count is
+of this kind, with the caveat about variable lookup. \citet{niu2022} make cost a part of a
+type theory, for the programs that are its terms. We are concerned with the cost of checking,
+which is a cost of the judgment and not of the term.
+
+\paragraph{This series.} The first paper of the series asks what a person must read to
+believe a machine-checked library~\cite{tpp1}. The price of a proof is a further item of
+that kind: what a machine must spend. The practice of binding numbers and marked sentences
+to the script follows~\cite{tpp10}.
+
+\section{Limits and Conclusion}
+\label{sec:limits}
+
+\paragraph{Limits.} The type theory is small. It has no universes, no inductive families,
+and no dependent elimination, and its only proofs of equations are by computation. The test
+is the same for richer theories, with more constructors to compare, but we have neither
+stated nor proved the theorems for them, and Theorem~\ref{thm:advice} needs that every
+reduction sequence ends. The advice is tied to one algorithm: its letters answer the
+questions that this test asks, in the order in which it asks them, and a different test
+would need different advice. Proofs that carry advice are therefore less portable than
+terms, although a checker can ignore advice and use a policy. The price is a number of steps
+of one machine, and two implementations will agree on it only if they agree on what a step
+is. We have not studied how hard it is to find the cheapest advice; the example of
+Section~\ref{sec:need} suggests that it is at least as hard as knowing the value of a
+program. Theorem~\ref{thm:adversary} is about policies that decide by ranks, and a policy
+that inspects definitions is outside it. And the comparison of the two sides of an equation
+that is false costs what it costs: advice shortens the way to $\yes$, and we have no theorem
+about the way to $\no$.
+
+\paragraph{Conclusion.} A kernel that decides how to compute has to be right for every proof
+that it will ever see. A kernel that is told how to compute has to be right for none: it
+follows, counts, and stops. The knowledge of how an equation holds is with whoever made the
+equation, and a proof format should have a place for it, next to a number that says what the
+proof costs to check.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

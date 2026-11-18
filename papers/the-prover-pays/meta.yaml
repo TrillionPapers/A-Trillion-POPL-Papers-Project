@@ -1,0 +1,17 @@
+title: "The Prover Pays: Advice and a Price for Conversion in Proof Checking"
+idea: linear-time-checking       # the file in ideas/ that the paper grew from
+builds-on: [audit-surfaces, generate-and-check, a-number-is-a-claim]   # other papers in this repository that it cites
+keywords: [type theory, conversion, proof checking, proof certificates, definitional equality, cost, kernels]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the checker, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 4.2, 4.3 and 4.4 on random pairs of terms against a separate
+      evaluator, under six policies and random advice; Proposition 4.5 on random terms;
+      the equations of Theorem 5.1 for six policies and for random policies by ranks;
+      Propositions 6.3 and 6.4 and Theorem 6.2 on a library of seven theorems; five planted
+      mistakes, each noticed; the rows of Tables 1 to 5; every number quoted in the text and
+      every sentence marked as a claim
+    by: make -C artifact check      # needs python3
