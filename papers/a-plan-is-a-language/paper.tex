@@ -1,0 +1,926 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\Base}{\kw{Base}}
+\newcommand{\Plan}[1]{\kw{Plan}(#1)}
+\newcommand{\ret}{\kw{ret}\;}
+\newcommand{\model}{\kw{model}}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\ite}[3]{\kw{if}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\ask}[1]{\kw{ask}\;#1}
+\newcommand{\act}[5]{\kw{act}\;#1\;#2\;#3\;\kw{as}\;(#4)\;\kw{in}\;#5}
+\newcommand{\splt}[3]{\kw{split}\;#1\;\kw{as}\;#2 \parallel #3}
+\newcommand{\run}[4]{\kw{run}_{#1 \multimap #2}(#3, #4)}
+\newcommand{\iter}[4]{\kw{iter}\;#1\;\kw{from}\;#2\;\kw{as}\;#3.\,#4}
+\newcommand{\inl}{\kw{inl}\,}
+\newcommand{\inr}{\kw{inr}\,}
+\newcommand{\tok}[1]{\kw{tok}(#1)}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\auth}[1]{\mathcal{A}(#1)}
+\newcommand{\lang}[1]{\mathcal{L}(#1)}
+\newcommand{\sh}{\mathbin{\parallel}}
+\newcommand{\wrong}{\kw{wrong}}
+\newcommand{\dom}{\mathrm{dom}\,}
+\newcommand{\evto}{\Downarrow}
+\newcommand{\lstep}[1]{\xrightarrow{\,#1\,}}
+\newcommand{\own}{\mathrel{\triangleright}}
+\newcommand{\er}[1]{|#1|}
+\newcommand{\least}[2]{\lfloor #1 : #2 \rfloor}
+\newcommand{\edit}{\nm{edit}}
+\newcommand{\test}{\nm{test}}
+\newcommand{\push}{\nm{push}}
+
+% A display for programs. It measures its content and warns when the content is wider than the line.
+\newsavebox{\progbox}
+\newenvironment{prog}
+  {\begin{lrbox}{\progbox}$\displaystyle\begin{array}{@{}l@{\qquad}l@{}}}
+  {\end{array}$\end{lrbox}%
+   \ifdim\wd\progbox>\linewidth
+     \PackageWarning{paper}{Overfull program display by \the\dimexpr\wd\progbox-\linewidth\relax}%
+   \fi
+   \[\usebox{\progbox}\]\ignorespacesafterend}
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{A Plan Is a Language: Typed Approvals for What Comes Next}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script implements the calculus and tests the theorems on random programs. At the time of
+writing nobody has reviewed the paper.}
+
+\begin{abstract}
+An agent that is given a task of any size first proposes a plan, and a person approves it.
+Today the plan is prose and the approval is a click, and nothing ties what the agent does
+afterwards to what was approved: it may repeat a step, leave the order, or widen the scope,
+and a part of the agent to which work is handed may do all of it. We make a plan a type. A
+plan is a regular expression over actions with predicates on their payloads. The approval of
+a plan is a value that cannot be copied and whose type is the plan. Performing an action
+replaces the plan in the type by its derivative, which is what is left of it. A token for a
+plan serves for every plan that it contains, and two parts of a program may share a plan as
+long as their steps, interleaved, stay within it. We prove that what happens under an
+approval is always the beginning of something that was approved, on every behavior of the
+model, across parts of a program, and for code that the model writes and that is checked
+before it runs. A token that such code gives back certifies what the code did not do. We
+prove that narrowing a plan is sound exactly for containment, so that a change of plan needs
+a new question if and only if the new plan is not contained in what is left of the old one,
+and the type checker decides which. The single approvals and budgets of an earlier paper are
+plans. A script implements the calculus and tests the theorems on \exPrograms{} random
+programs, checks the containment theorem on \exPairs{} pairs of plans, and refutes each of
+\exRules{} weakened rules by a program.
+\end{abstract}
+
+\keywords{regular expressions, derivatives, typestate, linear types, delegation, agents, human oversight}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+An agent that is asked to make a release does not start typing. It reads, and then it says
+what it will do: edit these files, run the tests, push to this branch. A person reads the
+plan and approves it. From then on the agent works, and the person looks away. This is how
+the harnesses for coding agents work today, and it is the right division of labor: a plan is
+short, and a person can judge it.
+
+The approval is worth less than it looks. The plan is prose, and the approval is a click, so
+that nothing connects them to what follows.
+
+\emph{Order and number.} The plan says that the tests run before the push. The agent pushes,
+finds a problem, edits, and pushes again. Each action occurs in the plan. The sequence does
+not.
+
+\emph{Scope.} The plan names a branch and a set of files. The agent, three steps later, is
+working from what a tool returned, and the file that it edits is another one.
+
+\emph{Parts.} The agent hands the edits to a helper, or to code that it writes on the spot.
+What may the helper do? If it inherits the approval, it may also push.
+
+\emph{Change.} Plans change, because the world answers. When the agent wants to do something
+else, it either asks again, and the person is interrupted for a detail, or it does not, and
+the approval covers something that was never shown.
+
+An earlier paper of this series treated a single approval as a value that cannot be
+copied, with a type that records one action and a predicate on its payload, and a budget as
+a value whose type records an amount~\citep{tpp4}. A plan is neither: it is about several
+actions and their order. But it has the same shape. This paper generalizes both to one
+notion.
+
+\paragraph{A plan is a language.} A \emph{plan} is a regular expression whose letters are
+actions with a predicate on the payload:
+\[
+\edit(x.\,x \le 2)^{*} \cdot \test \cdot \push(x.\,x = 1)
+\]
+allows any number of edits of the files up to number $2$, then a test, then one push to
+branch $1$. The approval of a plan $P$ is a token of type $\Plan{P}$. An action under the
+token is well typed if the plan has a word that begins with it, and afterwards the token has
+the type of what is left: the derivative of the plan by the action~\citep{brzozowski1964}.
+After the push the plan is used up, and a second push does not type. The model may choose
+which file to edit, and the type checker asks only that the program has shown the number to
+be at most $2$.
+
+\paragraph{Containment.} A token for a plan serves for any plan that it contains. So an
+agent may always do less, and may hand a part of the program a smaller plan. A change of
+plan needs a new question exactly if the new plan is not contained in what is left of the
+old one. Containment of regular languages is decidable, so the type checker settles for
+every change of plan in a program whether the person has to be asked.
+
+\paragraph{Parts.} Two parts of a program may each get a token, for plans $P_1$ and $P_2$,
+if every interleaving of their steps stays within the plan that is split. For plans that
+prescribe an order this is rarely so, and then the token is \emph{lent}: the helper gets the
+token and has to give back a token for a stated plan. The type of what comes back says what
+the helper has not done.
+
+\paragraph{Results.} As in the earlier paper, a semantics with named tokens and a ledger
+serves as the specification, and a semantics without either is what runs.
+\begin{itemize}
+\item \emph{Safety and erasure} (Theorems~\ref{thm:safety} and~\ref{thm:erasure}). The
+  ledger never refuses a step of a well-typed program, so tokens need not exist at run time.
+\item \emph{Consent} (Theorem~\ref{thm:consent}). In every execution, the actions under a
+  grant form a word that begins a word of the granted plan, whichever parts of the program
+  performed them.
+\item \emph{Authority and lending} (Theorem~\ref{thm:authority},
+  Corollary~\ref{cor:lending}). A part of a program stays within the plans in the types of
+  its tokens. If code gives back a token for a plan $Q$, then what it did, followed by
+  anything that $Q$ allows, is within the plan that it was lent.
+\item \emph{Narrowing is containment} (Theorem~\ref{thm:containment}). The rule is sound,
+  and for every pair of plans without containment a program shows that no more could be
+  allowed.
+\item \emph{Approvals and budgets are plans} (Proposition~\ref{prop:instances}).
+\end{itemize}
+The artifact tests each statement (Section~\ref{sec:tests}).
+
+\section{One Plan, Several Programs}
+\label{sec:overview}
+
+Let $R$ be the plan of the introduction, with $E = \edit(x.\,x \le 2)$:
+\[
+R \;=\; E^{*} \cdot \test \cdot \push(x.\,x = 1).
+\]
+A program asks for it and follows it.
+\begin{prog}
+\letin{r}{\ask{R}}{\kw{case}\;r\;\kw{of}\;\inl y \Rightarrow} & \text{the person approves $R$}\\
+\quad \letin{m}{\model}{\kw{if}\;m \le 2\;\kw{then}} & \text{the model names a file}\\
+\quad \kw{act}\;\edit\;m\;y\;\kw{as}\;(x_1, y_1)\;\kw{in} & \text{$y_1$ has the plan $R / \edit(m)$}\\
+\quad \kw{act}\;\test\;0\;y_1\;\kw{as}\;(x_2, y_2)\;\kw{in} & \text{the plan is now the push}\\
+\quad \kw{act}\;\push\;1\;y_2\;\kw{as}\;(x_3, y_3)\;\kw{in}\;\ret 0 & \text{nothing is left}
+\end{prog}
+The branches for a refusal and for a larger number return at once and are not shown.
+The expression $\kw{act}\;a\;t\;y\;\kw{as}\;(x, y')\;\kw{in}\;e$ performs the action $a$ with
+the payload $t$ under the token $y$. In $e$, the variable $x$ is the reply of the world, and
+$y'$ is the token again, at the type of what is left of its plan. The old name $y$ is gone.
+What is left of $R$ after an edit is $R$ itself, after the test it is the push, and after the
+push it is the empty plan.
+
+\begin{table}[t]
+\caption{Variants of the program of Section~\ref{sec:overview}, code for the type
+$\Plan{R} \multimap \Plan{R}$, and what the checker of the artifact says. A verdict other
+than ``accepted'' is the reason for which the checker rejects.}
+\label{tab:verdicts}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Program & Verdict \\
+\midrule
+follows the plan & accepted \\
+edits the file that the model names, without the test $m \le 2$ & an action that the plan does not allow \\
+pushes a second time & an action that the plan does not allow \\
+edits once more after the test & an action that the plan does not allow \\
+pushes to branch $2$ & an action that the plan does not allow \\
+lends the token to code and goes on with what comes back & accepted \\
+splits the token into the edits and the rest & parts that go beyond the plan \\
+\midrule
+code: edits twice and gives the token back & accepted \\
+code: runs the test and gives the token back & a result of another type \\
+code: edits and keeps the token & a result of another type \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:verdicts} lists what else one might write. The four rejected programs in its
+upper part are the gaps of the introduction. Without the test of $m$, nothing says that the
+file is one of the approved ones. A second push, an edit after the test, and a push to
+another branch are actions that the plan knows, at a moment or with a payload at which it
+does not allow them.
+
+\paragraph{Handing work on.} Suppose the edits are to be made by code that the model writes.
+The first idea is to split the token: one part for the edits, $E^{*}$, and one for the rest,
+$\test \cdot \push(x.\,x = 1)$. The checker refuses. Two parts of a program act
+independently, so every interleaving of their steps has to be within $R$, and the
+interleaving that tests first and edits afterwards is not. A plan that prescribes an order
+cannot be cut into independent pieces.
+
+The token can be lent. The expression $\run{\Plan{R}}{\Plan{R}}{t}{y}$ asks the model for
+code that takes a token for $R$ and \emph{gives back} a token for $R$. Code that edits twice
+and returns its token has this type, since what is left of $R$ after two edits is $R$. Code
+that runs the test cannot return its token at this type: what is left is the push, and a
+token for the push does not serve as a token for $R$. The code has no other way to obtain a
+token for $R$ than to ask the person. So when the code returns, the caller holds a token for
+$R$ and knows, without having read the code, that under this token the code made only edits
+(Corollary~\ref{cor:lending}).
+
+\begin{table}[t]
+\caption{An execution of the program that lends its token to code which edits twice. Every
+event names the token, and the last column is what the ledger holds for the token after the
+event.}
+\label{tab:trace}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Event & made by & left of the plan \\
+\midrule
+$\kw{grant}(0, R)$ & the person & $R$ \\
+$\kw{act}(0, \edit, 1)$ & the code & $R$ \\
+$\kw{act}(0, \edit, 2)$ & the code & $R$ \\
+$\kw{act}(0, \test, 0)$ & the program & $\push(x.\,x = 1)$ \\
+$\kw{act}(0, \push, 1)$ & the program & $\epsilon$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:trace} shows an execution. The names of tokens and the ledger are devices of
+the semantics that states the guarantee. The program that runs has neither, and its log is
+the column of events without the names.
+
+\paragraph{Changing the plan.} Suppose the agent decides, after its edits, that it will not
+push. It needs no question: the plan that ends after the test is contained in $R$. Suppose it
+wants to push to another branch. That plan is not contained in what it holds, the narrowing
+does not type, and the program has to contain a question. In both cases the checker has
+decided, before anything ran, whether the person is asked.
+
+\section{The Calculus}
+\label{sec:calculus}
+
+\subsection{Plans}
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}l@{\quad}r@{\;}l@{}}
+\text{terms} & t ::= & x \mid n \mid t + t \\
+\text{predicates} & \varphi ::= & \top \mid t \le t \mid t = t \mid \neg\varphi \mid \varphi \wedge \varphi \\
+\text{plans} & P, Q ::= & 0 \mid \epsilon \mid a(x.\varphi) \mid P \cdot P \mid P + P \mid P^{*} \mid P \parallel P \mid P / a(t) \\
+\text{types} & \tau ::= & \Base \mid 1 \mid \tau \otimes \tau \mid \tau \oplus \tau \mid \Plan{P} \\
+\text{operands} & w ::= & y \mid t \mid () \mid (w, w) \mid \inl w \mid \inr w \\
+\text{expressions} & e ::= & \ret w \mid \letin{x}{e}{e} \mid \letin{y}{e}{e} \mid \letin{(y, y)}{w}{e} \\
+ & \mid & \kw{case}\;w\;\kw{of}\;\inl y \Rightarrow e;\ \inr y \Rightarrow e \mid \ite{\varphi}{e}{e} \mid \model \\
+ & \mid & \ask{P} \mid \act{a}{t}{w}{x, y}{e} \mid \splt{w}{P}{P} \\
+ & \mid & \run{\tau}{\tau}{t}{w} \mid \iter{n}{w}{y}{e}
+\end{array}
+\]
+\Description{The grammar of terms, predicates, plans, types, operands, and expressions.}
+\caption{Syntax. The letter $a$ ranges over actions, $n$ over numbers, $x$ over base
+variables, and $y$ over resource variables.}
+\label{fig:syntax}
+\end{figure}
+
+Figure~\ref{fig:syntax} gives the syntax. A \emph{letter} is a pair $a(n)$ of an action and
+a number, its payload. A \emph{word} is a sequence of letters. A closed plan denotes a set
+$\lang{P}$ of words in the usual way: $0$ is the empty set, $\epsilon$ the set of the empty
+word, $a(x.\varphi)$ the set of the letters $a(n)$ for which $\varphi$ holds of $n$;
+$P \cdot Q$, $P + Q$ and $P^{*}$ are concatenation, union and iteration; and $P \parallel Q$
+is the shuffle, the set of all interleavings of a word of $P$ with a word of $Q$. The plan
+$P / a(t)$ is what is left of $P$ after the letter: $\lang{P / a(n)}$ is the set of the
+words $w$ with $a(n)\,w \in \lang{P}$. It can be written without the stroke, by the rules of
+\citet{brzozowski1964}, which extend to the shuffle by
+$(P \parallel Q) / \ell = (P / \ell \parallel Q) + (P \parallel Q / \ell)$. We keep it in
+the syntax because types need it for a payload that is not yet known.
+
+A token may be dropped at any time, so what counts is not the words of a plan but their
+beginnings.
+
+\begin{definition}[Authority]
+\label{def:authority}
+The \emph{authority} $\auth{P}$ of a closed plan is the set of the prefixes of the words of
+$\lang{P}$, together with the empty word. For sets of words $A$ and $B$, $A \sh B$ is the
+set of the interleavings of a word of $A$ with a word of $B$.
+\end{definition}
+
+So $\auth{0} = \auth{\epsilon} = \{\epsilon\}$: a token for either plan allows nothing. A
+letter $\ell$ is in $\auth{P}$ exactly if $\lang{P / \ell}$ is not empty.
+
+\subsection{Expressions}
+
+Expressions are those of the earlier calculus~\citep{tpp4}, with other operations on tokens.
+$\ask{P}$ shows the person the plan $P$, with the values of its variables filled in, and
+returns a token or a refusal. $\act{a}{t}{w}{x, y}{e}$ performs an action under a token.
+$\splt{w}{P_1}{P_2}$ divides a token in two. $\run{\tau_1}{\tau_2}{t}{w}$ asks the model for
+code from $\tau_1$ to $\tau_2$, checks it, and runs it on $w$, and $\iter{n}{w}{y}{e}$ is a
+bounded loop with the state $y$. The model's answers and the world's replies are numbers.
+
+\subsection{Two Semantics}
+\label{sec:semantics}
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=G]{k \notin \dom L}{L \lstep{\kw{grant}(k, P)} L[k \mapsto P]}
+\and
+\inferrule*[right=A]{a(n) \in \auth{L(k)}}{L \lstep{\kw{act}(k, a, n)} L[k \mapsto L(k) / a(n)]}
+\and
+\inferrule*[right=S]{\auth{P_1} \sh \auth{P_2} \subseteq \auth{L(k)} \\ k' \notin \dom L}
+  {L \lstep{\kw{split}(k, k', P_1, P_2)} L[k' \mapsto P_1,\, k \mapsto P_2]}
+\end{mathpar}
+\vspace{-1ex}
+\begin{mathpar}
+\inferrule*[right=Ask-Yes]{L \lstep{\kw{grant}(k, P)} L'}{L, \ask{P} \evto L', \inl\tok{k}, \kw{grant}(k, P)}
+\and
+\inferrule*[right=Ask-No]{ }{L, \ask{P} \evto L, \inr(), \kw{deny}}
+\and
+\inferrule*[right=Act]{\sem{w} = \tok{k} \\ L \lstep{\kw{act}(k, a, \sem{t})} L_1 \\ L_1, e[n/x, \tok{k}/y] \evto L_2, v, s}
+  {L, \act{a}{t}{w}{x, y}{e} \evto L_2, v, \kw{act}(k, a, \sem{t}) \cdot s}
+\and
+\inferrule*[right=Split]{\sem{w} = \tok{k} \\ L \lstep{\kw{split}(k, k', P_1, P_2)} L'}
+  {L, \splt{w}{P_1}{P_2} \evto L', (\tok{k'}, \tok{k}), \kw{split}(k, k', P_1, P_2)}
+\end{mathpar}
+\Description{Three rules for the steps of a ledger and four rules of evaluation.}
+\caption{The steps of a ledger, and the evaluation of the three operations on tokens. In
+\textsc{Act}, $n$ is any number: the reply of the world. The other rules are those of
+\citet{tpp4}.}
+\label{fig:semantics}
+\end{figure}
+
+In the first semantics a token has a name $k$, and a \emph{ledger} $L$ maps each name to a
+closed plan: what is left for this token. Figure~\ref{fig:semantics} shows its steps. A
+grant enters a plan. An action is possible if its letter is in the authority of the plan,
+and it leaves the derivative. A split replaces a plan by two whose interleavings it
+contains. The judgment $L, e \evto L', v, s$ evaluates a closed expression to a value and a
+trace of events; it goes \emph{wrong} if the ledger has no step for an action or a split, or
+if a value has the wrong shape. The rules for the other expressions are as in the earlier
+paper. In particular $\kw{run}$ runs the code that the model returns if a check
+$y{:}\tau_1 \vdash_{\kw{c}} e : \tau_2$ accepts it, with the result in the left summand, and
+otherwise returns its argument in the right one.
+
+The second semantics, $e \evto^{\circ} v, s$, has no ledger. A token is a value $\bullet$
+without content, a split yields two of them, and the events lose their names. It performs
+whatever action the program asks for.
+
+\section{Types}
+\label{sec:types}
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Ask]{ }{\Delta \vdash \ask{P} : \Plan{P} \oplus 1}
+\and
+\inferrule*[right=Narrow]{\Delta \vdash w : \Plan{P} \\ \Phi \models \auth{Q} \subseteq \auth{P}}
+  {\Delta \vdash w : \Plan{Q}}
+\and
+\inferrule*[right=Act]{\Delta_1 \vdash w : \Plan{P} \\ \Phi \models a(t) \in \auth{P} \\
+  \Phi; \Gamma, x; \Delta_2, y{:}\Plan{P / a(t)} \vdash e : \tau \\ x \notin \Gamma \cup \mathrm{fv}(\tau)}
+  {\Delta_1, \Delta_2 \vdash \act{a}{t}{w}{x, y}{e} : \tau}
+\and
+\inferrule*[right=Split]{\Delta \vdash w : \Plan{P} \\ \Phi \models \auth{P_1} \sh \auth{P_2} \subseteq \auth{P}}
+  {\Delta \vdash \splt{w}{P_1}{P_2} : \Plan{P_1} \otimes \Plan{P_2}}
+\and
+\inferrule*[right=Run]{\Delta \vdash w : \tau_1 \\ \tau_1, \tau_2\ \text{closed}}
+  {\Delta \vdash \run{\tau_1}{\tau_2}{t}{w} : \tau_2 \oplus \tau_1}
+\and
+\inferrule*[right=Iter]{\Delta \vdash w : \tau \\ \Phi; \Gamma; y{:}\tau \vdash e : \tau}
+  {\Delta \vdash \iter{n}{w}{y}{e} : \tau}
+\end{mathpar}
+\Description{Six typing rules for the operations on tokens, code and loops.}
+\caption{Typing of the operations on tokens. A judgment $\Delta \vdash e : \tau$ stands for
+$\Phi; \Gamma; \Delta \vdash e : \tau$. The premises with $\Phi \models$ hold if the stated
+relation holds for the closed plans under every assignment of numbers to the variables that
+satisfies $\Phi$. The other rules are those of \citet{tpp4}: contexts are divided among the
+parts of an expression, the branches of a conditional get its test as a fact, and
+\textsc{Narrow} extends to pairs and sums.}
+\label{fig:typing}
+\end{figure}
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Var]{ }{\Delta, y{:}\tau \vdash y : \tau}
+\and
+\inferrule*[right=Tm]{ }{\Delta \vdash t : \Base}
+\and
+\inferrule*[right=Pair]{\Delta_1 \vdash w_1 : \tau_1 \\ \Delta_2 \vdash w_2 : \tau_2}
+  {\Delta_1, \Delta_2 \vdash (w_1, w_2) : \tau_1 \otimes \tau_2}
+\and
+\inferrule*[right=Inl]{\Delta \vdash w : \tau_1}{\Delta \vdash \inl w : \tau_1 \oplus \tau_2}
+\and
+\inferrule*[right=Model]{ }{\Delta \vdash \model : \Base}
+\and
+\inferrule*[right=Let-B]{\Delta_1 \vdash e_1 : \Base \\ \Phi; \Gamma, x; \Delta_2 \vdash e_2 : \tau \\
+  x \notin \Gamma \cup \mathrm{fv}(\tau)}
+  {\Delta_1, \Delta_2 \vdash \letin{x}{e_1}{e_2} : \tau}
+\and
+\inferrule*[right=Let-R]{\Delta_1 \vdash e_1 : \tau_1 \\ \Delta_2, y{:}\tau_1 \vdash e_2 : \tau}
+  {\Delta_1, \Delta_2 \vdash \letin{y}{e_1}{e_2} : \tau}
+\and
+\inferrule*[right=Let-P]{\Delta_1 \vdash w : \tau_1 \otimes \tau_2 \\ \Delta_2, y_1{:}\tau_1, y_2{:}\tau_2 \vdash e : \tau}
+  {\Delta_1, \Delta_2 \vdash \letin{(y_1, y_2)}{w}{e} : \tau}
+\and
+\inferrule*[right=Case]{\Delta_1 \vdash w : \tau_1 \oplus \tau_2 \\ \Delta_2, y_1{:}\tau_1 \vdash e_1 : \tau \\
+  \Delta_2, y_2{:}\tau_2 \vdash e_2 : \tau}
+  {\Delta_1, \Delta_2 \vdash \kw{case}\;w\;\kw{of}\;\inl y_1 \Rightarrow e_1;\ \inr y_2 \Rightarrow e_2 : \tau}
+\and
+\inferrule*[right=If]{\Phi, \varphi; \Gamma; \Delta \vdash e_1 : \tau \\ \Phi, \neg\varphi; \Gamma; \Delta \vdash e_2 : \tau}
+  {\Delta \vdash \ite{\varphi}{e_1}{e_2} : \tau}
+\end{mathpar}
+\Description{Ten typing rules for operands, bindings, sums and conditionals.}
+\caption{The rules that do not concern tokens, from \citet{tpp4}. A context is divided among
+the parts of an expression, and the two branches of a case or a conditional share one. There
+are the expected rules for $()$, $\inr$ and $\kw{ret}$.}
+\label{fig:rest}
+\end{figure}
+
+The judgment $\Phi; \Gamma; \Delta \vdash e : \tau$ has the three contexts of the earlier
+paper: facts, base variables, and resource variables with their types.
+Figure~\ref{fig:rest} repeats the rules that have nothing to do with plans. A rule with
+several parts divides $\Delta$ among them, so a resource variable is used at most once, and
+it may be left unused. A conditional adds its test to the facts of one branch and the
+negation to those of the other; this is how a program shows that a payload satisfies the
+predicate of a letter. Figure~\ref{fig:typing} shows the rules that are new.
+
+\paragraph{Acting.} \textsc{Act} needs a token for a plan in whose authority the action
+lies, whatever the values of the variables, as far as the facts say. The continuation gets
+the token at the type $\Plan{P / a(t)}$. The stroke stays in the type until the payload is
+known; in the example of Section~\ref{sec:overview} the facts $m \le 2$ suffice to see that
+$R / \edit(m)$ and $R$ have the same authority.
+
+\paragraph{Narrowing.} \textsc{Narrow} is subtyping for tokens: a token for $P$ serves as a
+token for $Q$ if the authority of $Q$ is contained in that of $P$.
+
+\paragraph{Splitting.} \textsc{Split} asks that every interleaving of what the two parts may
+do lies in what the whole may do. A plan $P_1 \parallel P_2$ splits into $P_1$ and $P_2$, a
+plan $P^{*}$ into two copies of itself, and every plan into itself and $\epsilon$.
+
+\paragraph{Loops.} The state of a loop has one type for all turns. For a token this means a
+plan that still holds after what a turn does, and such plans are the starred ones: a turn
+that performs a word of $P$ under a token for $P^{*}$ leaves a plan that contains $P^{*}$,
+and \textsc{Narrow} restores the type. The star of a plan is the type of a loop.
+
+\paragraph{Deciding the premises.} For closed plans, membership of a letter is the test
+whether a derivative denotes the empty set, and the two containments are instances of the
+inclusion problem for regular expressions with shuffle. Both are decidable, the second at a
+cost that grows fast with the size of the plans~\citep{stockmeyer1973,mayer1994}. Plans that
+a person is to read are small. With variables, the premises quantify over the assignments
+that satisfy the facts; the predicates are those of linear arithmetic, and the letters of a
+plan can be divided into finitely many classes on which all its predicates agree, as for
+symbolic automata~\citep{dantoni2017}. The artifact works with four numbers and three
+actions and tries all assignments.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Derivatives and Authority}
+
+\begin{lemma}[Derivatives]
+\label{lem:derivatives}
+Let $P$, $Q$, $P_1$, $P_2$ be closed plans and $\ell$ a letter.
+\begin{enumerate}
+\item $\ell\,w \in \auth{P}$ if and only if $\ell \in \auth{P}$ and $w \in \auth{P / \ell}$.
+\item If $\auth{Q} \subseteq \auth{P}$ and $\ell \in \auth{Q}$, then
+  $\auth{Q / \ell} \subseteq \auth{P / \ell}$.
+\item If $\auth{P_1} \sh \auth{P_2} \subseteq \auth{P}$ and $\ell \in \auth{P_1}$, then
+  $\auth{P_1 / \ell} \sh \auth{P_2} \subseteq \auth{P / \ell}$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1) A word $\ell\,w$ is a prefix of a word of $\lang{P}$ if and only if $w$ is a prefix of a
+word of $\lang{P / \ell}$; the empty word is in $\auth{P / \ell}$ in any case, which is why
+the condition $\ell \in \auth{P}$ is stated. (2) Let $w \in \auth{Q / \ell}$. By (1),
+$\ell\,w \in \auth{Q} \subseteq \auth{P}$, and by (1) again $w \in \auth{P / \ell}$. (3) An
+interleaving of $w_1 \in \auth{P_1 / \ell}$ and $w_2 \in \auth{P_2}$, with $\ell$ in front,
+is an interleaving of $\ell\,w_1 \in \auth{P_1}$ and $w_2$, hence in $\auth{P}$, and (1)
+applies.
+\end{proof}
+
+\subsection{Safety and Erasure}
+
+A value $\tok{k}$ has the closed type $\Plan{P}$ in a ledger $L$, and owns the name $k$, if
+$\auth{P} \subseteq \auth{L(k)}$: the ledger allows at least what the type promises. Pairs
+own disjoint sets of names, and the judgment $L \vdash v : \tau \own O$ and its extension to
+environments $\gamma$ are as in the earlier paper.
+
+\begin{theorem}[Safety]
+\label{thm:safety}
+Let $\Phi; \Gamma; \Delta \vdash e : \tau$ and $L \vdash \gamma : \Phi; \Gamma; \Delta \own O$.
+Then no evaluation of $\gamma(e)$ from $L$ goes wrong. If $L, \gamma(e) \evto L', v, s$ and
+$N$ is the set of the names of $L'$ that are not in $L$, then
+$L' \vdash v : \gamma(\tau) \own O'$ for some $O' \subseteq O \cup N$; $L'$ agrees with $L$
+on the names of $L$ outside $O$; and every name in an event of $s$ is in $O \cup N$.
+\end{theorem}
+
+\begin{proof}
+By induction on the derivation, first without \textsc{Run} and then with it, as for the
+corresponding theorem of~\citet{tpp4}. The cases that are new:
+
+\emph{Act.} The operand is a token $\tok{k}$ with $k \in O$ and
+$\auth{\gamma(P)} \subseteq \auth{L(k)}$. The numbers of $\gamma$ satisfy $\Phi$, so the
+letter $\ell = a(\sem{\gamma(t)})$ is in $\auth{\gamma(P)}$ and hence in $\auth{L(k)}$: the
+ledger has the step. Afterwards the entry is $L(k) / \ell$, and by
+Lemma~\ref{lem:derivatives}(2) the token has the type $\Plan{\gamma(P) / \ell}$, which is
+the type of $y$ under the environment extended by the reply. No other entry has changed, so
+the rest of the environment keeps its types, and the induction hypothesis applies to the
+continuation.
+
+\emph{Narrow.} If $\auth{\gamma(Q)} \subseteq \auth{\gamma(P)} \subseteq \auth{L(k)}$, the
+token has the type $\Plan{\gamma(Q)}$.
+
+\emph{Split.} From the premise and the type of the token,
+$\auth{\gamma(P_1)} \sh \auth{\gamma(P_2)} \subseteq \auth{L(k)}$, so the ledger has the
+step. It enters $\gamma(P_1)$ under a new name and $\gamma(P_2)$ under $k$, and the two
+tokens have exactly the types of the result.
+\end{proof}
+
+\begin{theorem}[Erasure]
+\label{thm:erasure}
+Let $\cdot; \cdot; \cdot \vdash e : \tau$. Then $e \evto^{\circ} u, r$ if and only if
+$\emptyset, e \evto L, v, s$ for some $L$, $v$, and $s$ that are $u$ and $r$ once the names
+and the split events are removed.
+\end{theorem}
+
+\begin{proof}
+No rule consults the ledger except to ask whether a step exists, and no value depends on a
+name. So the two semantics have the same evaluations up to the ones that go wrong in the
+first, and by Theorem~\ref{thm:safety} there are none.
+\end{proof}
+
+\subsection{What Happens Was Approved}
+
+\begin{definition}[Explained traces]
+\label{def:explained}
+In a trace, a name is \emph{under} a grant $\kw{grant}(g, P)$ if it is $g$ or is introduced
+by a split of a name under the grant. The trace is \emph{explained} if every name is
+introduced once, before any other event that contains it, and for every grant
+$\kw{grant}(g, P)$ the actions on the names under it, in the order of the trace, form a word
+of $\auth{P}$.
+\end{definition}
+
+The definition does not mention how a plan was divided. Whatever the parts did, taken
+together it has to be the beginning of a word of the plan that the person saw.
+
+\begin{lemma}[The ledger explains]
+\label{lem:ledger}
+If $\emptyset \lstep{s} L$, then $s$ is explained.
+\end{lemma}
+
+\begin{proof}
+For a grant of $P$ under $g$, let $u$ be the word of the actions so far on names under it,
+and let $k_1, \ldots, k_m$ be these names. We show that $u \in \auth{P}$ and
+\[
+\auth{L(k_1)} \sh \cdots \sh \auth{L(k_m)} \;\subseteq\; \auth{P / u}.
+\]
+After the grant, $m = 1$ and both sides are $\auth{P}$. A split replaces one $\auth{L(k_i)}$
+by a set $\auth{P_1} \sh \auth{P_2}$ that it contains, and the shuffle is monotone. An
+action $\ell$ on $k_i$ needs $\ell \in \auth{L(k_i)}$. Each of the sets contains the empty
+word, so $\ell$ is in the left side and hence in $\auth{P / u}$, which gives
+$u\,\ell \in \auth{P}$ by Lemma~\ref{lem:derivatives}(1). The inclusion for $u\,\ell$ is
+Lemma~\ref{lem:derivatives}(3), for $m$ parts.
+\end{proof}
+
+\begin{theorem}[Consent]
+\label{thm:consent}
+Let $\cdot; \cdot; \cdot \vdash e : \tau$. If $e \evto^{\circ} u, r$, then $r$ is an
+explained trace without its names and split events.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:erasure} and Lemma~\ref{lem:ledger}, since every evaluation with a ledger
+takes the steps of its trace.
+\end{proof}
+
+In words: in every execution of a well-typed program, without tokens and without a ledger,
+the actions can be assigned to the grants of the person such that the actions of each grant,
+in the order in which they happened, are the beginning of a word of the plan that was shown.
+This holds for every answer of the model and every reply of the world.
+
+\subsection{A Part Stays within Its Types}
+
+For a value $v$ of a closed type $\tau$, the \emph{least ledger} $\least{v}{\tau}$ maps the
+name of every token in $v$ to the plan in its type.
+
+\begin{theorem}[Authority]
+\label{thm:authority}
+Let $\Phi; \Gamma; \Delta \vdash e : \tau$ and $L \vdash \gamma : \Phi; \Gamma; \Delta \own O$,
+and let $L, \gamma(e) \evto L', v, s$. Then the least ledger of $\gamma$ at the types of
+$\Delta$ has the steps of $s$.
+\end{theorem}
+
+\begin{proof}
+As in the earlier paper: the least ledger gives $\gamma$ its types, an evaluation depends on
+the ledger only through the existence of steps, and by Theorem~\ref{thm:safety} the
+evaluation from the least ledger does not go wrong.
+\end{proof}
+
+With Lemma~\ref{lem:ledger}, applied to the least ledger as a sequence of grants, the theorem
+says that the actions of a part under a token of type $\Plan{P}$, and under everything that
+is split from it, form a word of $\auth{P}$: the plan of the type, also where the ledger
+holds more. Every other action of the part is under a grant that the person made while the
+part ran.
+
+\begin{corollary}[Lending]
+\label{cor:lending}
+Let code be accepted for $\Plan{P} \multimap \Plan{Q}$ and run on a token $\tok{k}$, and let
+$u$ be the word of its actions on the names under $k$. If the code returns a token whose
+name is under $k$, then $u\,w \in \auth{P}$ for every $w \in \auth{Q}$.
+\end{corollary}
+
+\begin{proof}
+Evaluate from the least ledger $[k \mapsto P]$. By Theorem~\ref{thm:safety} the result
+$\tok{k'}$ has the type $\Plan{Q}$ in the final ledger $L'$, so
+$\auth{Q} \subseteq \auth{L'(k')}$. By the invariant in the proof of Lemma~\ref{lem:ledger},
+$\auth{L'(k')}$ is contained in the shuffle of the entries under $k$, which is contained in
+$\auth{P / u}$. So $w \in \auth{P / u}$, and $u \in \auth{P}$.
+\end{proof}
+
+The corollary is the reason why lending works for plans with an order. The borrower cannot
+make a token, so a token for $Q$ that comes back is the one that was lent, or a part of it,
+or one for which the person was asked again. In the first two cases its type is a statement
+about the past: nothing was done that would make $Q$ impossible. In the example of
+Section~\ref{sec:overview}, with $Q = P = R$, no test and no push can have happened.
+
+\subsection{Narrowing Is Containment}
+
+\begin{theorem}[Containment]
+\label{thm:containment}
+Let $P$ and $Q$ be closed plans.
+\begin{enumerate}
+\item If $\auth{Q} \subseteq \auth{P}$, a token for $P$ may be used as a token for $Q$, and
+  the theorems of this section hold.
+\item If $\auth{Q} \not\subseteq \auth{P}$, there is a program that is well typed if a token
+  for $P$ may be used as a token for $Q$, and whose evaluation from the empty ledger goes
+  wrong.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(1) is the rule \textsc{Narrow}. (2) Take a word $u \in \auth{Q}$ that is not in $\auth{P}$.
+The program asks for $P$, uses the token as a token for $Q$, and performs the letters of $u$
+one after the other. Each action is well typed by Lemma~\ref{lem:derivatives}(1), since every
+prefix of $u$ is in $\auth{Q}$. If the person grants, the ledger holds $P$, and it has no
+step for the first letter with which $u$ leaves $\auth{P}$.
+\end{proof}
+
+So the question of the introduction has an exact answer. An agent that holds a token for $P$
+and wants to proceed by a plan $Q$ has to ask if and only if $\auth{Q}$ is not contained in
+$\auth{P}$. If it is contained, asking is unnecessary. If it is not, then by (2) no sound
+rule could let the program go on without a question. The type checker decides, since a
+program that narrows where it should ask does not type.
+
+\subsection{Approvals and Budgets Are Plans}
+
+The earlier paper has two kinds of tokens~\citep{tpp4}. An approval for an action $a$ with a
+payload that satisfies $\varphi$ is used up by one action. A budget for $a$ of the amount $n$
+is used up by payloads that sum to $n$, and it splits into budgets whose amounts add up to
+it.
+
+\begin{proposition}[Instances]
+\label{prop:instances}
+Let payloads be the numbers up to some bound. An approval is a token for the plan
+$a(x.\varphi)$. A budget of $n$ is a token for the plan $B_n$, where
+\[
+B_n \;=\; a(x.\,x = 0)^{*} \cdot \Bigl(\epsilon + \sum_{m = 1}^{n} a(x.\,x = m) \cdot B_{n - m}\Bigr).
+\]
+The authority of $B_n$ is the set of the words of letters $a(m)$ whose payloads sum to at
+most $n$. For $m \le n$, the plan $B_n / a(m)$ has the authority of $B_{n - m}$, and for
+$m > n$ the letter $a(m)$ is not in $\auth{B_n}$. And
+$\auth{B_s} \sh \auth{B_t} \subseteq \auth{B_n}$ if and only if $s + t \le n$.
+\end{proposition}
+
+\begin{proof}
+The description of the authority is by induction on $n$. The other claims follow from it: a
+word whose payloads sum to at most $n - m$ can follow $a(m)$, and an interleaving of two
+words has the sum of their sums.
+\end{proof}
+
+So the rules of the earlier paper for spending and splitting a budget are \textsc{Act} and
+\textsc{Split} for $B_n$, and its rule for narrowing an approval is \textsc{Narrow} for a
+letter. What plans add is everything between one action and an amount: order, alternatives,
+repetition of a group of actions, and bounds on some actions and not on others.
+
+\section{Plans in Use}
+\label{sec:use}
+
+\subsection{Three Plans}
+
+The operators of regular expressions correspond to things that people say when they approve
+a plan. Three examples, each checked by the artifact with a program that keeps the plan and
+one that does not.
+
+\paragraph{A condition on the order.} ``Push as often as you like, but never without a test
+since the last edit'':
+\[
+(\edit^{*} \cdot \test \cdot \push)^{*}.
+\]
+A program that edits, tests, pushes, edits twice, tests, and pushes is accepted. One that
+edits and pushes right away is rejected at the push: what is left of the plan after the edit
+begins with an edit or a test.
+
+\paragraph{A bound on one action.} ``Edit and test freely; push at most twice'':
+\[
+(\edit + \test)^{*} \;\parallel\; (\push + \epsilon) \cdot (\push + \epsilon).
+\]
+The shuffle says that the two pushes may come anywhere among the other actions. Without it
+the plan would need a copy of the starred part before, between, and after the pushes. A
+third push is rejected. This is a budget for one action inside a plan that leaves the others
+free.
+
+\paragraph{Two helpers.} ``One of you takes the files up to number 1, the other takes file
+2 and runs the tests'':
+\[
+\edit(x.\,x \le 1)^{*} \;\parallel\; (\edit(x.\,x = 2) + \test)^{*}.
+\]
+A token for this plan splits into two, one for each side, by the rule \textsc{Split}, and
+the two parts of the program proceed independently. If the first helper edits file 2, its
+action is rejected against its own half. A split of the first plan above into its edits and
+the rest is rejected, as in Section~\ref{sec:overview}: what a plan with an order allows to
+two independent parts is less than what it allows to one.
+
+\subsection{Asking Again}
+
+By Theorem~\ref{thm:containment}, the places of a program at which the plan changes are of
+two kinds. Where the new plan is contained in what the program holds, a narrowing types, and
+nothing happens at run time: no event, no question. Where it is not, the program does not
+type unless it asks. A person who approves a plan is therefore asked again only when the
+agent wants more than was shown, and is never asked when it wants less.
+
+The \exPrograms{} programs of the tests contain \exNarrowings{} narrowings and
+\exQuestions{} questions. These are random programs, and the proportion says nothing about
+real agents. It does show the two kinds side by side in programs that the checker accepts,
+and the test of Theorem~\ref{thm:containment} shows that none of the narrowings could have
+been a question that was skipped.
+
+How large a plan should be is a trade. A larger plan means fewer questions and more that can
+go wrong without one: the authority of a plan is exactly what its holder may do without the
+person hearing of it. A question has a price as well, in the time of the person and in what
+waiting does to the cost of the agent~\citep{tpp6}. The calculus does not choose. It makes
+the choice an explicit object, the plan in the grant, and it guarantees that the object means
+what it says.
+
+\section{Testing the Claims}
+\label{sec:tests}
+
+The artifact is one Python script without dependencies. It contains regular expressions with
+shuffle and their derivatives, the search that decides the two containments, the type
+checker, both semantics, Definition~\ref{def:explained} as a function that does not use the
+ledger, a generator of plans and programs, and the tests. All numbers are those of one fixed
+seed, and \texttt{make -C artifact check} computes them again and compares.
+
+\paragraph{The expressions.} Everything rests on derivatives, so the script first compares
+them with the definition of a language. For \exEnginePlans{} random plans it checks, on
+\exEngineWords{} words in all, that a word is in the language by derivatives exactly if it
+is by the definition, with the shuffle computed by trying all ways to divide the word.
+
+\paragraph{The theorems.} The generator builds programs that follow the typing rules: it
+keeps the contexts, asks for random plans, and searches for actions that the plan at hand
+allows under the facts. It narrows, splits, loops under starred plans, hands tokens to code,
+and lends them. With a switch it \emph{slips}: at each choice that a rule constrains it
+ignores the rule with probability \exSlip{}. We took \exTyped{} programs without slips and
+\exTyped{} with slips that the checker accepts, of which \exLucky{} contain a slip that did
+no harm. Each program ran three times with the ledger, and again without tokens on the same
+random stream. In every execution the ledger refuses no step
+(Theorem~\ref{thm:safety}); the execution without tokens gives the same value and trace
+(Theorem~\ref{thm:erasure}); the trace is explained (Theorem~\ref{thm:consent}); and wherever
+accepted code runs and at every turn of a loop, the part changes no entry that it does not
+own and the least ledger of its argument has the steps of its trace
+(Theorem~\ref{thm:authority}). The \exRuns{} executions contain \exAsks{} questions,
+\exGrants{} grants, \exActs{} actions and \exSplits{} splits. The model wrote \exWritten{}
+pieces of code, half of them for the type that was asked and the others for a larger plan
+or with slips; \exAccepted{} were accepted. In \exLent{} runs of accepted code a token came
+back that was under the one that was lent, and in each the statement of
+Corollary~\ref{cor:lending} holds: what the returned type allows is within what is left of
+the lent plan after what the code did.
+
+\paragraph{Containment.} For Theorem~\ref{thm:containment} the script draws \exPairs{} pairs
+of closed plans. In \exPairsYes{} of them the first contains the second; it then takes a
+random walk in the authority of the second and checks that the program which performs it
+under a narrowed token is well typed and is not refused. In the other \exPairsNo{} the search
+returns a word. The script checks that the word is in the authority of the second plan and
+not of the first, that the program of the proof is rejected by the checker, and that it is
+accepted and then refused by the ledger when the rule \textsc{Narrow} is replaced by one that
+always applies.
+
+\paragraph{Instances.} For Proposition~\ref{prop:instances} the script builds the plans
+$B_n$ over its four numbers and checks the three claims for every amount, every payload, and
+every way to divide an amount in two.
+
+\begin{table}[t]
+\caption{Ten checkers with one weakened rule. Each accepts a program that the ledger
+refuses in one of three executions. The last column is the number of random programs that
+were tried until the first such program.}
+\label{tab:broken}
+\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+Rule & What the weakened checker allows & Tried \\
+\midrule
+\textsc{Act} & an action that the plan does not allow & \exTryAct \\
+\textsc{Act} & the token keeps its plan after an action & \exTryResidual \\
+\textsc{Narrow} & a token serves for any plan & \exTryNarrow \\
+\textsc{Split} & any two parts & \exTrySplit \\
+\textsc{Run} & code runs without the check & \exTryRun \\
+division of $\Delta$ & a token is still there after it was used & \exTryContraction \\
+conditionals & a token counts as used only if both branches use it & \exTryBranch \\
+\textsc{Iter} & the body of a loop uses a token from outside & \exTryLoop \\
+conditionals & the second branch assumes the test and not its negation & \exTryIfFact \\
+bindings & a base variable is bound a second time & \exTryShadow \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Every rule is needed.} Table~\ref{tab:broken} weakens the checker in \exRules{}
+ways. For each the script draws programs from the generator with slips, here with
+probability \exSlipBroken{}, until the weakened checker accepts one that the ledger refuses.
+The second row is the rule that is specific to plans: if an action left the plan of its token
+as it was, a plan with one push would allow any number. The slowest to refute is the rule for
+branches, after \exSlowest{} programs.
+
+\paragraph{What the tests do not show.} The plans are small, the payloads are four numbers,
+and the programs have a nesting depth of at most six. The containment search is exact on
+such plans; it has a bound on its size, beyond which it refuses, and the bound was not
+reached in the tests of Theorem~\ref{thm:containment}, where a refusal without a word would
+have failed a check.
+
+\section{Limits}
+\label{sec:limits}
+
+\paragraph{Replies.} A plan is about what the agent does. It cannot say ``push only if the
+tests pass'', because the outcome of the tests is a reply of the world and replies are not
+letters. A program can decide by a conditional, and the plan then allows the push in either
+case. Putting replies into letters is possible and changes the theory at one point: a part of
+a split plan can then become impossible through a reply that the plan did not foresee, and
+the shuffle of the parts no longer describes what the others may still do. We have not found
+the right definition.
+
+\paragraph{Regular plans.} A plan cannot count without a bound or match an opening with a
+closing action at any depth. Budgets are regular only because payloads are bounded.
+
+\paragraph{Permission, not duty.} A token may be dropped, so the theorems speak of
+beginnings of words. They do not say that a plan is carried out. A token that must be used up
+would be a promise of the agent and not a permission of the person, and it would need a way
+for the agent to be released from it.
+
+\paragraph{What the person reads.} A regular expression is a formal object, and a person
+approves it only if it is shown in a form that the person can read. The step from the
+expression to that form, and back from a plan in prose to an expression, is not part of the
+calculus. The theorems are about the expression that is in the grant.
+
+\paragraph{Cost of deciding.} Containment with shuffle is expensive in the worst
+case~\citep{mayer1994}. The checker of the artifact enumerates assignments and searches
+pairs of derivatives, which is adequate for the plans of the tests and not a decision
+procedure that one would ship.
+
+\paragraph{Proofs.} The proofs are on paper, and the artifact tests them and does not prove
+them.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Types that follow a protocol.} Typestate lets the operations that a value permits
+depend on its state~\citep{strom1986}, and systems such as Vault track the state linearly to
+enforce protocols on resources~\citep{deline2001}. \citet{igarashi2002} give types to
+resources that carry a \emph{usage}, an expression that describes in which order the
+resource will be accessed, and check programs against it; our plans are usages in this
+sense, with predicates on payloads, read as permissions that a person grants, and with a
+split by shuffle. Session types describe the order of the messages on a
+channel~\citep{honda1993}. History effects go the other way: a type and effect system
+computes a description of the events that a program may cause, which is then checked against
+a policy~\citep{skalka2004}. A plan could be inferred in that way and shown to the person.
+The token is needed where the program is not fixed when the plan is approved, which is the
+case for code that the model writes.
+
+\paragraph{Derivatives.} What is left of a regular expression after a letter is due to
+\citet{brzozowski1964}; \citet{owens2009} show that derivatives make practical automata.
+We use them as the transition of a type. Predicates on letters are the idea of symbolic
+automata~\citep{dantoni2017}. The inclusion problem for regular expressions, and its cost
+with interleaving, are classical~\citep{stockmeyer1973,mayer1994}.
+
+\paragraph{Monitors.} A security automaton accepts the executions that a policy
+allows~\citep{schneider2000}. The ledger is one, with a state per token. As in the earlier
+paper, the type system shows that the monitor never fires, and the state of the monitor is
+held by the program in pieces, which is what makes it possible to give a part of it away.
+
+\paragraph{This series.} The calculus extends that of consent as a linear
+resource~\citep{tpp4}, whose two kinds of tokens are instances
+(Proposition~\ref{prop:instances}). Which actions need a question at all, given where their
+payloads come from, is the subject of~\citet{tpp7}, and what a question costs
+of~\citet{tpp6}. This paper adds when a question that was asked still covers what the agent
+is about to do. Its artifact follows the practice of~\citet{tpp10}: the quantities of the
+text, parameters included, are generated by the script.
+
+\section{Conclusion}
+
+A plan that a person approves is a set of sequences of actions, and the natural name for
+such a set is a language. Treating the approval as a value whose type is the language, and
+letting the type follow the actions by derivatives, makes three things checkable before an
+agent runs: that it stays within the plan, that a part of it stays within a part of the
+plan, and that it asks again exactly when the plan grows.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

@@ -1,0 +1,7 @@
+150 random plans: membership by derivatives agrees with the definition on 6000 words
+the checker gives the verdicts of Table 1 on the programs and the code of Section 2
+the three plans of Section 6: the checker accepts the programs that keep them and rejects the ones that do not
+6000 programs that the checker accepts (872 of them built with a rule ignored), three executions each: the ledger refuses no step, the execution without tokens gives the same trace and value, every trace is explained, and no part goes beyond the least ledger of what it was given; 23196 requests, 18561 grants, 28985 actions, 3116 splits, 4347 pieces of code written by the model, 2207 of them accepted, 699 of which give back the token that they were lent
+2000 pairs of plans: in 142 the first contains the second, and a walk in the second runs under a token for the first; in 1858 it does not, and the word that the search returns is refused by the ledger once the checker lets the narrowing through
+budgets as plans: paying takes the derivative, and two budgets interleaved stay within a budget exactly if their amounts sum to at most its amount
+10 checkers with one broken rule each: every one accepts a program that the ledger refuses, after contraction 102, branch 7424, loop 4450, shadow 535, act 1, residual 236, split 33, narrow 48, if-fact 69, run 12 programs
