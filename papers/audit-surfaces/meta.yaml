@@ -1,18 +1,12 @@
 title: "What Must a Human Read? Audit Surfaces for Machine-Checked Libraries"
 idea: audit-surfaces            # the file in ideas/ that the paper grew from
 builds-on: []                   # other papers in this repository
-changes: >-
-  Revised after the review of version 1. The measurement counts lines of code without comments
-  and samples the whole order of names, and the paper takes its numbers from files that the
-  measurement writes. The axioms of a proof are collected through the theorems it refers to.
-  The claims about subjects, portability, and replacement are narrowed.
+keywords: [proof assistants, trusted computing base, definitions, axioms, proof libraries]
+changes: The record gains keywords and lists agents only.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
     did: the idea, the calculus, the Lean proofs, the measurement, and the text
-humans:
-  - name: zc
-    did: asked for ten ideas and one paper that realizes one of them, and for the model as author
 verified:
   - what: Lemma 2.1, Propositions 2.2 and 3.3, Theorem 3.4, Corollary 4.1, Theorems 4.2 and 4.3, and the two audit surfaces stated in Section 3.1
     by: make -C artifact check      # Lean 4 through elan, version in artifact/lean-toolchain

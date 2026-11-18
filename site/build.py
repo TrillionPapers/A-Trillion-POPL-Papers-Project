@@ -4,8 +4,8 @@
 Usage: python site/build.py OUTPUT_DIR
 
 The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
-the record, the versions, the reviews, and the PDF of each paper, and renders RATIONALE.md and
-CONTRIBUTING.md. Earlier versions of a paper are read from the git history at the commits that
+the record, the versions, the reviews, and the PDF of each paper, renders RATIONALE.md and
+CONTRIBUTING.md, and writes a search page with its index, search.json. Earlier versions of a paper are read from the git history at the commits that
 papers/VERSIONS records.
 
 The script only reads files. It never runs anything that a contribution contains, and HTML that
@@ -13,6 +13,7 @@ comes from Markdown passes through an allowlist.
 """
 
 import html
+import json
 import os
 import posixpath
 import re
@@ -321,6 +322,11 @@ def describe(source):
             humans.append({key: text_of(human.get(key)) for key in ("name", "did")})
         elif text_of(human):
             humans.append({"name": text_of(human), "did": ""})
+    keywords = [text_of(word) for word in items_of(meta.get("keywords")) if text_of(word)]
+    if not keywords:
+        # a record without keywords falls back on the keywords of the paper itself
+        match = re.search(r"\\keywords\{([^{}]*)\}", tex)
+        keywords = [" ".join(word.split()) for word in match.group(1).split(",")] if match else []
     verified = []
     for claim in items_of(meta.get("verified")):
         if isinstance(claim, dict):
@@ -330,6 +336,7 @@ def describe(source):
         "idea": text_of(meta.get("idea")),
         "builds_on": [text_of(name) for name in items_of(meta.get("builds-on")) if text_of(name)],
         "changes": text_of(meta.get("changes")),
+        "keywords": [word for word in keywords if word],
         "agents": [agent for agent in agents if agent["model"]],
         "humans": [human for human in humans if human["name"]],
         "verified": [claim for claim in verified if claim["what"]],
@@ -380,6 +387,10 @@ def load_papers(numbers, versions):
             if state["problem"] == "meta.yaml is missing." and not state["tex"]:
                 warn(f"papers/{path.name}: version {version} is not in the git history here")
                 continue
+            # A human who is no longer named in the latest record is not named on the pages
+            # of earlier versions either.
+            named = {human["name"] for human in paper["humans"]}
+            state["humans"] = [human for human in state["humans"] if human["name"] in named]
             state.update(version=version, commit=commit, date=date)
             history.append(state)
         paper.update(
@@ -412,6 +423,7 @@ def page(title, body, base):
 <a class="brand" href="{base}index.html">{esc(SITE_NAME)}</a>
 <a href="{base}papers/index.html">Papers</a>
 <a href="{base}ideas/index.html">Ideas</a>
+<a href="{base}search.html">Search</a>
 <a href="{base}rationale.html">Rationale</a>
 <a href="{base}contributing.html">Contributing</a>
 <a href="{REPO_URL}">GitHub</a>
@@ -528,6 +540,9 @@ def record_rows(state, ideas, papers, base):
         value = (f'<a href="{base}ideas/{quote(idea["slug"])}.html">{esc(idea["title"])}</a>'
                  if idea else esc(state["idea"]))
         rows.append(("Idea", value))
+    if state["keywords"]:
+        rows.append(("Keywords", ", ".join(
+            f'<a href="{base}search.html?q={quote(word)}">{esc(word)}</a>' for word in state["keywords"])))
     for agent in state["agents"]:
         value = esc(agent["model"])
         if agent["harness"]:
@@ -658,6 +673,86 @@ def paper_body(paper, state, ideas, papers, base, version):
     return "\n".join(part for part in parts if part)
 
 
+def search_index(ideas, papers):
+    """Every paper and idea as data, for the search page and for agents."""
+    entries = []
+    for paper in papers:
+        entries.append({
+            "kind": "paper", "number": paper["number"],
+            "id": identifier(paper["number"], paper["version"]) if paper["number"] else None,
+            "name": paper["slug"], "title": paper["title"],
+            "url": f"papers/{quote(paper['slug'])}/index.html",
+            "authors": ([agent["model"] for agent in paper["agents"]]
+                        or [human["name"] for human in paper["humans"]]),
+            "keywords": paper["keywords"], "abstract": paper["abstract"], "idea": paper["idea"],
+            "builds_on": paper["builds_on"], "verified": len(paper["verified"]),
+        })
+    for idea in ideas:
+        entries.append({
+            "kind": "idea", "number": idea["number"], "name": idea["slug"], "title": idea["title"],
+            "url": f"ideas/{quote(idea['slug'])}.html", "text": plain(idea["body"]),
+        })
+    return json.dumps(entries, ensure_ascii=False, indent=1) + "\n"
+
+
+SEARCH_SCRIPT = """
+const box = document.getElementById("q");
+const list = document.getElementById("results");
+const note = document.getElementById("note");
+let entries = [];
+const words = e => [e.title, (e.keywords || []).join(" "), (e.authors || []).join(" "), e.id || "",
+                    e.name, e.abstract || "", e.text || ""].join(" ").toLowerCase();
+const front = e => (e.title + " " + (e.keywords || []).join(" ")).toLowerCase();
+function show() {
+  const terms = box.value.toLowerCase().split(/\\s+/).filter(Boolean);
+  const score = e => terms.filter(t => front(e).includes(t)).length;
+  const hits = entries.filter(e => terms.every(t => e.words.includes(t)));
+  hits.sort((a, b) => score(b) - score(a) || (a.kind === b.kind ? 0 : a.kind === "paper" ? -1 : 1)
+                      || (a.number || 1e15) - (b.number || 1e15));
+  list.replaceChildren();
+  for (const e of hits) {
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    const meta = document.createElement("p");
+    link.className = "title";
+    link.href = e.url;
+    link.textContent = e.title;
+    meta.className = "meta";
+    meta.textContent = (e.kind === "paper" ? "Paper" : "Idea") + (e.number ? " " + e.number : "")
+      + (e.keywords && e.keywords.length ? " · " + e.keywords.join(", ") : "");
+    item.append(link, meta);
+    list.append(item);
+  }
+  note.textContent = terms.length ? hits.length + " of " + entries.length + " entries match."
+                                  : entries.length + " entries.";
+  const url = new URL(location);
+  if (box.value) url.searchParams.set("q", box.value); else url.searchParams.delete("q");
+  history.replaceState(null, "", url);
+}
+fetch("search.json").then(reply => reply.json()).then(data => {
+  entries = data;
+  for (const e of entries) e.words = words(e);
+  box.value = new URLSearchParams(location.search).get("q") || "";
+  show();
+}).catch(() => { note.textContent = "The index could not be loaded."; });
+box.addEventListener("input", show);
+"""
+
+
+def search_page():
+    body = f"""<h1>Search</h1>
+<p>Words are matched against titles, keywords, authors, identifiers, abstracts, and ideas.
+An entry matches when every word occurs in it.</p>
+<p><input id="q" class="search" type="search" placeholder="integrity agents" autofocus></p>
+<p id="note" class="meta"></p>
+<ul id="results" class="entries"></ul>
+<p class="meta">The index is one file, <a href="search.json">search.json</a>. It lists every paper
+and idea with its number, its keywords, and its abstract, so an agent can read it instead of the
+pages.</p>
+<script>{SEARCH_SCRIPT}</script>"""
+    return page("Search", body, "")
+
+
 def doc_page(name, title):
     path = ROOT / name
     text = read(path) if path.is_file() else f"# {title}\n\nThis file is missing."
@@ -684,6 +779,8 @@ def build(out):
     write("index.html", home_page(ideas, papers))
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
     write("contributing.html", doc_page("CONTRIBUTING.md", "Contributing"))
+    write("search.html", search_page())
+    write("search.json", search_index(ideas, papers))
     write("ideas/index.html", page("Ideas", f"""<h1>Ideas <span class="count">{len(ideas)}</span></h1>
 <p>An idea is a few sentences. Agents and humans pick ideas up and write them into papers.</p>
 {entries([idea_entry(idea, "../", papers) for idea in ideas])}""", "../"))

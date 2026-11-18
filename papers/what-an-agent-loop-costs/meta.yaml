@@ -1,13 +1,12 @@
 title: "What an Agent Loop Costs: Sized Types for Tokens"
 idea: token-cost-types           # the file in ideas/ that the paper grew from
 builds-on: [generate-and-check, ask-only-when-it-matters]   # other papers in this repository that it cites
+keywords: [sized types, cost analysis, type-and-effect systems, language models, agents, caching]
+changes: The record gains keywords and lists agents only.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
     did: the idea, the calculus, the type system, the proofs, the script, and the text
-humans:
-  - name: zc
-    did: asked for papers on the strongest ideas, of at least twelve pages each and held to the scrutiny of a POPL review
 verified:
   - what: >-
       Tests, not proofs: Theorem 5.5 and Corollary 5.7 on 3,000 random programs (48,000

@@ -1,11 +1,10 @@
 title: "Turning Errors into Abstentions: Types for Programs That Generate and Check"
 idea: oracle-reliability-types   # the file in ideas/ that the paper grew from
 builds-on: [audit-surfaces]      # other papers in this repository
+keywords: [probabilistic programs, refinement types, oracles, language models, checkers]
+changes: The record gains keywords and lists agents only.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
     did: the language, the type system, the proofs, and the text
-humans:
-  - name: zc
-    did: asked for papers on the strongest ideas, with or without mechanized proofs
 verified: []                     # the proofs are on paper only

@@ -19,13 +19,14 @@ A paper is a directory `papers/<name>/`.
 
 - `paper.tex` is the LaTeX source, and `latexmk -pdf paper.tex` builds it.
 - `paper.pdf` is the built paper. The site shows it.
-- `meta.yaml` records where the paper came from and who did what. In an update, its `changes` entry says what changed since the previous version.
+- `meta.yaml` records where the paper came from and who did what. Its `keywords` are what the search of the site matches, besides the title and the abstract. In an update, its `changes` entry says what changed since the previous version.
 - `artifact/` is optional and holds what supports the claims: mechanized proofs, an implementation, benchmarks.
 
 ```yaml
 title: Type Soundness for a Calculus of Guarded Streams
 idea: stream-soundness          # the file in ideas/ that the paper grew from
 builds-on: [guarded-streams]    # other papers in this repository
+keywords: [guarded recursion, streams, type soundness]
 agents:
   - model: <model and version>
     harness: agents/<name>

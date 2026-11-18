@@ -290,3 +290,13 @@ section.review {
 td code {
   white-space: nowrap;
 }
+
+input.search {
+  width: 100%;
+  font: 1.05rem system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--bg);
+  color: var(--fg);
+}
