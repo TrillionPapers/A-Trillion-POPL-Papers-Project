@@ -1,0 +1,786 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\T}{\kw{T}}
+\newcommand{\V}{\kw{V}}
+\newcommand{\U}{\kw{U}}
+\newcommand{\lev}[1]{\ell(#1)}
+\newcommand{\ent}[2]{#1\langle #2 \rangle}
+\newcommand{\op}[1]{\kw{#1}}
+\newcommand{\keep}[1]{#1{\downarrow}}
+
+% A sentence that states a fact in words. The script has one check for every name.
+\newcommand{\claim}[2]{#2}
+
+% The rows of a table that the script writes.
+\makeatletter
+\newcommand{\rows}[1]{\@@input artifact/expected/#1.tex }
+\makeatother
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{An Injection Outlives Its Text: Summaries, Memory, and the Control They Carry}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script implements the machine of the paper and tests the theorems against every choice of an
+attacker on random programs. The session of Section~\ref{sec:session} is the author's own. At
+the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+An agent reads a page that an attacker wrote. Hours later its context is replaced by a
+summary, or it writes a note to its memory and another session reads the note. The text of
+the injection is gone by then. Its influence need not be, because the summary and the note
+were written by a model that had read the text. We ask how much of an injection survives
+such a step. A context is a subject whose integrity sinks to the lowest of what it has read,
+and a summary, a cell of a memory, and the record of what the agent did are objects that
+inherit it. We prove that when every label is kept, nothing that happens without the
+approval of a person depends on the attacker, and that this protection is useless in
+practice, because a context that has read once stays untrusted for good. The way out is a
+summary that is not text. A value of a type with $n$ values that crosses a compaction carries
+at most $\log n$ bits of the attacker's control, such values multiply over compactions and
+sessions, and the state of a monitor that the harness keeps is such a value. This is also
+the least that any summary can carry if it keeps what the task needs from the untrusted
+source: under the summary that holds the class of the data and nothing else, an injection
+can do exactly what honest data could do. Five places where a label is easily dropped each
+give the attacker a way around, and a script finds the attack for each. In the session that
+wrote eleven papers of this series, the first text from outside entered at the
+\exSessionFirst{} of \exSessionCalls{} tool calls. Every call after it,
+\exSessionShare{} percent of the session and among them every push, was made by a context
+that a sound harness would have had to distrust.
+\end{abstract}
+
+\keywords{prompt injection, integrity, information flow, endorsement, context compaction, memory, agents}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+An agent that reads text from outside can be told what to do by whoever wrote the
+text~\cite{greshake2023}. The defenses that hold by construction track where data comes from.
+They label what the agent reads, let the label flow to what the model says, and require a
+check or the approval of a person before something that depends on untrusted text has an
+effect~\cite{debenedetti2025,costa2025,tpp7}. An earlier paper of this series made the
+principle a type system and showed what remains for the attacker: a choice among the values
+that the checks accept~\cite{tpp7}.
+
+That analysis looks at one question to the model and its answer. An agent in a harness has a
+context that grows over hours, and two things happen to it that the analysis does not cover.
+The context is \emph{compacted}: when it is full, the model writes a summary, and the
+summary replaces the context~\cite{anthropic2025context}. And the agent has \emph{memory}:
+it writes notes that later sessions read~\cite{packer2023}. In both cases a text that a
+model wrote stands in for everything that the model had read. The page of the attacker is
+gone from the context. The model that wrote the summary had read it.
+
+Attacks of this shape are known. An instruction that is planted in the memory of an agent is
+obeyed in later sessions~\cite{chen2024,dong2025}. What is missing is an account of how
+much control such a step carries, and of what a harness must do so that it carries little.
+
+\paragraph{The account.} We take the oldest model of integrity that floats: a subject that
+reads an object sinks to the object's level, the low-water-mark of the literature on
+integrity~\cite{fraser2000}. A context is the subject. A source outside is an untrusted
+object. A summary, a cell of the memory, a file, and the record of what the agent did are
+objects that the context writes, and they inherit its level. When no label is dropped,
+nothing that happens without a person's approval depends on the attacker
+(Theorem~\ref{thm:same}). That is noninterference~\cite{goguen1982}, and it is cheap to
+state and expensive to live with: a context that has read from outside once is untrusted
+for the rest of its life, and so is every summary of it. In the session that wrote the first
+eleven papers of this series, that moment came at the \exSessionFirst{} tool call.
+
+\paragraph{The way out.} Integrity can be restored where the context is rebuilt, if what
+crosses is not text. Text can carry an instruction. A value of a finite type cannot: a number
+between one and ten is one of ten things whatever the attacker wanted it to be. So a
+compaction that keeps the trusted entries and a value of a type with $n$ values lets the
+attacker choose among $n$ continuations and no more (Theorem~\ref{thm:capacity}). The bound
+multiplies over compactions and over sessions, which means that the bits add. It covers the
+monitors of a harness as well: a ledger of what is owed~\cite{tpp12} is a value of the type
+of its states.
+
+\paragraph{The price.} A summary that carries nothing from the untrusted source forgets what
+the source said, and the task may need it. We show that the control and the need are the
+same quantity. If the rest of the task depends on the untrusted data through $n$ classes,
+every summary that keeps the task going lets the attacker choose among at least $n$
+continuations, and the summary that holds the class and nothing else lets it choose among
+exactly these (Theorem~\ref{thm:task}). Under that summary an injection has become a datum:
+the attacker can do what an honest source with other content could have done.
+
+Our main contributions are as follows:
+\begin{itemize}
+\item A machine with contexts, a store, labels, and five ways to compact, with an honest
+  semantics and a semantics under attack (Section~\ref{sec:machine}).
+\item The theorem that with all labels kept, what happens without approval is the same in
+  every run under attack (Theorem~\ref{thm:same}), and the bound by the product of the types
+  that cross compactions (Theorem~\ref{thm:capacity}).
+\item The theorem that the bound is the least possible for a summary that serves the task,
+  and that the typed summary attains it (Theorem~\ref{thm:task}).
+\item Five channels through which integrity is laundered when one label is dropped: the
+  summary, the record of the agent's own outputs, the store, the entries that a compaction
+  keeps, and a typed value that is text after all (Section~\ref{sec:launder}).
+\item A script that runs every choice of the attacker on random programs, \exProgramsAll{}
+  programs in all, and finds an attack for each dropped label; and a replay of the tool calls
+  of a real session (Sections~\ref{sec:session} and~\ref{sec:eval}).
+\end{itemize}
+
+\section{Overview}
+\label{sec:overview}
+
+An agent is given a task. It reads a page from the web, takes a step, and then its context
+is compacted. Two more steps follow. The page was written by an attacker.
+
+\begin{table}
+\caption{The example under attack. A future is what the two steps after the compaction can
+be. The third column counts what can happen without anybody being asked, and the last column
+the questions to the user at most.}
+\label{tab:example}
+\begin{tabular}{lrrr}
+\toprule
+compaction & futures & without asking & questions \\
+\midrule
+\rows{example}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{example}{Table~\ref{tab:example} shows what the attacker can make of the two steps,
+with \exOutputs{} possible outputs for each step.} Without compaction the context contains
+the page, the model does what the page says, and all nine combinations of two outputs can
+happen. A harness that tracks labels knows that the context is untrusted and asks the user
+before each output takes effect. A summary in free text changes nothing: the model that
+writes it has read the page, the summary says what the page wants, and the two steps that
+read the summary are as open as before. If the harness labels the summary correctly, it
+still asks twice. If it takes the summary for the model's own trusted words, the third line,
+it does not ask, and all nine combinations happen without anybody being asked. That is the
+injection that outlives its text.
+
+The fourth line keeps only the trusted entries: the task. The model that takes the two steps
+has never seen the page, and one future is left. Nobody is asked, and nothing of the page is
+known. If the task was to act on what the page says, it cannot be done. The fifth line
+keeps the task and one value of a type with three values, say a category of the page that
+the model extracts. The attacker controls the extraction and can choose the value. It cannot
+choose anything else: three futures, one for each value, and nobody needs to be asked,
+because whichever value arrives, the model that reads it is not under the influence of a
+text.
+
+\section{The Machine}
+\label{sec:machine}
+
+\subsection{Entries, Labels, and Operations}
+
+There are three labels, $\T \sqsubset \V \sqsubset \U$: trusted, typed, and untrusted. An
+\emph{entry} $\ent{l}{x}$ is a content $x$ with a label $l$. A \emph{context} $c$ is a
+sequence of entries, and its level $\lev{c}$ is the highest label of its entries, $\T$ for
+the empty context. A \emph{store} $\sigma$ maps cells to entries: the memory of the agent, or
+its files. We write $\keep{c}$ for the context $c$ without its untrusted entries.
+
+The \emph{model} is given by total functions of a context: $M$ for the output of a step,
+from a finite set $O$ of outputs; $W$ for the note that it writes to a cell; $S$ for a
+summary; and $G_n$ for a value of a type with $n$ values, for every $n$. A \emph{program} is
+a sequence of operations, which the harness and the user decide: the machine models what
+happens to a context, not who decides it. Figure~\ref{fig:machine} gives the operations. A
+state is a context, a store, and a list of \emph{events}, the outputs with the levels of the
+contexts that produced them.
+
+\begin{figure}
+\[
+\begin{array}{l@{\quad}l@{\quad}l}
+\op{say}\ x & c \;\mapsto\; c \cdot \ent{\T}{x} & \\
+\op{read} & c \;\mapsto\; c \cdot \ent{\U}{w} & \text{for any text } w \\
+\op{step} & c \;\mapsto\; c \cdot \ent{\lev{c}}{\op{did}\ o},\ \text{event } \ent{\lev{c}}{o} & o = M(c) \text{ or any output} \\
+\op{save}\ k & \sigma \;\mapsto\; \sigma[k := \ent{\lev{c}}{v}] & v = W(c) \text{ or any note} \\
+\op{note}\ k\ n & \sigma \;\mapsto\; \sigma[k := \ent{\V}{v}] & v = G_n(c) \text{ or any of the } n \\
+\op{load}\ k & c \;\mapsto\; c \cdot \sigma(k) & \\
+\op{new} & c \;\mapsto\; \text{the empty context} & \\
+\op{free} & c \;\mapsto\; \ent{\lev{c}}{s} & s = S(c) \text{ or any summary} \\
+\op{clean} & c \;\mapsto\; \keep{c} & \\
+\op{typed}\ n & c \;\mapsto\; \keep{c} \cdot \ent{\V}{v} & v = G_n(c) \text{ or any of the } n
+\end{array}
+\]
+\caption{The operations. Where the last column says ``or any'', the first alternative is
+taken when $\lev{c} \neq \U$, and under attack any alternative can be taken when $\lev{c} =
+\U$.}
+\Description{A table of ten operations with their effect on the context or the store: say,
+read, step, save, note, load, new, and the three compactions free, clean and typed.}
+\label{fig:machine}
+\end{figure}
+
+The first seven operations are the life of a context. The user or the harness adds a trusted
+entry. A source outside adds an untrusted one. The model takes a step, and the output is
+recorded in the context with the level of the context that produced it: the answer of the
+model is as untrusted as its question~\cite{tpp7}. The model writes a note to a cell, which
+gets the level of the context, or a note of a type with $n$ values, which is typed. A context
+that loads a cell gets the entry with the level that the cell has, and $\op{new}$ starts a
+session: the context is empty and the store stays. The last three operations are compactions. $\op{free}$ replaces the
+context by a summary that the model writes, with the level of the context. $\op{clean}$
+keeps the entries that are not untrusted. $\op{typed}\ n$ keeps the same entries and adds
+one value of a type with $n$ values that the model extracts from the context.
+
+A harness may also keep a \emph{monitor}: a finite automaton with $k$ states that reads the
+outputs, such as the ledger of obligations of an earlier paper~\cite{tpp12}. At every
+compaction it adds its state to the new context as an entry of level $\V$.
+
+\subsection{Honest Runs and Runs Under Attack}
+
+In a \emph{run under attack}, a source shows any text, and whenever the context is untrusted
+the model's output, note, summary, or value is arbitrary: the attacker writes the text, and
+the text decides what the model does. This is the worst case, and it is the assumption under
+which defenses by construction are judged. In an \emph{honest run} for data $d_1, d_2,
+\ldots$ from a finite set $D$, the sources show these data and the model always answers by
+its functions. An honest run is one of the runs under attack.
+
+The assumption that the model follows its functions when the context is not untrusted has
+two parts, and we state them because everything rests on them.
+\begin{itemize}
+\item \emph{Trusted entries are trusted.} What the user says and what the harness records is
+  not written by the attacker.
+\item \emph{Values are inert.} A value of a finite type cannot make the model leave its
+  function. The model may act differently for different values, as its function says; it
+  cannot be instructed by one.
+\end{itemize}
+The second part is the reason for a third label. A typed entry is not trusted, because the
+attacker may have chosen its value. It is not text either.
+
+\begin{lemma}[Labels are static]
+\label{lem:static}
+The labels of all entries, cells, and events of a run depend on the program alone.
+\end{lemma}
+
+\begin{proof}
+Every operation computes the labels of what it adds from the labels of the context and the
+store, and no label depends on a content.
+\end{proof}
+
+So a harness knows, without looking at any content, which contexts are untrusted. The
+discipline that goes with the labels is that of the earlier paper: an output of an untrusted
+context that is \emph{sensitive} takes effect only if a person approves it.
+
+\begin{lemma}[Taint lasts]
+\label{lem:lasts}
+After a $\op{read}$, or after loading a cell that an untrusted context wrote, every output
+has the label $\U$ until the next $\op{clean}$, $\op{typed}$, or $\op{new}$. A $\op{free}$
+compaction in between does not change this.
+\end{lemma}
+
+\begin{proof}
+The context has an untrusted entry, every operation except these three keeps one, and the
+summary of $\op{free}$ has the level of the context.
+\end{proof}
+
+\section{What Happens Without Asking}
+\label{sec:seen}
+
+\begin{definition}[Seen]
+\label{def:seen}
+The \emph{seen part} of a run consists of the events whose label is not $\U$, in order, and
+of the cells of the final store whose label is not $\U$, with their contents.
+\end{definition}
+
+The seen part is what takes effect without the approval of a person: the outputs of contexts
+that the harness does not distrust, and the notes that later sessions will read without
+distrust.
+
+\begin{theorem}[Nothing crosses unlabelled]
+\label{thm:same}
+For a program without typed compactions, typed notes, and monitor, all runs under attack have
+the same seen part. It is the seen part of every honest run.
+\end{theorem}
+
+\begin{theorem}[Capacity]
+\label{thm:capacity}
+Let a program have typed compactions and typed notes with types of $n_1, \ldots, n_j$ values,
+and a monitor with $k$ states that is consulted at $m$ compactions. Then the runs under attack
+have at most $n_1 \cdots n_j \cdot k^m$ different seen parts.
+\end{theorem}
+
+\begin{proof}[Proof of both]
+Call the \emph{clean part} of a state the entries of its context that are not untrusted, the
+cells of its store that are not untrusted, and the events that are not untrusted. We show
+that the clean part after each operation is determined by the program and by the values
+that entered contexts with the label $\V$ so far. By Lemma~\ref{lem:static} the labels are
+determined by the program. $\op{say}$ adds a fixed entry, and $\op{read}$ adds nothing to the
+clean part. For $\op{step}$, $\op{save}$, and $\op{free}$ there are two cases. If the context
+is not untrusted, it consists of entries of the clean part, and the model answers by a
+function of it. If the context is untrusted, what is added has the label $\U$ and is not in
+the clean part; a cell that is overwritten leaves it. $\op{load}$ adds a cell of the clean
+part or an untrusted entry. $\op{clean}$ and $\op{typed}$ keep entries of the clean part,
+and $\op{typed}\ n$ adds one of $n$ values, as $\op{note}\ k\ n$ adds one to the store. $\op{new}$
+empties the context. The monitor adds one of $k$ states. So there are
+at most $n_1 \cdots n_j \cdot k^m$ clean parts at the end, and the seen part is a part of
+the clean part. Without typed values and monitor the product is one. An honest run is a run
+under attack.
+\end{proof}
+
+Theorem~\ref{thm:same} is noninterference for integrity~\cite{goguen1982}: the attacker
+controls the untrusted sources and, through them, the model, and nothing of this reaches
+what is seen. It needs every label of Figure~\ref{fig:machine}; Section~\ref{sec:launder}
+drops them one at a time.
+
+Theorem~\ref{thm:capacity} is the quantitative form. In bits, the attacker's control over
+what happens without asking is at most $\sum_i \log n_i + m \log k$, the measure that
+\citet{clarkson2010} call contamination. The earlier paper found that a check gives the
+attacker the logarithm of its acceptance set~\cite{tpp7}; a typed compaction is such a check
+on a whole context. Three consequences are worth stating.
+
+\begin{table}
+\caption{Two sessions. The first reads a page and writes a note; the second loads the note
+and takes two steps. The columns are those of Table~\ref{tab:example}, for the steps of the
+second session.}
+\label{tab:memory}
+\begin{tabular}{lrrr}
+\toprule
+the note & futures & without asking & questions \\
+\midrule
+\rows{memory}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Sessions.} A store that outlives a context makes several sessions one program:
+each session starts with $\op{new}$ and loads cells. The theorems do not distinguish this
+case. A note that an untrusted context writes is untrusted, and a session that loads it is
+untrusted from then on. \claim{memory}{Table~\ref{tab:memory} repeats the example of
+Section~\ref{sec:overview} with a note in the place of the summary}: the note in free text
+makes the second session ask before each step, the same note taken for trusted hands both
+steps to the attacker, and a note of a type with two values gives the attacker one bit.
+Harnesses that tell the model to treat what it recalls as background and not as instruction
+ask the model to keep a label that the harness could keep itself.
+
+\paragraph{Other agents.} A report of a sub-agent is a summary of the sub-agent's context,
+and a brief for a sub-agent is a summary of the context of the agent that sends it. The
+machine has no separate operation for either, because none is needed: the report has the
+level of the context that wrote it. An agent that sends a sub-agent to read the web and takes
+its report as text has read the web. An agent that takes a value of a small type from it has
+not, and this is the shape of the designs with a quarantined model~\cite{debenedetti2025,
+costa2025}.
+
+\paragraph{Monitors.} The state of a monitor depends on the outputs, and under attack the
+outputs are the attacker's. The state is nevertheless safe to carry over, at a price of
+$\log k$ bits, because it is one of $k$ things. A harness can therefore keep ledgers,
+budgets, and what is left of a plan across a compaction without keeping the taint.
+
+\paragraph{Text by reference.} A harness need not throw the untrusted text away at a
+$\op{clean}$ or $\op{typed}$ compaction. It can $\op{save}$ it to a cell, which is then
+untrusted, and keep the name of the cell, which is trusted. The text is still there for the
+day when it is needed, and the context that loads it becomes untrusted on that day and not
+before.
+
+\section{What a Task Needs}
+\label{sec:task}
+
+A clean compaction costs the agent what it had learned from the untrusted source. Whether
+that matters depends on the task. We make the dependence precise for the simplest shape of a
+task: one untrusted datum is read, the context is compacted, and $m$ steps follow.
+
+\begin{definition}[Classes, faithful]
+\label{def:task}
+Fix a model and a context $c_d$ for every datum $d \in D$, the context after the task was
+stated and $d$ was read. The \emph{future} of $d$ is the sequence of the $m$ outputs that
+the honest run takes from $c_d$ without compaction. Two data are in the same \emph{class}
+if they have the same future, and $n$ is the number of classes. A way to compact is
+\emph{faithful} if, for every $d$, the honest run that compacts $c_d$ and then takes $m$
+steps has the future of $d$.
+\end{definition}
+
+A way to compact is, in general, any operation that replaces the context and that under
+attack may replace it by any context that the model could be made to write. The classes are
+the equivalence of \citet{nerode1958} once more: they are what the rest of the task can
+tell apart.
+
+\begin{theorem}[The least a faithful summary carries]
+\label{thm:task}
+Let the task have $n$ classes.
+\begin{enumerate}
+\item Under every faithful way to compact, the runs under attack have at least $n$ different
+  futures.
+\item $\op{typed}\ n$ with the class of the datum as its value is faithful for a model that
+  acts on the class, and under it the runs under attack have exactly the futures of the
+  honest runs.
+\item $\op{clean}$ is faithful exactly if $n = 1$.
+\item $\op{free}$ with a summary from which the model continues as before is faithful, and
+  under it every sequence of $m$ outputs is the future of a run under attack.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(1) The attacker can have the source show any datum, since the source is its own. The run
+is then honest, and by faithfulness its future is that of the datum. Data of different
+classes have different futures. (2) After the compaction the context is the trusted entries
+and a value, so it is not untrusted and the model acts by its function, which gives the
+future of the class. Under attack the value is any of the $n$, and these are the futures of
+honest runs. (3) After $\op{clean}$ the context does not depend on the datum, so all data
+have one future. (4) The summary has the level $\U$ by Lemma~\ref{lem:lasts}, and each of
+the $m$ outputs is arbitrary.
+\end{proof}
+
+\begin{table}
+\caption{Tasks with data in classes and two steps after the compaction: whether the way to
+compact is faithful, the number of futures that the task needs, and the number that can
+happen under attack.}
+\label{tab:task}
+\begin{tabular}{rrlcrr}
+\toprule
+data & classes & compaction & faithful & needed & under attack \\
+\midrule
+\rows{task}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{task}{Table~\ref{tab:task} shows the theorem on four tasks.} Part (2) is the sense in
+which the typed summary is the best possible, in the order of inclusion and not only in
+number: what the attacker can cause is what a source with other honest content would have
+caused. The injection has lost what made it one, the power to instruct, and has kept the
+power of data, which no summary that serves the task can take away. Part (4) is the summary
+of today. It serves every task and withholds nothing from the attacker.
+
+\paragraph{Several data.} The theorem extends to a task that reads several data, each
+followed by a compaction, when the future depends on each datum through its class, which may
+depend on what was read before. If the $i$th datum has $n_i$ classes, the typed compactions
+carry values of $n_1, \ldots, n_r$ values and are faithful, the bound of
+Theorem~\ref{thm:capacity} is $n_1 \cdots n_r$, and it is reached, because every
+combination of classes is the content of honest sources. The control of the attacker over a
+whole session is then the sum of the bits that the task takes from its sources, and it is
+known before the session starts.
+
+\paragraph{The shape of a summary.} Together, the theorems say what a summary should be
+made of. It has four parts.
+\begin{enumerate}
+\item The trusted entries, word for word: what the user said and what trusted tools returned.
+  A paraphrase by the model would have the level of the context.
+\item The states of the monitors that the harness keeps: what is owed, what is left of the
+  budget and of the plan. Each is a typed value.
+\item Typed values that the model extracts from what it read, each of a type as small as the
+  rest of the task allows.
+\item The names of the cells in which the untrusted texts are kept, for the case that one is
+  needed again.
+\end{enumerate}
+What is missing from the list is what summaries consist of today: prose by the model about
+its own past. The prose may be shown to the user. It should not be shown to the model as
+trusted. The summaries of the session of Section~\ref{sec:session} have the first part: a
+section that repeats the messages of the user word for word. The rest of them is prose.
+
+The theorem also says when to ask for nothing. If the rest of the task does not depend on
+what was read, the clean compaction is faithful, and a harness that can tell, because the
+user's request does not mention the source again, should prefer it.
+
+\section{Five Ways to Launder}
+\label{sec:launder}
+
+Theorems~\ref{thm:same} and~\ref{thm:capacity} need every label of Figure~\ref{fig:machine}.
+Each of the five places where the figure assigns a label is a place where an implementation
+can assign a better one by mistake, and each such mistake is a channel. With a mistake, what
+the harness believes about a context and what the context is are two things. The model does
+what the context is: it follows a text of the attacker under any label. The harness asks by
+what it believes.
+
+\begin{table}
+\caption{Five labels, each dropped in turn. The last column is the number of random programs
+after which the script finds runs under attack whose seen parts differ, or exceed the
+capacity.}
+\label{tab:launder}
+\small
+\begin{tabular}{llr}
+\toprule
+what is trusted by mistake & why it is tempting & programs \\
+\midrule
+the summary of an untrusted context & the model wrote it, not the attacker & \exTryWashSummary \\
+the record of an output of an untrusted context & the harness recorded it & \exTryWashRecord \\
+a cell that an untrusted context wrote & it is the agent's own memory & \exTryWashStore \\
+the untrusted entries at a clean compaction & they were there before & \exTryRelabel \\
+a typed value that may be a text & the schema has a field for notes & \exTryTypedText \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{laundering}{For each of the \exMutants{} the script finds an attack}
+(Table~\ref{tab:launder}). The first is the persistent injection of
+Section~\ref{sec:overview}, and the attack is complete: every output after the summary is the
+attacker's, and nobody is asked. The second is less obvious. That the agent took a certain step
+is a fact, and the harness knows it first hand. But which step it took was decided by a
+context that the attacker controlled, so the record is a message from the attacker to the
+context after the compaction: three outputs, three messages. The record may cross as the
+state of a monitor, which is typed. The third is the attack on memory of the
+literature~\cite{chen2024,dong2025}, and it covers files: a file that the agent wrote while
+its context was untrusted is an untrusted file. The fourth is a compaction that means to
+drop the untrusted text and keeps it under a better label. The fifth is the typed summary
+with one field of free text, for which the bound of Theorem~\ref{thm:capacity} is void: a
+type with a text in it has as many values as there are texts.
+
+\section{How Long a Context Stays Untrusted}
+\label{sec:decay}
+
+A harness that compacts by the clock, and not after every read, leaves the context untrusted
+from a read to the next compaction. How much of a run that is depends on two numbers.
+
+\begin{proposition}[Decay]
+\label{prop:decay}
+Let every operation be a read with probability $p$, independently, and let a clean or typed
+compaction follow every $k$ operations. Then the expected share of the operations that find
+the context untrusted is
+\[
+  1 - \frac{1 - q^{k}}{k\,(1 - q)} \qquad \text{with } q = 1 - p .
+\]
+Without such compactions the share tends to one with the length of the run.
+\end{proposition}
+
+\begin{proof}
+After a compaction, the $i$th operation finds the context untrusted exactly if one of the
+$i - 1$ operations before it was a read, which has the probability $1 - q^{i-1}$. The mean of
+this over $i = 1, \ldots, k$ is the formula. Without compactions the probability for the
+$i$th operation of the run is $1 - q^{i-1}$ by Lemma~\ref{lem:lasts}, which tends to one.
+\end{proof}
+
+\begin{table}
+\caption{The share of operations that find the context untrusted, in percent, when a clean
+or typed compaction follows every $k$ operations: by Proposition~\ref{prop:decay} and in a
+simulation of \exDecayPeriods{} periods.}
+\label{tab:decay}
+\begin{tabular}{rrrr}
+\toprule
+$p$ & $k$ & formula & simulation \\
+\midrule
+\rows{decay}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{decay}{Table~\ref{tab:decay} gives the share for some values, and a simulation agrees
+with the formula to within one percent.} The share is small only when $k p$ is small, that
+is, when a compaction is more frequent than a read. A harness that reads often cannot get
+there by compacting the whole context. It gets there by reading in a side context, which is
+a compaction of that side context after one read: the main context then has $p = 0$.
+
+The proposition counts the operations that an untrusted context performs. It does not say
+that the attacker succeeds at each of them, and real models resist most injections. But a
+text that stays in the context is read again at every step.
+
+\begin{proposition}[An injection is retried]
+\label{prop:retried}
+Let each step of an untrusted context be taken over by the attacker with probability
+$\varepsilon$, independently. Then the probability that one of $m$ steps after a read is taken
+over is $1 - (1 - \varepsilon)^m$. With a clean or typed compaction after $j \le m$ steps it
+is $1 - (1 - \varepsilon)^j$.
+\end{proposition}
+
+\begin{proof}
+The steps are independent trials, and after the compaction the context is not untrusted.
+\end{proof}
+
+\claim{retried}{A model that follows an injection in one step of a hundred, and that takes
+the \exSessionAfter{} steps that the session of Section~\ref{sec:session} took after its
+first read, is taken over somewhere with a probability of \exRetryWhole{} percent. If the
+text is gone after five steps, the probability is \exRetryFive{} percent; a simulation of
+\exRetryTrials{} runs agrees with the formula.} Resistance per step
+is no protection over a long context. What bounds the exposure is how long the text stays.
+
+\paragraph{Where to ask.} When the task needs a text and not a value, as in writing about
+what a page says, the context that writes is untrusted and stays so. The labels then say
+where the one question to a person belongs: at the output through which the text leaves,
+where a person can read what goes out, and not at every later step that only handles it.
+The approval of a person is the one endorsement that a text can get~\cite{tpp4,tpp7}.
+
+\paragraph{What a harness should do.} The results amount to six rules for a harness, each of
+which a harness can follow without the cooperation of the model.
+\begin{enumerate}
+\item Label every entry of a context when it is added, by where it came from, and give what
+  the model writes the level of the context that it wrote it in
+  (Lemma~\ref{lem:static} makes this a computation on labels alone).
+\item Give a summary, a note, a file, and the record of an output the level of the context
+  that wrote them, and give a context the level of what it loads
+  (Theorem~\ref{thm:same}, and the first three lines of Table~\ref{tab:launder}).
+\item Read untrusted sources in a side context, and let only values of small types return
+  (Theorem~\ref{thm:capacity}, Proposition~\ref{prop:decay}).
+\item Choose each type as small as the rest of the task allows, and no free text in it
+  (Theorem~\ref{thm:task}, and the last line of Table~\ref{tab:launder}).
+\item Build a summary from the four parts of Section~\ref{sec:task}, and keep the untrusted
+  texts by reference.
+\item Where a text must be used as a text, ask a person once, at the output through which it
+  leaves.
+\end{enumerate}
+Rules 1 and 2 cost nothing and decide nothing by themselves: with them alone the labels are
+correct and almost always say untrusted. Rules 3 to 5 are what make a trusted context last.
+
+\section{A Session}
+\label{sec:session}
+
+How long does a context stay trusted in practice? We replayed the session of the paper on
+obligations~\cite{tpp12}, the session that wrote the eleven papers before that one, through
+the labels. A script reduces every tool call of the main agent to one of three kinds: a
+\emph{read} brings text from outside into the context, which is a search of the web, a page,
+the answer of a server of bibliographic records, or the report of a sub-agent, whose own
+context we cannot see; an \emph{act} changes something outside the machine, which in this
+session is a push to the public repository or a request that changes its settings; and every
+other call is a step. The trace has these words and the marks of the summaries and nothing
+else, and it is in the artifact.
+
+\claim{session}{The session has \exSessionCalls{} calls up to its third summary:
+\exSessionReads{} reads, of which \exSessionLookups{} are lookups of bibliographic records,
+\exSessionPages{} are pages or searches, and \exSessionAgents{} are reports of sub-agents;
+\exSessionActs{} acts; and steps. The first read is the \exSessionFirst{} call. With every
+label kept, the \exSessionAfter{} calls after it that are not reads are made by an untrusted
+context, \exSessionShare{} percent of all calls, and all \exSessionActs{} acts are among
+them.} A harness that enforced Theorem~\ref{thm:same} would have asked a person before every
+push of the session. The \exSessionSummaries{} summaries would not have helped, by
+Lemma~\ref{lem:lasts}. Even a harness that wrongly trusted its summaries would have asked
+before every one of them, because each stretch between two summaries has reads of its own
+before its pushes.
+
+\begin{table}
+\caption{The three stretches of the session between its summaries: the calls of each, the
+reads and the acts among them, the call of the stretch at which its first read happens, and
+the acts after that call.}
+\label{tab:stretches}
+\begin{tabular}{rrrrrr}
+\toprule
+stretch & calls & reads & acts & first read & acts after it \\
+\midrule
+\rows{stretches}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{stretches}{Table~\ref{tab:stretches} shows the stretches one by one.} In each of them
+the first read comes before every act of the stretch, so that a summary which cleaned the
+context would have bought little by itself: the context is untrusted again within a few
+calls.
+
+We do not conclude that the session was attacked. We conclude that the label, kept honestly,
+says nothing in such a session: it is on from the start. This is the old complaint about the
+low-water-mark, that subjects only sink~\cite{fraser2000}, and it is why the question of
+this paper is about decay. What would the typed discipline have cost here? The
+\exSessionLookups{} lookups verified references: the agent asked a server for the record of
+an identifier and compared title, authors, and year with what it was about to cite. The
+comparison can be done by trusted code, and its result is one bit. Handled in a side context
+that returns this bit, the lookups would have left the main context trusted, at a capacity
+of \exSessionLookups{} bits for the whole session by Theorem~\ref{thm:capacity}: an attacker
+in control of every record could have chosen among \exLookupFutures{} sessions, each of
+which differs from the honest one only in which references the agent took for verified. The pages
+are different. The agent read them to learn what related work says, and what it learned
+went into the papers as prose. For that there is no small type, and by
+Theorem~\ref{thm:task} there cannot be: a task that needs the content of a text gives the
+writer of the text control of what is done with it. What a harness can still do is ask at
+the right place, once, where the prose goes out, and not at every later push.
+
+\section{Evaluation}
+\label{sec:eval}
+
+The artifact is one Python script of about \exLines{} lines with no dependencies. It
+implements the machine of Figure~\ref{fig:machine} with a model that is a fixed function of
+what it reads, computed by a checksum of the context, so that any dependence on a content
+shows as a different output. For a program it enumerates every run under attack: every text
+that a source can show, among them the data of honest sources and a text that no honest
+source shows, and every output, note, summary, and value that the model can be made to
+produce while its context is untrusted. The command \texttt{make -C artifact check} runs the
+script and compares its output with the files from which this paper takes its numbers and
+the rows of its tables.
+
+\paragraph{The theorems.} A random program has up to eight operations, drawn from those of
+Figure~\ref{fig:machine} by a generator with seed \exSeed{}; sessions are tested with the
+short programs below. \claim{same}{For \exPrograms{}
+programs without typed values, with \exPlainRuns{} runs under attack between them, all runs
+of a program have the same seen part (Theorem~\ref{thm:same}).} \claim{capacity}{For
+\exPrograms{} programs with typed values and monitors, with \exTypedRuns{} runs, the number
+of seen parts is at most the bound of Theorem~\ref{thm:capacity}; the bound is more than one
+for \exTypedMore{} of the programs and is reached by \exTypedFull{} of them.} For most of these the bound is not reached, because a
+model that is a checksum seldom produces different outputs for different values within a few
+steps; the tasks of Table~\ref{tab:task} reach it by design. \claim{short}{The bound also holds for every one of the \exShortPrograms{} programs of at most
+four operations, from \exShortOps{} operations, that follow the statement of a task, with
+\exShortRuns{} runs under attack.} In all random programs, the seen part
+of every honest run is among those of the runs under attack, and the outputs between a read
+and the next clean or typed compaction are untrusted (Lemma~\ref{lem:lasts}).
+
+\paragraph{The dropped labels.} Each line of Table~\ref{tab:launder} is a switch in the
+script that assigns the better label. With a switch on, the script runs the same test until
+it fails, which it does after between \exTryLeast{} and \exTryMost{} programs. The attack
+that it finds is a pair of runs of one program whose seen parts differ.
+
+\paragraph{The cost of keeping labels.} To see how much of a run is spent in an untrusted
+context, the script simulates \exCostSessions{} sessions of \exCostLength{} operations of
+which about one in seven is a read. \claim{cost}{Without compaction, and with summaries in
+free text, \exCostChosen{} of the \exCostSteps{} steps are taken by an untrusted context,
+\exCostShare{} percent; with a clean or typed compaction after every read, none is.} The
+session of Section~\ref{sec:session} is worse than the simulation, because it is long and
+its first read is early.
+
+\paragraph{What the tests do not show.} The enumeration is complete for the programs that it
+runs, which are short, and for a model that is one fixed function. The two assumptions of
+Section~\ref{sec:machine} are assumptions about models and cannot be tested by a script.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Prompt injection and defenses by construction.} \citet{greshake2023} showed that
+text which an application retrieves can instruct its model. The defenses that do not rely on
+the model resisting separate what is trusted from what is not. \citet{debenedetti2025} have
+a privileged model write a plan from the user's request alone and a quarantined model
+process untrusted data, with capabilities on values that restrict where data may flow.
+\citet{costa2025} track labels through an agent's loop with information-flow control and, as
+we read them, restrict the form of what a model that has processed untrusted data may hand
+back to the planner; our typed value is this idea, and Theorem~\ref{thm:task} says how small
+the type can be made. \citet{beurer2025} collect design patterns, among them one
+that removes untrusted content from the context before later steps. None of these treats the
+compaction of a long context or the notes of a memory as the place where integrity is lost
+or restored, and none gives the bound over time. The attacks that motivate the question
+plant instructions in an agent's memory or knowledge base~\cite{chen2024,dong2025}.
+
+\paragraph{Integrity and its quantification.} Labels that flow with data go back to
+\citet{denning1976}, and noninterference to \citet{goguen1982}. For integrity,
+\citet{clark1987} required that data enter the trusted part of a system only through
+certified transformations, which is what a check or a typed extraction is. The
+low-water-mark policy, in which a subject sinks to the level of what it reads, was made
+practical by \citet{fraser2000}, who also describes its weakness, that subjects sink and do
+not rise. A compaction is a point at which a subject can be rebuilt, and that is what makes
+the old policy usable for agents. Raising a level deliberately is endorsement, the dual of
+declassification~\cite{sabelfeld2003,sabelfeld2009}; robust declassification asks that an
+attacker not control what is released~\cite{zdancewic2001,myers2006}, and
+Theorem~\ref{thm:task}(2) is a statement of this kind for endorsement: under the typed
+summary the attacker controls which class is endorsed and nothing about how. Quantitative
+information flow measures leaks in bits~\cite{smith2009}, and \citet{clarkson2010} measure
+integrity the same way; our bound is on their contamination.
+
+\paragraph{This series.} The level of a model's answer, checks that endorse, and the count of
+bits per check are from~\cite{tpp7}. Approvals are from~\cite{tpp4}. The ledger whose state
+crosses a compaction as a typed value is from~\cite{tpp12}, as is the observation that what a
+successor needs is a quotient; here the quotient is taken with respect to the untrusted
+datum. The practice of binding numbers and marked sentences to the script
+follows~\cite{tpp10}.
+
+\section{Limits and Conclusion}
+\label{sec:limits}
+
+\paragraph{Limits.} The model under attack is the worst case: one untrusted text anywhere in
+the context, and the model does anything. Real models resist most injections, and a harness
+that asks a person before every output of an untrusted context asks far too often, as
+Section~\ref{sec:session} shows; the paper says what the labels mean, not that they should be
+enforced as they stand. The assumption that values are inert is about types that are small.
+A type with a file name or a number of many digits has room for a message, and the bound
+counts it honestly as many bits, but whether a model can be instructed by a file name is a
+question about models. Trusted entries are assumed to be trusted, and a user who pastes text
+from elsewhere into a message breaks that. The task of Section~\ref{sec:task} has one
+datum and one compaction. We have not treated confidentiality: a summary also decides what an
+agent can leak later, and the same machine with the order of the labels reversed would be
+the place to study it.
+
+\paragraph{Conclusion.} A summary is written by whatever the context had become. If it is
+text, it carries everything, and the injection that it carries no longer has a text to be
+found by. If it is a value, it carries a choice, and the choice can be made as small as the
+task allows and no smaller. Harnesses compact contexts and keep memories to save space. The
+same step is the one place where a context that has sunk can rise again, and it should be
+designed for that.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

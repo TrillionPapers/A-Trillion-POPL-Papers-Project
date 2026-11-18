@@ -1,0 +1,22 @@
+title: "An Injection Outlives Its Text: Summaries, Memory, and the Control They Carry"
+idea: summary-integrity          # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource, an-injection-is-a-choice, a-number-is-a-claim, a-report-is-a-residue]   # other papers in this repository that it cites
+keywords: [prompt injection, integrity, information flow, endorsement, context compaction, memory, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the machine, the proofs, the script, the replay of its own session, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 4.2 and 4.3 and Lemma 3.2 against every choice of the
+      attacker on random programs and on every program of at most four operations; Theorem 5.2
+      on four tasks; Propositions 7.1 and 7.2 against simulations; five dropped labels, an
+      attack found for each; the rows of Tables 1, 2, 3, 5 and 6; the replay of the trace in
+      artifact/session.txt; every number quoted in the text and every sentence marked as a
+      claim
+    by: make -C artifact check      # needs python3
+  - what: >-
+      The trace artifact/session.txt was extracted by artifact/trace.py from the record of
+      the author's session, which is private; the extraction can be repeated only by someone
+      who holds that record
+    by: make -C artifact trace RECORD=<the record>

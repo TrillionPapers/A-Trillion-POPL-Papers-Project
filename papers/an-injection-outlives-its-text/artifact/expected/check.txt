@@ -1,0 +1,43 @@
+3000 programs without typed values, 133822 runs under attack: what is seen without asking is the same in all runs of a program
+3000 programs with typed values and ledgers, 171768 runs under attack: the number of things seen is at most the capacity; the capacity is more than one for 1399 programs and is reached by 58 of them
+every program of at most four of 9 operations: 7380 programs, 47288 runs under attack, the number of things seen is at most the capacity
+two sessions, a note in free text: 9 futures of the second session, 1 of them without asking, up to 2 questions
+two sessions, the same, taken for trusted: 9 futures of the second session, 9 of them without asking, up to 0 questions
+two sessions, a note of a type with two values: 2 futures of the second session, 2 of them without asking, up to 0 questions
+reads with probability 0.05, a clean compaction every 5 operations: 9.5 percent untrusted by the formula, 9.6 simulated
+reads with probability 0.05, a clean compaction every 20 operations: 35.8 percent untrusted by the formula, 35.8 simulated
+reads with probability 0.05, a clean compaction every 80 operations: 75.4 percent untrusted by the formula, 75.4 simulated
+reads with probability 0.1, a clean compaction every 5 operations: 18.1 percent untrusted by the formula, 18.0 simulated
+reads with probability 0.1, a clean compaction every 20 operations: 56.1 percent untrusted by the formula, 56.4 simulated
+reads with probability 0.1, a clean compaction every 80 operations: 87.5 percent untrusted by the formula, 87.5 simulated
+reads with probability 0.2, a clean compaction every 5 operations: 32.8 percent untrusted by the formula, 32.8 simulated
+reads with probability 0.2, a clean compaction every 20 operations: 75.3 percent untrusted by the formula, 75.3 simulated
+reads with probability 0.2, a clean compaction every 80 operations: 93.8 percent untrusted by the formula, 93.8 simulated
+example, none: 108 runs under attack, 9 futures after the compaction, 1 without asking, up to 2 questions
+example, free: 324 runs under attack, 9 futures after the compaction, 1 without asking, up to 2 questions
+example, washed: 324 runs under attack, 9 futures after the compaction, 9 without asking, up to 0 questions
+example, clean: 12 runs under attack, 1 futures after the compaction, 1 without asking, up to 0 questions
+example, typed: 36 runs under attack, 3 futures after the compaction, 3 without asking, up to 0 questions
+labels dropped, and the number of random programs until what is seen differs between attacks or exceeds the capacity: wash-summary 18, wash-record 64, wash-store 21, relabel 64, typed-text 181
+task with 4 data in 1 classes, free: faithful True, 1 futures under attack, 1 needed
+task with 4 data in 1 classes, clean: faithful True, 1 futures under attack, 1 needed
+task with 4 data in 1 classes, typed: faithful True, 1 futures under attack, 1 needed
+task with 4 data in 2 classes, free: faithful True, 4 futures under attack, 2 needed
+task with 4 data in 2 classes, clean: faithful False, 1 futures under attack, 2 needed
+task with 4 data in 2 classes, typed: faithful True, 2 futures under attack, 2 needed
+task with 6 data in 3 classes, free: faithful True, 9 futures under attack, 3 needed
+task with 6 data in 3 classes, clean: faithful False, 1 futures under attack, 3 needed
+task with 6 data in 3 classes, typed: faithful True, 3 futures under attack, 3 needed
+task with 6 data in 6 classes, free: faithful True, 36 futures under attack, 6 needed
+task with 6 data in 6 classes, clean: faithful False, 1 futures under attack, 6 needed
+task with 6 data in 6 classes, typed: faithful True, 6 futures under attack, 6 needed
+none: 2045 steps, 1089 of them chosen by the attacker, 1089 questions at worst
+free: 2045 steps, 1089 of them chosen by the attacker, 1089 questions at worst
+clean: 2045 steps, 0 of them chosen by the attacker, 0 questions at worst
+typed: 2045 steps, 0 of them chosen by the attacker, 0 questions at worst
+session: 504 calls, 42 of them reads from outside (17 lookups, 20 pages, 5 reports of sub-agents), 24 outward actions, 3 summaries; the first read is call 7; 456 later calls are made by an untrusted context when labels are kept, 24 outward actions among them; when a summary drops the label, 24 outward actions are asked about and 0 are not
+stretch 1: 190 calls, 20 reads, 11 acts, first read at 7, 11 acts after it
+stretch 2: 128 calls, 12 reads, 6 acts, first read at 3, 6 acts after it
+stretch 3: 186 calls, 10 reads, 7 acts, first read at 14, 7 acts after it
+an injection that takes over one step in a hundred: 99.0 percent to take over one of 456 steps (99.2 simulated), 4.9 percent for one of five
+12 sentences of the paper checked: capacity, cost, decay, example, laundering, memory, retried, same, session, short, stretches, task

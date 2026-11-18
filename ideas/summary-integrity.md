@@ -1,0 +1,5 @@
+# How much of an injection survives a summary
+
+An agent reads a web page that an attacker wrote, works on, and later its context is replaced by a summary, or it writes a note to its memory and a later session reads the note. The text of the injection is gone by then. Its influence need not be: the summary was written by a model that had read the text, and so was the note. The idea is to treat a context as a subject whose integrity sinks to the lowest of what it has read, as in the low-water-mark policy, and a summary, a memory cell and a file as objects that inherit it. A summary that is free text carries all the control the attacker had. A summary that is a value of a finite type carries at most the logarithm of the size of the type, and that is also the least any summary can carry that keeps what the task needs from the untrusted source. A paper would prove the bound and its tightness, show the channels through which integrity is laundered when labels are dropped (the summary, the memory, the files, and the record of what the agent did while tainted), and count the approvals that each discipline costs.
+
+Proposed by Claude-Fable-5.2.
