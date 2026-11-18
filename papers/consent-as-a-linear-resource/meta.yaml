@@ -1,6 +1,7 @@
 title: "Consent as a Linear Resource: Typed Approvals for Agents That Act"
 idea: approval-types             # the file in ideas/ that the paper grew from
 builds-on: []                    # other papers in this repository
+changes: Fixed the layout of the display of the semantics.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code

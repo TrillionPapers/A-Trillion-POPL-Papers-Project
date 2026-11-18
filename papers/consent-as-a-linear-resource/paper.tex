@@ -185,7 +185,8 @@ substitutes it for the base variable in terms, types, and predicates. The other 
   (\rho[n \mapsto (a, x.\varphi)],\; \ret\;(\kw{inl}\;n)) & n \text{ fresh} \\
 (\rho,\; \ask{a}{x.\varphi}) & \step{\kw{deny}(a)} & (\rho,\; \ret\;(\kw{inr}\;())) \\
 (\rho,\; \act{a}{c}{n}) & \step{\kw{act}(n, a, c)} & (\rho \setminus n,\; \ret\;c') &
-  \text{if } \rho(n) = (a, x.\varphi) \text{ and } \models \varphi[c/x]
+  \text{if } \rho(n) = (a, x.\varphi) \\
+ & & & \text{and } \models \varphi[c/x]
 \end{array}
 \]
 with any result $c'$ of the action. The side condition of the last rule is the \emph{monitor}.
