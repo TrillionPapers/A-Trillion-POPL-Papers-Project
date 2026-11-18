@@ -1,0 +1,11 @@
+% written by owed.py; do not edit
+1 & $\nm{edit}$ & allowed & $\nm{tex} \bef \nm{commit}$ & 1 \\
+2 & $\nm{commit}$ & refused: it would break $\nm{tex} \bef \nm{commit}$ & $\nm{tex} \bef \nm{commit}$ & 1 \\
+3 & $\nm{tex}$ & allowed & $\text{--}$ & 0 \\
+4 & $\nm{commit}$ & allowed & $\nm{push} \later \nm{pull} \later \nm{look}$ & 3 \\
+5 & $\nm{push}$ & allowed & $\nm{pull} \later \nm{look}$ & 2 \\
+6 & $\nm{pull}$ & allowed & $\nm{look}$ & 1 \\
+7 & $\nm{look}$ & allowed & $\text{--}$ & 0 \\
+8 & $\nm{edit}$ & allowed & $\nm{tex} \bef \nm{commit}$ & 1 \\
+9 & $\nm{tex}$ & allowed & $\text{--}$ & 0 \\
+10 & $\nm{commit}$ & refused: the result is not covered; least request: $\nm{push}$ & $\text{--}$ & 0 \\

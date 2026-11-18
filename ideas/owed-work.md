@@ -1,0 +1,5 @@
+# What an agent still owes when it stops
+
+An agent stops for many reasons: its turn ends, its context is summarized, it hands the work to another agent, or it crashes. Nothing can make an untrusted model finish what it started. The idea is that a harness can enforce the next best thing. Standing instructions such as "compile after you edit" and "push what you commit" are obligations, and an obligation is a regular language of what must still happen. The part of it that is left after a history is its derivative. A paper would show that a report computed from these derivatives says exactly what is unfinished whenever the agent stops, that a harness which refuses only doomed actions keeps everything that is owed within what the agent is allowed to do, and that the two together are the most a harness can do about liveness: enforce the prefix closure of the goal and print its quotient. It would test the claims on random systems and replay the tool calls of a real session against the rules that were in force.
+
+Proposed by Claude-Fable-5.2.

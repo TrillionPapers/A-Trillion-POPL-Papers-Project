@@ -1,0 +1,41 @@
+ledger: 4000 histories, 14593 obligations, of which 3663 met, 4430 broken and 6500 open; every verdict and its time agree with the definition; 5369 open obligations handed to a second ledger, which agrees
+coverage: 2500 states, 1121 covered; sizes 1: 535, 2-5: 970, 6-20: 753, over 20: 242, largest 768; longest shortest completion 13; searched by the definition: 1636
+shield: 1200 runs, 5158 steps, 24396 letters offered, 13453 allowed, 6800 refused by the plan or a break, 4143 refused for coverage; 386 of 1200 stops leave a report, 916 letters left in all
+requests: 804 states with a least request (of size 0: 594, 1: 83, 2: 53, 3 or more: 74), 396 that no request helps
+frame: 1322 separated pairs (555 covered), all agree; 1178 other pairs, of which 267 differ (1 covered alone and not together, 150 the reverse)
+code: 2500 pieces, 1441 refused, 1059 passed, of which 767 end only in covered states and 320 only with an empty ledger
+goals: 1500 pairs of states, 472 told apart by a word, 1028 with one goal, of which 517 are different states
+13 deliberate mistakes, each noticed, after no-watch 1, self-trigger 7, never-break 3, no-retire 3, stale-report 14, plan-blind 3, separate 60, no-trigger-cover 7, need-complete 11, greedy-ask 1089, half-frame 132, star-once 63, alt-first 10 trials
+walk 1: edit allowed; open: tex before commit; letters left: 1
+walk 2: commit refused (breaks tex before commit); open: tex before commit; letters left: 1
+walk 3: tex allowed; open: -; letters left: 0
+walk 4: commit allowed; open: push > pull > look; letters left: 3
+walk 5: push allowed; open: pull > look; letters left: 2
+walk 6: pull allowed; open: look; letters left: 1
+walk 7: look allowed; open: -; letters left: 0
+walk 8: edit allowed; open: tex before commit; letters left: 1
+walk 9: tex allowed; open: -; letters left: 0
+walk 10: commit refused (not covered; it would take push); open: -; letters left: 0
+the example has 16 states that steps lead to from its start, 10 of them covered
+1 copies of the example: 16 states together, 16 apart
+2 copies of the example: 256 states together, 32 apart
+3 copies of the example: 4096 states together, 48 apart
+ship: after nothing: open run before commit, tex before commit
+ship: after tex: open run before commit
+ship: after tex run: open -
+ship: after tex run commit: open push > pull > look
+ship: after tex run commit pull push: open pull > look
+ship (corrected): after nothing: open run before commit, tex before commit
+ship (corrected): after tex: open run before commit
+ship (corrected): after tex run: open -
+ship (corrected): after tex run commit pull push: open pull > look
+a script that commits before it runs the artifact is refused at commit
+1 obligations of 5 letters: shortest completion 3, 4 states
+2 obligations of 12 letters: shortest completion 7, 8 states
+3 obligations of 23 letters: shortest completion 31, 32 states
+4 obligations of 38 letters: shortest completion 211, 212 states
+session: 460 letters (code 99, commit 29, edit 69, look 32, pop 2, pull 29, push 22, run 120, stash 2, tex 56), 19 ends of a turn, 3 summaries
+session: 199 obligations (code 99, commit 29, edit 69, stash 2), all met, none broken, none open at the end; half are met within 2 letters, the slowest after 77; of the 23 that end with a look at the registry, half within 10 and the slowest after 77
+session: end of turn 19, after 104 letters, leaves 1 open: pull > look (from the commit of paper 5)
+session: summary 2, after 228 letters, leaves 3 open: look (from the commit of paper 5); look (from the commit of paper 1); pull > look (from the commit of paper 3)
+20 sentences of the paper checked: all-noticed, ask-example, ask-least, bad-script-refused, code-holds, copies-multiply, cover-agrees, different-ledgers, frame-holds, ledger-agrees, no-end-later, not-separated-differ, primes-product, session-all-met, session-tenth, session-two-stops, shield-holds, ship-corrected, ship-one-exit, walk-refusals

@@ -1,0 +1,21 @@
+title: "A Report Is a Residue: Obligations for Agents That May Stop"
+idea: owed-work                  # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource, a-crash-is-a-lost-reply, a-merge-is-a-schedule, a-number-is-a-claim, a-plan-is-a-language]   # other papers in this repository that it cites
+keywords: [obligations, runtime enforcement, safety and liveness, regular expressions, derivatives, deontic logic, context compaction, delegation, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the definitions, the proofs, the script, the replay of its own session, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 3.4, 4.6, 4.8, 5.2, 6.1 and 6.2, Propositions 3.6 and 4.2, and
+      Lemma 4.4 on random systems, each against a second implementation of the definitions
+      that uses no derivatives; thirteen planted mistakes, each noticed; the rows of Tables 1,
+      2, 3 and 5; the replay of the trace in artifact/session.txt; every number quoted in the
+      text and every sentence marked as a claim
+    by: make -C artifact check      # needs python3
+  - what: >-
+      The trace artifact/session.txt was extracted by artifact/trace.py from the record of
+      the author's session, which is private; the extraction can be repeated only by someone
+      who holds that record
+    by: make -C artifact trace RECORD=<the record>

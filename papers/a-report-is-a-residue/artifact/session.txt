@@ -1,0 +1,483 @@
+end
+end
+commit -
+push
+commit -
+push
+end
+code audit-surfaces
+run audit-surfaces
+run audit-surfaces
+code audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+code audit-surfaces
+code audit-surfaces
+code audit-surfaces
+code audit-surfaces
+run audit-surfaces
+run audit-surfaces
+code audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+edit audit-surfaces
+edit audit-surfaces
+edit audit-surfaces
+tex audit-surfaces
+tex audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+tex audit-surfaces
+tex audit-surfaces
+end
+commit audit-surfaces
+commit -
+push
+run audit-surfaces
+run audit-surfaces
+code audit-surfaces
+run audit-surfaces
+code audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+run audit-surfaces
+edit audit-surfaces
+tex audit-surfaces
+tex audit-surfaces
+commit audit-surfaces
+look
+run audit-surfaces
+registry
+commit -
+push
+look
+end
+end
+end
+look
+end
+look
+end
+end
+end
+end
+end
+code laws-instead-of-bodies
+code laws-instead-of-bodies
+run laws-instead-of-bodies
+run laws-instead-of-bodies
+run laws-instead-of-bodies
+run laws-instead-of-bodies
+edit laws-instead-of-bodies
+edit laws-instead-of-bodies
+tex laws-instead-of-bodies
+commit laws-instead-of-bodies
+push
+pull
+look
+look
+end
+end
+end
+end
+end
+edit generate-and-check
+edit generate-and-check
+edit generate-and-check
+tex generate-and-check
+tex generate-and-check
+run generate-and-check
+commit generate-and-check
+pull
+push
+pull
+look
+edit consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+run consent-as-a-linear-resource
+commit consent-as-a-linear-resource
+pull
+push
+tex consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+run consent-as-a-linear-resource
+commit consent-as-a-linear-resource
+pull
+push
+pull
+look
+look
+edit ask-only-when-it-matters
+edit ask-only-when-it-matters
+tex ask-only-when-it-matters
+run ask-only-when-it-matters
+commit ask-only-when-it-matters
+pull
+push
+end
+pull
+look
+code what-an-agent-loop-costs
+code what-an-agent-loop-costs
+run what-an-agent-loop-costs
+compact
+look
+code what-an-agent-loop-costs
+run what-an-agent-loop-costs
+code what-an-agent-loop-costs
+run what-an-agent-loop-costs
+code what-an-agent-loop-costs
+run what-an-agent-loop-costs
+code what-an-agent-loop-costs
+run what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+code what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+code what-an-agent-loop-costs
+run what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+edit what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+run what-an-agent-loop-costs
+tex what-an-agent-loop-costs
+run what-an-agent-loop-costs
+commit what-an-agent-loop-costs
+pull
+push
+pull
+look
+look
+code an-injection-is-a-choice
+code an-injection-is-a-choice
+code an-injection-is-a-choice
+run an-injection-is-a-choice
+commit ask-only-when-it-matters
+commit audit-surfaces
+commit consent-as-a-linear-resource
+commit generate-and-check
+commit laws-instead-of-bodies
+commit what-an-agent-loop-costs
+pull
+push
+code an-injection-is-a-choice
+run an-injection-is-a-choice
+code an-injection-is-a-choice
+run an-injection-is-a-choice
+edit an-injection-is-a-choice
+code an-injection-is-a-choice
+run an-injection-is-a-choice
+edit an-injection-is-a-choice
+edit an-injection-is-a-choice
+code an-injection-is-a-choice
+run an-injection-is-a-choice
+run an-injection-is-a-choice
+tex an-injection-is-a-choice
+edit an-injection-is-a-choice
+tex an-injection-is-a-choice
+edit an-injection-is-a-choice
+tex an-injection-is-a-choice
+run an-injection-is-a-choice
+tex an-injection-is-a-choice
+run an-injection-is-a-choice
+commit an-injection-is-a-choice
+pull
+push
+pull
+look
+look
+commit ask-only-when-it-matters
+pull
+push
+run audit-surfaces
+code audit-surfaces
+run audit-surfaces
+run audit-surfaces
+edit audit-surfaces
+run audit-surfaces
+code audit-surfaces
+run audit-surfaces
+code generate-and-check
+code generate-and-check
+code generate-and-check
+run generate-and-check
+code generate-and-check
+run generate-and-check
+edit audit-surfaces
+tex audit-surfaces
+edit audit-surfaces
+tex audit-surfaces
+edit audit-surfaces
+tex audit-surfaces
+run audit-surfaces
+tex audit-surfaces
+run audit-surfaces
+commit audit-surfaces
+pull
+push
+edit generate-and-check
+edit generate-and-check
+edit generate-and-check
+code generate-and-check
+tex generate-and-check
+edit generate-and-check
+tex generate-and-check
+tex generate-and-check
+run generate-and-check
+commit generate-and-check
+pull
+push
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+compact
+run consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+run consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+code consent-as-a-linear-resource
+run consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+edit consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+tex consent-as-a-linear-resource
+run consent-as-a-linear-resource
+commit consent-as-a-linear-resource
+pull
+push
+look
+pull
+look
+look
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+edit a-crash-is-a-lost-reply
+edit a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+edit a-crash-is-a-lost-reply
+tex a-crash-is-a-lost-reply
+edit a-crash-is-a-lost-reply
+tex a-crash-is-a-lost-reply
+edit a-crash-is-a-lost-reply
+code a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+tex a-crash-is-a-lost-reply
+edit a-crash-is-a-lost-reply
+tex a-crash-is-a-lost-reply
+run a-crash-is-a-lost-reply
+commit a-crash-is-a-lost-reply
+pull
+push
+pull
+look
+look
+look
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+code a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+run a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+edit a-merge-is-a-schedule
+edit a-merge-is-a-schedule
+code a-merge-is-a-schedule
+tex a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+code a-merge-is-a-schedule
+run a-merge-is-a-schedule
+edit a-merge-is-a-schedule
+tex a-merge-is-a-schedule
+code a-merge-is-a-schedule
+code a-merge-is-a-schedule
+edit a-merge-is-a-schedule
+run a-merge-is-a-schedule
+tex a-merge-is-a-schedule
+tex a-merge-is-a-schedule
+run a-merge-is-a-schedule
+commit a-merge-is-a-schedule
+pull
+push
+pull
+look
+look
+look
+pull
+look
+look
+look
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+edit a-number-is-a-claim
+edit a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+edit a-number-is-a-claim
+tex a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+run a-number-is-a-claim
+edit a-number-is-a-claim
+code a-number-is-a-claim
+edit a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+edit a-number-is-a-claim
+run a-number-is-a-claim
+tex a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+edit a-number-is-a-claim
+edit a-number-is-a-claim
+code a-number-is-a-claim
+code a-number-is-a-claim
+edit a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+run a-number-is-a-claim
+tex a-number-is-a-claim
+run a-number-is-a-claim
+code a-number-is-a-claim
+edit a-number-is-a-claim
+run a-number-is-a-claim
+tex a-number-is-a-claim
+run a-number-is-a-claim
+tex a-number-is-a-claim
+run a-number-is-a-claim
+commit a-number-is-a-claim
+stash
+pull
+push
+pop
+stash
+tex audit-surfaces
+run audit-surfaces
+commit audit-surfaces
+pull
+push
+pop
+tex generate-and-check
+run generate-and-check
+commit generate-and-check
+pull
+push
+pull
+look
+look
+code a-plan-is-a-language
+run a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+edit a-plan-is-a-language
+edit a-plan-is-a-language
+code a-plan-is-a-language
+tex a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+edit a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+tex a-plan-is-a-language
+edit a-plan-is-a-language
+code a-plan-is-a-language
+run a-plan-is-a-language
+tex a-plan-is-a-language
+tex a-plan-is-a-language
+run a-plan-is-a-language
+commit a-plan-is-a-language
+pull
+push
+pull
+look
+look
+look
+compact
