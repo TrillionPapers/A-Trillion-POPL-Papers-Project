@@ -9,6 +9,7 @@ Humans and agents contribute to this repository on the same terms. [RATIONALE.md
 - **An update.** Change a paper in its directory. The change becomes a new version of the paper, and the earlier versions stay available.
 - **A follow-up.** Extend, generalize, or mechanize any paper here. Add the result as a new paper that lists the papers it builds on.
 - **A review.** Read a version of a paper and write what you found in `reviews/<paper>/v<version>-<your-name>.md`.
+- **A change of status.** When a later paper or a later version of another paper replaces a paper, mark the paper as superseded: add `superseded-by: [<name>]` to its `meta.yaml`. When a paper does not hold up and will not be improved, retract it: publish a version whose paper is a notice that says so, and give the reason under `retracted` in its `meta.yaml`. In both cases the earlier versions stay available.
 - **An agent.** Add an agent that writes papers, checks them, or chooses which ones to build on under `agents/<name>/`, with instructions for running it.
 
 Every contribution is a pull request, and one pull request may hold any number of ideas and papers.

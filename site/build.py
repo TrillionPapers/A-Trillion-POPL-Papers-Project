@@ -337,6 +337,9 @@ def describe(source):
         "builds_on": [text_of(name) for name in items_of(meta.get("builds-on")) if text_of(name)],
         "changes": text_of(meta.get("changes")),
         "keywords": [word for word in keywords if word],
+        "retracted": text_of(meta.get("retracted")),
+        "superseded_by": [text_of(name) for name in items_of(meta.get("superseded-by"))
+                          if text_of(name)],
         "agents": [agent for agent in agents if agent["model"]],
         "humans": [human for human in humans if human["name"]],
         "verified": [claim for claim in verified if claim["what"]],
@@ -465,6 +468,20 @@ def byline(paper):
     return ", ".join(esc(name) for name in dict.fromkeys(names))
 
 
+def newest_first(items):
+    """Items without a number first, then by number, descending."""
+    return sorted(items, key=lambda item: (item["number"] is not None, -(item["number"] or 0)))
+
+
+def badge(paper):
+    """The status of a paper that was retracted or that a later paper replaces."""
+    if paper["retracted"]:
+        return ' <span class="badge">Retracted</span>'
+    if paper["superseded_by"]:
+        return ' <span class="badge">Superseded</span>'
+    return ""
+
+
 def paper_entry(paper, base):
     count = len(paper["verified"])
     facts = [byline(paper)]
@@ -478,7 +495,7 @@ def paper_entry(paper, base):
     summary = f"<p>{esc(paper['summary'])}</p>" if paper["summary"] else ""
     return (f'<li>{label(paper["number"])}'
             f'<a class="title" href="{base}papers/{quote(paper["slug"])}/index.html">'
-            f'{esc(paper["title"])}</a>{summary}'
+            f'{esc(paper["title"])}</a>{badge(paper)}{summary}'
             f'<p class="meta">{" · ".join(fact for fact in facts if fact)}</p></li>')
 
 
@@ -512,9 +529,9 @@ def home_page(ideas, papers):
 <p class="actions"><a href="rationale.html">Why the project exists</a>
 <a href="contributing.html">How to take part</a></p>
 <h2>Papers <span class="count">{len(papers)}</span></h2>
-{entries([paper_entry(paper, "") for paper in papers])}
+{entries([paper_entry(paper, "") for paper in newest_first(papers)])}
 <h2>Ideas <span class="count">{len(ideas)}</span></h2>
-{entries([idea_entry(idea, "", papers) for idea in ideas])}"""
+{entries([idea_entry(idea, "", papers) for idea in newest_first(ideas)])}"""
     return page(SITE_NAME, body, "")
 
 
@@ -613,6 +630,15 @@ def paper_body(paper, state, ideas, papers, base, version):
     if version and latest and version != latest:
         parts.append(f'<p class="notice">This is version {version}. '
                      f'<a href="../index.html">Version {latest}</a> is the latest.</p>')
+    # the status of the paper is that of its latest version, and every version shows it
+    if paper["retracted"]:
+        parts.append(f'<p class="notice"><strong>Retracted.</strong> {esc(paper["retracted"])}</p>')
+    if paper["superseded_by"]:
+        known = {other["slug"]: other for other in papers}
+        links = ", ".join(
+            f'<a href="{base}papers/{quote(name)}/index.html">{esc(known[name]["title"])}</a>'
+            if name in known else esc(name) for name in paper["superseded_by"])
+        parts.append(f'<p class="notice"><strong>Superseded</strong> by {links}.</p>')
     if number:
         permanent = f"{SITE_URL}p/{number}/" + (f"v{shown}/" if shown else "")
         cite = identifier(number, shown)
@@ -686,6 +712,9 @@ def search_index(ideas, papers):
                         or [human["name"] for human in paper["humans"]]),
             "keywords": paper["keywords"], "abstract": paper["abstract"], "idea": paper["idea"],
             "builds_on": paper["builds_on"], "verified": len(paper["verified"]),
+            "status": ("retracted" if paper["retracted"] else
+                       "superseded" if paper["superseded_by"] else ""),
+            "superseded_by": paper["superseded_by"],
         })
     for idea in ideas:
         entries.append({
@@ -719,6 +748,7 @@ function show() {
     link.textContent = e.title;
     meta.className = "meta";
     meta.textContent = (e.kind === "paper" ? "Paper" : "Idea") + (e.number ? " " + e.number : "")
+      + (e.status ? " · " + e.status : "")
       + (e.keywords && e.keywords.length ? " · " + e.keywords.join(", ") : "");
     item.append(link, meta);
     list.append(item);
@@ -783,14 +813,14 @@ def build(out):
     write("search.json", search_index(ideas, papers))
     write("ideas/index.html", page("Ideas", f"""<h1>Ideas <span class="count">{len(ideas)}</span></h1>
 <p>An idea is a few sentences. Agents and humans pick ideas up and write them into papers.</p>
-{entries([idea_entry(idea, "../", papers) for idea in ideas])}""", "../"))
+{entries([idea_entry(idea, "../", papers) for idea in newest_first(ideas)])}""", "../"))
     for idea in ideas:
         write(f"ideas/{idea['slug']}.html", idea_page(idea, papers))
         if idea["number"]:
             write(f"i/{idea['number']}/index.html", redirect(f"../../ideas/{quote(idea['slug'])}.html"))
     write("papers/index.html", page("Papers", f"""<h1>Papers <span class="count">{len(papers)}</span></h1>
 <p>Each paper records who wrote it and which of its claims a command checks.</p>
-{entries([paper_entry(paper, "../") for paper in papers])}""", "../"))
+{entries([paper_entry(paper, "../") for paper in newest_first(papers)])}""", "../"))
     for paper in papers:
         slug, number = paper["slug"], paper["number"]
         write(f"papers/{slug}/index.html",

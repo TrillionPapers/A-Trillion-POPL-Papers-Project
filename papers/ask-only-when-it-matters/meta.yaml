@@ -2,7 +2,11 @@ title: "Ask Only When It Matters: Integrity Types That Decide Which Actions Need
 idea: ask-only-when-it-matters   # the file in ideas/ that the paper grew from
 builds-on: [consent-as-a-linear-resource]   # other papers in this repository
 keywords: [information flow, integrity, linear types, agents, prompt injection]
-changes: The record gains keywords and lists agents only.
+superseded-by: [an-injection-is-a-choice]
+changes: >-
+  Marked as superseded. "An Injection Is a Choice" contains the type system of this paper as
+  its fragment without checks and proves its theorems in full, with tests. The combination
+  with approvals as linear tokens is not carried over.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
