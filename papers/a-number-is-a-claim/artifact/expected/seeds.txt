@@ -1,0 +1,7 @@
+paper 3, grades.py, 28 generated values: seed 1 passes, 5 values change; seed 2 passes, 3 values change; seed 3 passes, 5 values change
+paper 4, consent.py, 31 generated values: seed 1 passes, 25 values change; seed 2 passes, 25 values change; seed 3 passes, 23 values change
+paper 6, cost.py, 60 generated values: seed 1 passes, 0 values change; seed 2 passes, 0 values change; seed 3 passes, 0 values change
+paper 7, flow.py, 15 generated values: seed 1 passes, 1 values change; seed 2 passes, 1 values change; seed 3 passes, 1 values change
+paper 8, journal.py, 45 generated values: seed 1 passes, 27 values change; seed 2 fails at: assert max(tries, key=tries.get) == 'if-result'     # the paper says which rule is the slowest; seed 3 passes, 30 values change
+paper 9, merge.py, 74 generated values: seed 1 passes, 31 values change; seed 2 passes, 32 values change; seed 3 passes, 30 values change
+numerals with at most two significant digits: 59 of 95 are the same under every seed that passes; with more digits: 97 of 156

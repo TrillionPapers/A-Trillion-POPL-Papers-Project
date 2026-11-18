@@ -1,0 +1,129 @@
+paper 1 version 4 (audit-surfaces): 1 quantities that nothing in the artifact supports
+           2,100   is mechanized in Lean~4~ . The development has about 2,100 lines and uses no axioms
+  2 quantities that repeat a generated value or the recorded output
+             100   audit surface takes {}. The audit surface has at most 100 lines for {} of the the
+             500   at most 100 lines for {} of the theorems and at most 500 lines for {}. \emph{Th
+  0 quantities that repeat a literal of the source
+paper 2 version 3 (laws-instead-of-bodies): 3 quantities that nothing in the artifact supports
+             217   In the measurement of~ , the median audit surface has 217 lines of code for the th
+           1,134   nes of code for the theorems of Lean's \lean{Init} and 1,134 lines for those of \lean
+             400   s of the example in Section~ are mechanized, in about 400 lines that use no axioms
+  0 quantities that repeat a generated value or the recorded output
+  1 quantities that repeat a literal of the source
+             3.3   ass over it computes the interface set, by Proposition~3.3 of~ . \begin{theorem}[I
+paper 3 version 3 (generate-and-check): 3 quantities that nothing in the artifact supports
+            0.05   and $\alpha = 0.05$
+            0.05   , $\alpha = 0.05$
+             420   ims} The artifact is one Python script, , of about 420 lines without dependenci
+  4 quantities that repeat a generated value or the recorded output
+             0.3    runs gave. If each answer is wrong with probability at most $0.3$
+             0.6   le that is right more often than wrong. At a failure rate of $0.6$
+             0.3   ails independently and always with the same wrong value. For $\delta = 0.3$
+             0.6   s one. A vote amplifies whichever side has the majority: for $\delta = 0.6$
+  3 quantities that repeat a literal of the source
+             0.8   attempts. With $\delta = 0.8$
+             0.8   . For a weak generator it is far above it. With $\delta = 0.8$
+              25   , and {} for $k = 25$
+paper 4 version 4 (consent-as-a-linear-resource): 0 quantities that nothing in the artifact supports
+  4 quantities that repeat a generated value or the recorded output
+           3,000   was given, or with slips. \subsection{The Theorems} We took $3,000$
+           3,000   programs from the generator without slips, and $3,000$
+           3,000   ecks it is the only protection. How does it compare? We took $3,000$
+           3,000   son has another side. The checker is conservative: {} of the $3,000$
+  2 quantities that repeat a literal of the source
+             100   that is fixed, or $x \le 100$
+            0.15   ms from the generator with slips, here with a probability of $0.15$
+paper 5 version 3 (ask-only-when-it-matters): 0 quantities that nothing in the artifact supports
+  0 quantities that repeat a generated value or the recorded output
+  0 quantities that repeat a literal of the source
+paper 6 version 2 (what-an-agent-loop-costs): 7 quantities that nothing in the artifact supports
+            1.25   ts for several of its models a base price for prompt tokens, $1.25$
+             0.1    base price for prompt tokens that are written to the cache, $0.1$
+          23,000   this is {} units, the price of 23,000 tokens of answer. The t
+              26   the first formula gives 26 turns, and the script fi
+           1.143   is {}, against $8/7 \approx 1.143$
+             1.5    100 turns the plain loop with a cache is within a factor of $1.5$
+             700   formulas, the artifact contains a script, , of about 700 lines of Python without
+  5 quantities that repeat a generated value or the recorded output
+           1,000   $T = 1,000$
+              16   , $16/15$
+           1,000   . In the example with $t = 1,000$
+           1,000   , at {} for $T = 1,000$
+           1,000   , $t = 1,000$
+  32 quantities that repeat a literal of the source
+             100   $T = 100$
+          10,000   $T = 10,000$
+          10,000    numbers.} Throughout we use one example: a system prompt of $h = 10,000$
+            0.08   tokens, and the prices $\rho = 0.08$
+             200   kes from the price list of a provider. A plain loop of 200 turns then costs {} mil
+          20,000   y when the context window is full. A sliding window of 20,000 tokens costs three times
+             100   s three times as much as the plain loop over the first 100 turns. All numbers in th
+          10,000   are index variables. The example uses $h = 10,000$
+            0.08   , $\rho = 0.08$
+             100   . In the example, 100 turns cost {} million u
+             200   illion units without a cache and {} million with one; 200 turns cost {} and {} m
+             200   or more the rent is more than half of the bill, and at 200 turns it is {} percent.
+         200,000   tokens; for $W = 200,000$
+            0.08   , against $\rho = 0.08$
+         100,000   is the stored size of the context: with $P = 100,000$
+           2,000   in the place of the failure rate. In the example, with $s = 2,000$
+             100   and $g = 100$
+         200,000   turn. A harness that compacts only when the window of 200,000 tokens is full has
+          20,000   hat it replaces, plus one answer. In the example a window of $b = 20,000$
+              15   , $16/15$
+           2,000   and $r = 2,000$
+             100   26 turns, and the script finds the best leaf at {} turns for $T = 100$
+          10,000   , and at {} for $T = 10,000$
+              50   m lies far beyond any real task. Even with small constants ( $h = 50$
+             100   every turn costs more than four times as much. And for 100 turns the plain loop wit
+          10,000   turns in millions of units, for $h = 10,000$
+           2,000   , $s = 2,000$
+             100   , $g = 100$
+          20,000   , $b = 20,000$
+           2,000   , $r = 2,000$
+            0.08   , $\rho = 0.08$
+         200,000   . The plain loop exceeds a context window of 200,000 tokens after {} turns;
+paper 7 version 1 (an-injection-is-a-choice): 1 quantities that nothing in the artifact supports
+             840   ims} The artifact is one Python script, , of about 840 lines without dependenci
+  0 quantities that repeat a generated value or the recorded output
+  0 quantities that repeat a literal of the source
+paper 8 version 1 (a-crash-is-a-lost-reply): 0 quantities that nothing in the artifact supports
+  9 quantities that repeat a generated value or the recorded output
+           2,000   . \subsection{The Theorems} We took $2,000$
+           2,000   programs from the generator without slips, and $2,000$
+           2,000   , and a world trace without repetition. For Theorem~ it runs $2,000$
+           2,000   gent by killing processes. How much would that find? We took $2,000$
+           2,000   t; such a run can neither go on nor be undone. And {} of the $2,000$
+           4,000   lls on the machine, with a death after one call in ten: over $4,000$
+           22.22   is $22.22$
+              20   runs the chain makes {} calls on average, and $20 / 0.9$
+             0.9   runs the chain makes {} calls on average, and $20 / 0.9$
+  8 quantities that repeat a literal of the source
+             100   $n = 100$
+           1,000   $n = 1,000$
+            0.01   the task and the second exponentially. Table~ shows both for $q = 0.01$
+            0.15   e uniform over four numbers. A process dies with probability $0.15$
+            0.02   e each write and each journaled action, and with probability $0.02$
+             0.3   empt has the version of its predecessor or, with probability $0.3$
+            0.15   ms from the generator with slips, here with a probability of $0.15$
+            0.01   n a row, if a process dies during each call with probability $0.01$
+paper 9 version 1 (a-merge-is-a-schedule): 1 quantities that nothing in the artifact supports
+            4.36   reads. We measured this on Lean's own sources, version 4.36: the {} modules under
+  14 quantities that repeat a generated value or the recorded output
+              20   20
+              40   40
+              80   80
+             160   160
+          10,000   elps much. \subsection{Numbers} Table~ shows a repository of $10,000$
+              50   keys in which a task reads $50$
+              40   . With $40$
+              40   is about one. In the order of arrival {} of the $40$
+         200,000   is {} percent in a sample of $200,000$
+             160   t be ordered are mostly pairs that edited the same key. With $160$
+           1,000   ts tasks make requests (Corollary~ ). For Corollary~ it runs $1,000$
+          10,000   tasks on $10,000$
+              50   keys; each task reads $50$
+             300   . For an order along the edges it is the mean of $300$
+  2 quantities that repeat a literal of the source
+             0.1   ycle that would have been an edge without the registry. With $h = 0.1$
+             0.3   ves each key of the base a new random value with probability $0.3$

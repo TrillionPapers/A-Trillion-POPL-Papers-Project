@@ -1,0 +1,822 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\evto}{\Downarrow}
+\newcommand{\lW}{\mathsf{W}}
+\newcommand{\lC}{\mathsf{C}}
+\newcommand{\lK}{\mathsf{K}}
+\newcommand{\bound}[2]{\langle #1 \rangle_{#2}}
+\newcommand{\shw}[2]{\mathrm{show}_{#1}(#2)}
+% A claim in words. The first argument names an assertion of the script; the tool checks that
+% every name used here is asserted there and holds.
+\newcommand{\claim}[2]{#2}
+
+\input{artifact/expected/numbers.tex}
+\input{artifact/expected/seeds.tex}
+
+\begin{document}
+
+\title{A Number Is a Claim: Evidence-Carrying Papers and an Audit of Nine}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script audits the earlier papers of this repository and this paper itself. At the time of
+writing nobody has reviewed the paper.}
+
+\begin{abstract}
+A paper states numbers. Some were computed by its artifact and put into the text by the
+build. Some were computed and then typed. Some were worked out in the author's head from
+others. In the PDF they look the same, and when the artifact changes, only the first kind
+changes with it. For papers that machines write in large numbers this is the place where
+trust is lost or kept, because nobody will recompute by hand what a script could have bound.
+We give a small calculus of documents in which every number has an origin: written, computed,
+or checked. Its theorems say that a computed numeral denotes an interval that contains the
+value of the artifact, that nothing an author writes can change what is computed, and when a
+reader can check a quotient from the numerals on the page. We describe the discipline that
+realizes the calculus in LaTeX, and a tool that audits a paper against its artifact. We then
+audit this repository: the \exVersions{} recorded versions of its first \exPapers{} papers,
+all written by the model that writes this one. In the latest versions, \exAllBound{} of
+\exAllTotal{} quantities are bound to an artifact, \exAllRepeat{} repeat a value that the
+artifact holds, \exAllParam{} repeat a literal of its source, and \exAllUnsup{} have no
+support at all. We checked those \exAllUnsup{} by hand and then by script; all that can be
+checked are right. The committed PDFs show every one of the \exPdfValues{} generated values
+that their sources use. This paper is held to its own standard: the tool finds no quantity in
+it that is not bound, and every claim that it makes in words about its numbers is an assertion
+of its script.
+\end{abstract}
+
+\keywords{reproducibility, provenance, documents, artifacts, auditing, information flow}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+Every paper in this repository was written by a language model, and every one comes with an
+artifact: a script that tests the theorems and computes the numbers. The record of a paper
+says which command checks what. A reader who trusts the command still has to trust one more
+step, which no command checks: that the numbers in the PDF are the numbers that the artifact
+computes.
+
+There are three ways for a number to get into a paper.
+
+A number can be \emph{bound}. The artifact writes it to a file of definitions, the text
+refers to it by name, and the build puts it in. If the artifact changes, the number changes.
+
+A number can be \emph{typed}. The author ran the artifact, read the output, and wrote the
+number down, or wrote down a parameter that the script also contains. The number was right
+on the day it was typed.
+
+A number can be \emph{derived in the head}. The author looked at two numbers and wrote that
+one is half of the other, or that a cost is within some factor of the best. No file contains
+the number, and often it is written as a word.
+
+In the PDF the three look alike. For a human author the second and third kind are a matter
+of care. For a model that writes papers in large numbers they are the weak point. A model
+can state a number that no computation produced, and a model that revises an artifact has no
+memory of the sentences that depended on it. Nobody will recompute by hand what a script
+could have bound, so what is not bound is not checked.
+
+This paper makes the three kinds explicit, and then looks at how the papers of this
+repository have done.
+
+\paragraph{A calculus.} Section~\ref{sec:calculus} gives a small language of documents. A
+document is a sequence of items: text, numerals that the author wrote, values that are bound
+to expressions over the output of the artifact, and claims, which are pieces of text that
+appear only if a test over that output holds. Rendering labels every piece of the result as
+written, computed, or checked. Three statements hold. A computed numeral denotes an interval
+that contains the value (Theorem~\ref{thm:faithful}). What is written has no influence on
+what is computed or checked, and the artifact has none on what is written
+(Theorem~\ref{thm:provenance}). And there is a simple condition under which a reader can
+check a quotient of two numbers from the numerals alone, which rounded numbers often fail
+(Proposition~\ref{prop:quotient}).
+
+\paragraph{A discipline and a tool.} Section~\ref{sec:latex} realizes the calculus in LaTeX
+with nothing but generated definitions, and says what must be forbidden for the theorems to
+carry over. Section~\ref{sec:tool} describes a tool that reads a paper and its artifact and
+puts every quantity of the prose into one of four classes: bound; a repetition of a value
+that the artifact generates or records; a repetition of a literal in the artifact's source;
+or unsupported.
+
+\paragraph{An audit.} Section~\ref{sec:audit} applies the tool to the history of this
+repository: \exVersions{} versions of \exPapers{} papers. The latest versions bind
+\exAllShare{} percent of their quantities. \claim{early-none}{None of the first five papers
+bound a single quantity in its first version.} The \exAllUnsup{} quantities that nothing
+supports were checked one by one. They are sizes of artifacts, numbers derived by hand,
+numbers taken from another paper or from a price list, and a version number;
+\claim{checked-right}{each one that can be checked is right}. None of them would have
+changed if its artifact had. The errors that the audit did find are of another kind. The
+scripts and the mechanizations refer to theorems of their papers by number, \exRefAll{} times
+in all versions, and \exRefStale{} of these references point to a number that the paper no
+longer has. And when we ran the scripts of six papers with other random seeds, every test of
+a theorem passed, and one run stopped at an assertion that guards a sentence of its paper.
+
+\paragraph{This paper.} The tool audits the paper that describes it. Every quantity in this
+text is a generated definition, including the examples that are quoted from other papers,
+and every sentence that says something in words about the numbers, such as the two marked
+sentences above, names an assertion of the script. There are \exOwnClaims{} such sentences.
+
+\section{Three Numbers}
+\label{sec:three}
+
+The examples of this section come from the audited papers.
+
+\paragraph{Bound.} One paper reports that a monitor stopped executions late in
+\exEgBound{} percent of the cases~\citep{tpp4}. The source of that paper does not contain
+this numeral. It contains a name, the artifact writes a definition of the name on every run,
+and a command compares the committed definitions with fresh ones. This is the best case, and
+it has a residue that Section~\ref{sec:limits} comes back to: somebody has to read the line
+of the script that computes the number, to see that it computes what the sentence says.
+
+\paragraph{Typed.} The same paper says several times that it took \exEgTwice{} programs from
+a generator. The script contains this number as a literal, and the text contains it as a
+numeral, \exEgTwiceCount{} times. Both are right. If the author of the script changes the
+literal, nothing reminds anybody of the text. The tool finds this case because the numeral
+equals a value that the artifact also holds.
+
+\paragraph{Derived in the head.} Another paper says that for short tasks one strategy is
+within a factor of \exEgDerived{} of the best~\citep{tpp6}. No file of its artifact contains
+this number. The two costs that it compares are bound, \exEgPlain{} and \exEgComp{}, and
+their quotient is \exEgDerivedTrue{}, so the sentence is true. It is true by a division that
+the author did once. A third paper says that its mechanization has about \exEgSize{} lines;
+the files have \exEgSizeTrue{}. A fourth quotes the number \exEgCited{} from another paper of
+the repository, and names the version that it quotes, version \exEgCitedVersion{}. The
+current version of the quoted paper no longer contains that number, and the citation stays
+right because it is pinned.
+
+The three kinds differ in what a change does to them. A bound number follows. A typed number
+stays and may become wrong, and the tool can find it, because its value occurs in the
+artifact. A derived number stays and may become wrong, and nothing in the artifact shows
+that it was ever there.
+
+\section{A Calculus of Documents}
+\label{sec:calculus}
+
+\subsection{Documents and Rendering}
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}l@{\quad}r@{\;}l@{}}
+\text{expressions} & e ::= & \kappa \mid q \mid e + e \mid e - e \mid e \cdot e \mid e / e \\
+\text{tests} & \varphi ::= & e \le e \mid e = e \mid \neg\varphi \mid \varphi \wedge \varphi \\
+\text{items} & i ::= & s \mid n \mid \bound{e}{j} \mid [\varphi]\,s \\
+\text{documents} & d ::= & i_1 \cdots i_m \\
+\text{pieces} & o ::= & (\lW, s) \mid (\lC, n) \mid (\lK, s)
+\end{array}
+\]
+\begin{mathpar}
+\inferrule*[right=Text]{ }{\rho \vdash s \evto (\lW, s)}
+\and
+\inferrule*[right=Numeral]{ }{\rho \vdash n \evto (\lW, n)}
+\and
+\inferrule*[right=Bound]{x = \sem{e}\rho}{\rho \vdash \bound{e}{j} \evto (\lC, \shw{j}{x})}
+\and
+\inferrule*[right=Claim]{\sem{\varphi}\rho \text{ is true}}{\rho \vdash [\varphi]\,s \evto (\lK, s)}
+\end{mathpar}
+\Description{The grammar of expressions, tests, items, documents and pieces, and four rules
+of rendering.}
+\caption{Documents and their rendering. The letter $\kappa$ ranges over the keys of a record,
+$q$ over rational numbers, $s$ over texts without digits, $n$ over numerals, and $j$ over
+numbers of digits. A document renders to the sequence of the pieces of its items, if every
+item has one.}
+\label{fig:calculus}
+\end{figure}
+
+The artifact of a paper produces a \emph{record} $\rho$: a finite map from keys to rational
+numbers. Figure~\ref{fig:calculus} gives the documents. A document is a sequence of
+\emph{items}. A text $s$ and a numeral $n$ are what the author wrote. A \emph{bound value}
+$\bound{e}{j}$ is an expression over the record, to be shown with $j$ digits after the point.
+A \emph{claim} $[\varphi]\,s$ is a text that the author wants to appear only if the test
+$\varphi$ holds of the record: a sentence such as ``more than half'', with the test that
+makes it true.
+
+Rendering turns a document into a sequence of \emph{pieces}, each with a label: $\lW$ for
+written, $\lC$ for computed, $\lK$ for checked. The rule \textsc{Claim} has a premise and no
+alternative, so a document with a claim whose test fails does not render at all. The build
+of a paper fails where a sentence about its numbers has become false.
+
+\subsection{What a Numeral Denotes}
+
+The function $\shw{j}{x}$ rounds $x$ to $j$ digits after the point, half up. A reader who
+sees a numeral does not learn the number that was rounded. The reader learns an interval.
+
+\begin{definition}[Denotation]
+\label{def:denotes}
+A numeral $n$ with $j$ digits after the point \emph{denotes} the interval
+$\sem{n} = [\,n - \frac{1}{2} 10^{-j},\; n + \frac{1}{2} 10^{-j})$.
+\end{definition}
+
+\begin{theorem}[Faithfulness]
+\label{thm:faithful}
+Let $\rho \vdash d \evto o$. For every bound value $\bound{e}{j}$ of $d$, the piece of $o$
+that it renders to is $(\lC, n)$ with $\sem{e}\rho \in \sem{n}$. For every claim
+$[\varphi]\,s$ of $d$, $\sem{\varphi}\rho$ is true.
+\end{theorem}
+
+\begin{proof}
+By the rules. For \textsc{Bound}, $n = \shw{j}{x}$ is the multiple of $10^{-j}$ with
+$n - \frac{1}{2} 10^{-j} \le x < n + \frac{1}{2} 10^{-j}$.
+\end{proof}
+
+\subsection{Written and Computed Do Not Mix}
+
+Two documents have the same \emph{skeleton} if they have the same number of items, and in
+each place either both have a written item, a text or a numeral, or both have the same bound
+value or the same claim.
+
+\begin{theorem}[Provenance]
+\label{thm:provenance}
+\begin{enumerate}
+\item If $d$ and $d'$ have the same skeleton, $\rho \vdash d \evto o$ and
+  $\rho \vdash d' \evto o'$, then $o$ and $o'$ have the same pieces with the labels $\lC$
+  and $\lK$, in the same places.
+\item If $\rho \vdash d \evto o$ and $\rho' \vdash d \evto o'$, then $o$ and $o'$ have the
+  same pieces with the label $\lW$, in the same places.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+A piece depends on its item alone. The rules for written items do not read the record, and
+the rules for bound values and claims read nothing that the author wrote as text.
+\end{proof}
+
+The theorem is a noninterference property with two levels~\citep{volpano1996}, and it is as
+easy as it looks, because the calculus has no way to compute with text. Its content is the
+design: a reader who trusts the artifact may trust every piece labelled $\lC$ or $\lK$ without
+trusting the author, and has to read with care only the pieces labelled $\lW$ that are
+numerals, or that say something about numbers. Section~\ref{sec:latex} is about keeping this
+true in a language that does have ways to compute with text.
+
+\subsection{Arithmetic That a Reader Can Check}
+
+Papers often print two numbers and a third that is computed from them: two counts and a
+percentage, two costs and a factor. A careful reader divides. If the two numbers were
+rounded, the reader's quotient is not the author's. The reader can still check the third
+number, by computing with intervals.
+
+\begin{proposition}[Quotients]
+\label{prop:quotient}
+Let $a$ and $b$ be numerals that denote $[a - \alpha, a + \alpha)$ and
+$[b - \beta, b + \beta)$, with $b - \beta > 0$ and $a - \alpha \ge 0$. If $x \in \sem{a}$
+and $y \in \sem{b}$, then
+\[
+\frac{a - \alpha}{b + \beta} \;<\; \frac{x}{y} \;<\; \frac{a + \alpha}{b - \beta},
+\]
+and both bounds differ from $a / b$ by at most
+$\frac{a}{b} \bigl(\frac{\alpha}{a} + \frac{\beta}{b}\bigr) \cdot \frac{b}{b - \beta}$.
+\end{proposition}
+
+\begin{proof}
+The quotient increases with $x$ and decreases with $y$. For the upper bound,
+$\frac{a + \alpha}{b - \beta} - \frac{a}{b} = \frac{\alpha b + \beta a}{b\,(b - \beta)}$, and
+the lower bound is closer to $a / b$.
+\end{proof}
+
+\begin{definition}[Checkable by a reader]
+A numeral $c$ that a paper prints as the quotient of two printed numerals $a$ and $b$ is
+\emph{checkable by a reader} if the interval of Proposition~\ref{prop:quotient} lies inside
+$\sem{c}$.
+\end{definition}
+
+One of the audited papers prints two probabilities, \exEgP{} percent and \exEgPTwo{} percent,
+and says that the first is \exEgRatio{} times the second~\citep{tpp9}. The intervals give a
+quotient between \exEgLow{} and \exEgHigh{}, which lies inside the interval that the numeral
+\exEgRatio{} denotes. A reader can confirm the sentence from the page. Another paper prints
+two percentages, \exEgA{} and \exEgB{}~\citep{tpp4}. Their true quotient, computed from the
+counts behind them, is \exEgQuot{}. From the page a reader gets only that the quotient lies
+between \exEgQLow{} and \exEgQHigh{}, which does not decide the second digit. Had the paper
+printed that quotient, the reader could not have checked it. The paper did not print it. It
+printed the counts, and a quotient of counts is exact.
+
+The lesson for an author is to print the numbers from which the others follow, with enough
+digits, or to bind the derived number and say that it was computed from the exact values.
+The second is what a bound value with an expression does: $\bound{\kappa_1 / \kappa_2}{j}$
+divides the values of the record, not their numerals.
+
+\section{Evidence in LaTeX}
+\label{sec:latex}
+
+\subsection{The Realization}
+
+The papers of this repository realize bound values in the simplest way that LaTeX offers.
+The script of the artifact ends by writing a file in which every line defines a macro: the
+name of a key, and the value as text, already rounded. The source of the paper reads this
+file in its preamble and uses the names. A second copy of the file is committed, and the
+command that checks the artifact runs the script and compares the two. The expression of a
+bound value is evaluated by the script, on exact values, and only its result reaches LaTeX.
+
+A claim is a macro with two arguments, the name of an assertion and the text. LaTeX prints
+the text. The script evaluates one test for every name and fails if a test fails, and the
+tool of Section~\ref{sec:tool} checks that the names used in the text are exactly the names
+that the script asserts. This paper uses the mechanism for its \exOwnClaims{} claims.
+
+\begin{figure}[t]
+\small
+\begin{verbatim}
+% artifact/expected/numbers.tex, written by the script and committed
+\newcommand{\exStopped}{19,199}
+\newcommand{\exLate}{6,573}
+\newcommand{\exLatePercent}{34}
+
+% paper.tex
+\newcommand{\claim}[2]{#2}
+\input{artifact/expected/numbers.tex}
+...
+The ledger stopped \exStopped{} executions, \exLate{} of them after an
+action, which is \exLatePercent{} percent.
+\claim{late-third}{About a third of the stops come too late.}
+
+# the script
+nums['LatePercent'] = f'{100 * late / stopped:.0f}'
+claims['late-third'] = 0.3 <= late / stopped <= 0.37
+\end{verbatim}
+\Description{Three fragments: generated definitions, their use in the source of a paper with a
+claim, and the lines of a script that produce the definition and test the claim.}
+\caption{The realization, with numbers from one of the audited papers. The percentage is
+computed by the script from the exact counts. The claim is a sentence in the paper and a
+test in the script, joined by a name.}
+\label{fig:listing}
+\end{figure}
+
+Figure~\ref{fig:listing} shows the three places. So the rendering of the calculus is split
+between two programs. The script plays the rules \textsc{Bound} and \textsc{Claim}, and LaTeX
+plays \textsc{Text} and \textsc{Numeral}.
+
+\subsection{What Has to Be Forbidden}
+
+LaTeX can compute with text, so Theorem~\ref{thm:provenance} is not automatic. An author
+can define a generated name a second time, after the file has been read, and the paper will
+print the author's number under the artifact's name. The following conditions exclude what
+we know of.
+
+\begin{definition}[Discipline]
+\label{def:discipline}
+A source \emph{keeps the discipline} if (1) it reads the generated file once, in its
+preamble; (2) no generated name is defined, redefined, or assigned anywhere else in the
+source; and (3) every line of the generated file is a definition without parameters whose
+body contains no macro.
+\end{definition}
+
+\begin{proposition}
+\label{prop:discipline}
+In a source that keeps the discipline, every use of a generated name in the body expands to
+the text that the generated file gives it.
+\end{proposition}
+
+\begin{proof}
+After the preamble the name has the meaning that the file gave it, by (1) and (3). A meaning
+changes only by a definition or an assignment, and by (2) there is none.
+\end{proof}
+
+Condition (2) is about the text of the source, and a determined author can get around a
+textual check, for instance by building the name from pieces. We do not claim to defend
+against an author who wants to deceive. The discipline is for an author, human or machine,
+who wants to be held to what the artifact computes. The tool checks (2) for the usual
+commands of definition.
+
+\subsection{What Is Still Not Checked}
+
+Three gaps remain between the artifact and the reader, and the calculus does not close them.
+
+\emph{The record may be old.} The committed definitions are compared with fresh ones by a
+command, and the repository says for every paper which command that is. The comparison is
+only as good as the last time somebody ran it.
+
+\emph{The PDF may be old.} The PDF is built from the source and committed with it. If the
+definitions change and the PDF is not built again, the PDF shows old numbers under a source
+that is right. Section~\ref{sec:audit} checks this for every recorded version.
+
+\emph{The name may lie.} A key is a name, and a sentence says what the number means. That
+the script computes under this name what the sentence says is not checked by anything. This
+is the part that a reviewer still has to read.
+
+\subsection{Levels}
+\label{sec:levels}
+
+Binding is not all or nothing, and the audit of Section~\ref{sec:audit} suggests an order in
+which papers acquire it.
+\begin{itemize}
+\item \emph{Level 0.} The numbers are typed. An artifact may exist, and the reader has to
+  compare.
+\item \emph{Level 1.} The results are bound: every number that the artifact computes reaches
+  the text by name.
+\item \emph{Level 2.} The parameters are bound as well. A script that takes three thousand
+  samples writes that number to the generated file, and the text does not repeat it by hand.
+\item \emph{Level 3.} The sentences are checked. Every statement in words about the numbers
+  is a claim with a test, and sizes, quoted numbers, and arithmetic are bound or pinned.
+\end{itemize}
+The latest versions of the audited papers are at level 1 with gaps. This paper is written to
+level 3, with the tool as the judge.
+
+\section{The Tool}
+\label{sec:tool}
+
+The tool reads the source of a paper and the files of its artifact, and classifies the
+quantities of the prose.
+
+\paragraph{What counts as prose.} The tool takes the body of the source without the
+bibliography. It sets aside figures, displayed programs and rules, and displayed formulas;
+their numerals are part of formal objects and are counted separately. It removes labels,
+references, citations, and code. What remains is running text, captions, and the cells of
+tables. In running text, a formula between dollar signs is prose if it consists of numerals
+and arithmetic only, or if it gives a value to one variable, as a parameter of an experiment
+is given; any other formula is formal.
+
+\paragraph{Quantities.} A use of a generated name is a \emph{bound} quantity. A numeral is a
+quantity unless it is a whole number of at most \exSmallLimit{}, which we take for a count of
+things in the paper itself, such as two labels or three theorems. Each numeral that is a
+quantity gets the first class that applies:
+\begin{itemize}
+\item \emph{repeated}: it equals a generated value, or a number in the recorded output of
+  the artifact;
+\item \emph{parameter}: it equals a numeric literal in the source of the artifact, or the
+  quotient of two that the source writes as a fraction;
+\item \emph{unsupported}: nothing in the artifact contains it.
+\end{itemize}
+The tool also checks the discipline of Definition~\ref{def:discipline}, and, for a paper
+that declares claims, that the names in the text are the names that the script asserts.
+
+\paragraph{What the classes mean.} A repeated or a parameter numeral is supported only in a
+weak sense: its value occurs in the artifact. The tool cannot tell a repetition from a
+coincidence, and for a common number a coincidence is likely. The classes say where to look.
+An unsupported numeral is one that the artifact cannot vouch for even in this weak sense.
+
+\begin{figure}[t]
+\small
+\input{artifact/expected/excerpt.tex}
+\Description{An excerpt of the report of the tool for one paper: numerals with the text
+around them, in three classes.}
+\caption{A part of the tool's report for the latest version of paper 6: a few entries of each
+class, each with the text in which the numeral stands. The figure is written by the script.}
+\label{fig:excerpt}
+\end{figure}
+
+\paragraph{The report.} For every version the tool prints the quantities of each class with
+the text around them, as in Figure~\ref{fig:excerpt}. The lists are short enough to read. An
+unsupported quantity is something for the author to bind or to justify, and a repeated one
+is a candidate for a name.
+
+\paragraph{What the tool does not see.} Quantities written as words, such as ``twenty'' or
+``a third'', are counted and not classified. Whole numbers up to \exSmallLimit{} are assumed
+to be counts. And the tool does not know what a number means.
+
+\section{Nine Papers}
+\label{sec:audit}
+
+\subsection{The Corpus}
+
+The repository records every version of every paper with the commit that contains it. When
+this paper was written there were \exVersions{} versions of \exPapers{} papers. All were
+written by the same model in the same harness, over two days, and the later ones under a
+stricter standard than the earlier ones: the repository began to ask for longer papers with
+an artifact that tests every claim. The tool reads each version from the history, with the
+artifact as it was at that commit.
+
+\subsection{The Latest Versions}
+
+\begin{table}[t]
+\caption{The quantities in the prose of the latest version of each paper, by class, and the
+share that is bound. The share in the first recorded version is given for comparison; a dash
+means that the version has no quantities. The papers are numbered as in the repository.}
+\label{tab:latest}
+\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Paper & version & bound & repeated & parameter & unsupported & \% bound & \% at first \\
+\midrule
+1 & \exVersiona & \exBounda & \exRepeata & \exParama & \exUnsupa & \exSharea & \exFirsta \\
+2 & \exVersionb & \exBoundb & \exRepeatb & \exParamb & \exUnsupb & \exShareb & \exFirstb \\
+3 & \exVersionc & \exBoundc & \exRepeatc & \exParamc & \exUnsupc & \exSharec & \exFirstc \\
+4 & \exVersiond & \exBoundd & \exRepeatd & \exParamd & \exUnsupd & \exShared & \exFirstd \\
+5 & \exVersione & \exBounde & \exRepeate & \exParame & \exUnsupe & \exSharee & \exFirste \\
+6 & \exVersionf & \exBoundf & \exRepeatf & \exParamf & \exUnsupf & \exSharef & \exFirstf \\
+7 & \exVersiong & \exBoundg & \exRepeatg & \exParamg & \exUnsupg & \exShareg & \exFirstg \\
+8 & \exVersionh & \exBoundh & \exRepeath & \exParamh & \exUnsuph & \exShareh & \exFirsth \\
+9 & \exVersioni & \exBoundi & \exRepeati & \exParami & \exUnsupi & \exSharei & \exFirsti \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:latest} shows the latest version of each paper. Together they have
+\exAllTotal{} quantities in their prose. Of these, \exAllBound{} are bound, which is
+\exAllShare{} percent; \claim{three-quarters}{more than three quarters of the numbers that
+a reader meets come out of an artifact by name}. \exAllRepeat{} repeat a value that the
+artifact generates or records, \exAllParam{} repeat a literal of its source, and
+\exAllUnsup{} are unsupported. Besides the quantities, the versions contain \exAllSmall{}
+small whole numbers, \exAllFormal{} numerals inside formal objects, and \exAllWords{}
+quantities written as words, which the tool does not classify.
+
+\claim{six-least}{Among the papers that bind anything, the paper on the cost of an agent
+loop binds the smallest share.} It works throughout with one example whose parameters, the
+size of a prompt and the prices, are stated again wherever they are used, and each statement
+is a numeral that repeats a literal of the script. They are the kind of number that goes
+wrong silently: the day the example changes in the script, \exParamf{} places in the text
+have to change with it.
+
+Papers 2 and 5 bind nothing. Both are short papers without a script of their own, and both
+have since been superseded by papers that have one.
+
+\subsection{How the Numbers Got Bound}
+
+\begin{table}[t]
+\caption{The share of bound quantities, in percent, in every recorded version of every paper.
+A dash means that the version has no quantities; an empty cell, that there is no such
+version.}
+\label{tab:history}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Paper & version 1 & version 2 & version 3 & version 4 \\
+\midrule
+1 & \exHistaa & \exHistab & \exHistac & \exHistad \\
+2 & \exHistba & \exHistbb & \exHistbc & \\
+3 & \exHistca & \exHistcb & \exHistcc & \\
+4 & \exHistda & \exHistdb & \exHistdc & \exHistdd \\
+5 & \exHistea & \exHisteb & \exHistec & \\
+6 & \exHistfa & \exHistfb & & \\
+7 & \exHistga & & & \\
+8 & \exHistha & & & \\
+9 & \exHistia & & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:history} follows every paper through its versions. Two things changed the
+numbers. Papers 1, 3 and 4 were rewritten when the repository raised its standard, and the
+rewrite of each came with a script that writes its results to a generated file. And the
+papers from the sixth on were written that way from their first version. A version that
+changes nothing but the record of a paper, such as its keywords, keeps its share.
+
+The last column of Table~\ref{tab:latest} shows where each paper started. The first paper is the
+instructive case. Its first version reports a measurement of a library and contains
+\exOneHand{} quantities, none of them bound. The artifact of that version wrote its results
+to a file of text, and the author copied them into the tables. The tool finds \exOneCopied{}
+of the \exOneHand{} numbers in that file, \exOneSource{} in the source, and \exOneDerived{}
+nowhere; \claim{copied-most}{more than nine in ten were copies of the output}. The
+others were ratios that the output printed in another unit, a quotient that the author
+formed, and a size. We compared them with the output and the files by hand and found them
+right.
+
+So the first version of the first paper had no wrong number in it. It had \exOneHand{}
+numbers that would have stayed as they were when the measurement was run again, and it was
+run again: the second version reports a different sample, and only \exOneSame{} of the
+\exOneHand{} numbers occur among its values. That
+version binds them. The copying had been done without an error, once, and what the binding
+bought was that it never had to be done again.
+
+\subsection{The Unsupported Numbers}
+
+We looked at each of the \exAllUnsup{} unsupported quantities of the latest versions.
+\begin{itemize}
+\item \exKindSize{} are sizes of an artifact: a paper says that its script or its
+  mechanization has about so many lines.
+\item \exKindDerived{} are derived by hand: the value of a formula at the example's
+  parameters, a quotient of two bound costs, a fraction written as a decimal, a price
+  converted into another unit.
+\item \exKindCited{} are quoted from another paper of the repository, with its version.
+\item \exKindExternal{} are prices from the price list of a provider, with a citation.
+\item \exKindNotation{} are a parameter that the script writes as a fraction and the text as
+  a decimal.
+\item \exKindVersion{} is the version of a tool.
+\end{itemize}
+\claim{sizes-most}{The most common kind is the size of an artifact}, a number that nobody
+thinks of as a result and that changes with every edit of a script.
+
+\begin{table}[t]
+\caption{The unsupported quantities of the latest versions, and what the script of this
+paper compares each with. The two entries for paper 3 are the same parameter, stated twice.}
+\label{tab:hand}
+\small
+\begin{tabular}{@{}lrll@{}}
+\toprule
+Paper & stated & what it is & compared with \\
+\midrule
+1 & \exHandSizea & lines of the mechanization & \exHandSizeA{} lines in the two files \\
+2 & \exHandSizeb & lines of the mechanization & \exHandSizeB{} lines in the file \\
+3 & \exHandSizec & lines of the script & \exHandSizeC{} lines \\
+6 & \exHandSizef & lines of the script & \exHandSizeF{} lines \\
+7 & \exHandSizeg & lines of the script & \exHandSizeG{} lines \\
+2 & \exHandCitedbx & a median from paper 1 & a generated value of the cited version \\
+2 & \exHandCitedby & a median from paper 1 & a generated value of the cited version \\
+6 & \exHandDerivedfp & a cost as a number of tokens & \exHandQuestion{} units at four units a token \\
+6 & \exHandDerivedfq & a formula at the example & \exHandFormula{} by the formula \\
+6 & \exHandDerivedfr & eight sevenths as a decimal & \exHandFraction \\
+6 & \exHandDerivedfs & a bound on a quotient of costs & the quotient, \exEgDerivedTrue \\
+3 & \exHandNotationc & a rate of false acceptance & one in twenty in the script \\
+9 & \exHandVersioni & the version of Lean & the header of the extracted graph \\
+6 & \exHandExternalfu & the price of a cache write & not checked; cited \\
+6 & \exHandExternalfv & the price of a cache read & not checked; cited \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For \exKindChecked{} of the \exAllUnsup{} the artifact of this paper now contains a check;
+Table~\ref{tab:hand} lists them. It counts the lines of the files at the commit in question
+and compares them with the stated size, within three percent. It evaluates the formulas. It
+looks the quoted numbers up in the version that is cited. All of them pass. The two prices are not checked; they rest on
+their citation. The checks are in the script of \emph{this} paper, which is the wrong place
+for them: a later version of an audited paper is free to break them. What the audit shows is
+that all of these numbers could have been bound, at the cost of a line each.
+
+\subsection{Numbers That Point the Other Way}
+\label{sec:refs}
+
+An artifact also refers to its paper. A comment in a script says that a function tests a
+theorem and gives the theorem's number, and the record of a paper says by number which
+theorems a command checks. These numbers are typed, and nothing binds them: the numbering of
+a paper is made by LaTeX, which the script does not see.
+
+The tool collects every reference by number to a theorem, a lemma, a corollary, a
+proposition, a definition, a table, or a figure in the scripts, the mechanizations, the
+recorded output, and the record of a version. It then looks in the committed PDF of that
+version for a statement, a table, or a figure of this kind with this number. The
+\exVersions{} versions contain \exRefAll{} such references, and \exRefStale{} of them have
+no target. \exRefStaleOne{} are in the fourth version of paper 1: \exRefStaleOneKinds{}
+different references in the comments of its mechanization. \exRefStaleThree{} is in the
+third version of paper 3. \claim{stale-rewritten}{Both are versions in which a paper was
+rewritten.} Sections were added, the numbers of the theorems moved, and the comments kept the
+old ones; one file of the mechanization had been copied from another paper together with
+that paper's number for its theorem.
+
+The tool finds only references without a target. A reference whose number has passed to
+another statement goes through. When we corrected the two files of paper 1 we read their
+comments, and found \exRefWrong{} more references of that kind: a comment that names the
+theorem on merging by the number that the theorem on interfaces has now, and two that name a
+proposition of the copied file by a number that belongs to another proposition. A check by
+number cannot find these. A reference by label, or by the name of the theorem, could.
+
+These are the only errors that the audit found. They mislead nobody about a result. But a
+reader who follows the comment of a proof to the paper arrives at a different theorem, and
+for a mechanization the comment is the only thing that says which statement of the paper a
+formal statement is meant to be. We have not corrected the audited versions, which are what
+they are; the corrections belong in new versions of the two papers.
+
+The remedy is the same as for quantities, in the other direction. A build that writes the
+numbers of the theorems to a file which the script reads, or a script that refers to
+theorems by their labels and is checked against the list of labels, turns these references
+into bound ones.
+
+\subsection{What Another Seed Does}
+\label{sec:seeds}
+
+A bound number follows its artifact. How far would the numbers of these papers move if the
+artifact were run on another sample? Six of the papers have a script that draws random
+programs from one seed. We ran each script with \exSeedCount{} other seeds, at the commit of
+its latest version, which makes \exSeedRuns{} runs. A run executes every test of the
+theorems of its paper, so this is also a test of the tests.
+
+\begin{table}[t]
+\caption{The scripts of six papers, run with \exSeedCount{} other seeds: the number of
+generated values, the largest number of them that changed in a run, and the number of runs in
+which every test and every assertion of the script passed.}
+\label{tab:seeds}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Paper & generated values & change at most & runs that pass \\
+\midrule
+3 & \exSeedValuesc & \exSeedChangec & \exSeedPassc \\
+4 & \exSeedValuesd & \exSeedChanged & \exSeedPassd \\
+6 & \exSeedValuesf & \exSeedChangef & \exSeedPassf \\
+7 & \exSeedValuesg & \exSeedChangeg & \exSeedPassg \\
+8 & \exSeedValuesh & \exSeedChangeh & \exSeedPassh \\
+9 & \exSeedValuesi & \exSeedChangei & \exSeedPassi \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:seeds} shows the result. Of the \exSeedRuns{} runs, \exSeedPassed{} pass. No
+test of a theorem fails in any run. In the papers that report counts over random programs,
+many of the generated values change with the seed, as they should;
+\claim{closed-none}{in the paper whose numbers are closed forms and exact searches, none
+does}.
+
+\claim{one-stops}{One run does not pass}, and it is the interesting one. It is a run of the script of
+paper~8, and it stops at a line that asserts which of the weakened typing rules took the
+most programs to refute. The paper says so in a sentence, and the author of the script had
+added the assertion with a comment that the paper depends on it. With another seed a
+different rule is the slowest. The sentence would then be false, and the script refuses to
+produce the numbers. This is the claim of the calculus, written by hand in an earlier paper
+before the calculus existed: a sentence about the numbers, with a test that fails the build
+when the sentence stops being true. The same script has no such line for other sentences of
+its paper, and for those nothing would have stopped.
+
+The runs also say which numerals a typed copy would have survived. Take the generated
+values of the scripts, with the seeds under which they pass, and call a numeral coarse if it
+has at most two significant digits. We expected coarse numerals to survive a new sample more
+often than precise ones. \claim{coarse-no-better}{They do not.} Of the \exSeedCoarse{} coarse
+numerals, \exSeedCoarseKept{} are the same under every seed, which is \exSeedCoarsePercent{}
+percent; of the \exSeedFine{} numerals with more digits it is \exSeedFineKept{}, or
+\exSeedFinePercent{} percent. We read this as follows. What decides whether a number stays
+is its origin and not its precision: a parameter and a closed form stay with all their
+digits, and a number that was counted over a random sample moves, also when it is printed as
+a percentage of two digits. For a typed number this means that rounding is no protection.
+
+\subsection{The PDFs}
+
+For every version the tool extracts the text of the committed PDF and looks for every
+generated value that the source of that version uses. This needs a program that reads PDFs.
+The \exVersions{} versions use \exPdfValues{} such values, and
+\claim{pdf-agree}{every one of them appears in its PDF}. No PDF in the history is older than
+its numbers. The check is one-sided: it shows that the right values are present, and not that
+no other numbers are.
+
+\section{Limits}
+\label{sec:limits}
+
+\paragraph{Meaning.} The audit is about where a numeral comes from, and says nothing about
+what it measures. A script can compute a number carefully and the sentence around it can
+describe another quantity. The calculus moves the reviewer's work to the right place and
+does not remove it: for a paper that binds its numbers, what remains to be read is one line
+of a script for each key. An earlier paper called the analogous set for a library of proofs
+its audit surface~\citep{tpp1}.
+
+\paragraph{Words.} The versions contain \exAllWords{} quantities in words. Some are the most
+important sentences of their papers. The mechanism of claims covers them, but only where an
+author uses it, and no tool will decide for an author that ``almost never'' needed a test.
+
+\paragraph{Small numbers.} We treat whole numbers up to \exSmallLimit{} as counts of things
+in the paper. Some of them are results. A paper that reports that a broken rule was refuted
+after two tries has a result that the tool does not see unless it is bound, and in the
+audited papers such numbers are bound.
+
+\paragraph{Coincidence.} The classes \emph{repeated} and \emph{parameter} rest on equal
+values. A numeral that equals some literal of a long script by chance is counted as
+supported. The counts of unsupported quantities are therefore lower bounds.
+
+\paragraph{One author.} The corpus is the work of one model in one harness over two days.
+It shows what this model does under these instructions. It does not show what machine-written
+papers are like in general. The audit found no wrong number, and that is a statement about a
+small corpus written with artifacts in mind from the second day on.
+
+\paragraph{Deceit.} The discipline constrains an author who wants to be constrained. It is
+not a defense against one who does not.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Documents that compute.} Literate programming~\citep{knuth1984} puts a program
+and its explanation in one source. Sweave~\citep{leisch2002} and its successors turn this
+around for data analysis: the document contains code, and the numbers in the text are
+results of running it. The case for publishing the code with the paper was made early by
+\citet{buckheit1995}, and artifact evaluation made it an institution in our
+field~\citep{krishnamurthi2015}. These systems give an author the means to bind a number.
+They do not say which numbers of a text are bound and which are not, and that question is
+what we formalize and measure.
+
+\paragraph{Provenance.} Language-based provenance explains a part of an output by the parts
+of the program and the input that it depends on~\citep{perera2012}, and has been used to link
+the elements of a chart to the data behind them~\citep{perera2022}. Our labels are a coarse
+provenance with two sources, the author and the artifact, and
+Theorem~\ref{thm:provenance} is the corresponding noninterference
+statement~\citep{volpano1996}. The finer question, which lines of a script a given number
+depends on, is the reviewer's residue of Section~\ref{sec:limits}, and dependency analysis
+is the tool for it.
+
+\paragraph{Proofs in documents.} Proof assistants have long let a document quote a theorem
+by name, so that the text shows the statement that was checked. Systems that interleave
+prose with recorded output of the prover serve the same purpose for proofs that we pursue
+for numbers~\citep{pitclaudel2020}. A theorem is easier than a number in one respect: its
+statement is all there is. A number comes with rounding, which is why the calculus needs
+intervals.
+
+\paragraph{Carrying evidence.} The name follows proof-carrying code~\citep{necula1997},
+where a program comes with evidence that a host checks before running it. An
+evidence-carrying paper comes with the means to check its numbers, and the check is cheap in
+the same way: it does not need trust in the producer.
+
+\paragraph{Build systems.} That a committed result is still the result of its inputs is the
+correctness condition of a build system~\citep{mokhov2018}. The comparison of recorded with
+fresh definitions is a build check done by hand, and the gap between a PDF and its source is
+a missing edge in that build.
+
+\paragraph{This repository.} The audited papers are the first nine of the repository: two on
+what a reader of a library of proofs must read~\citep{tpp1,tpp2}, and seven on programs that
+call language models~\citep{tpp3,tpp4,tpp5,tpp6}, \citep{tpp7,tpp8,tpp9}. Their subjects do
+not matter here. What matters is that each has a history of versions with artifacts, which makes an
+audit of this kind possible after the fact.
+
+\section{Conclusion}
+
+A number in a paper is a claim that some computation gives this value. A reader should be
+able to tell which claims the build has checked and which the author vouches for. For papers
+written by a model the difference matters more than it did, because the author's care is the
+part that does not scale, and binding is cheap. In nine papers by one model we found the
+numbers right and about a fifth of them unbound. The unbound ones are parameters said
+twice, sizes of scripts, and arithmetic done once. Each could be bound with a line. This
+paper is the first of the repository in which each of them is.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

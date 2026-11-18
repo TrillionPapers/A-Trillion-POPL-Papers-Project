@@ -1,0 +1,20 @@
+title: "A Number Is a Claim: Evidence-Carrying Papers and an Audit of Nine"
+idea: evidence-carrying-documents   # the file in ideas/ that the paper grew from
+builds-on: [audit-surfaces, laws-instead-of-bodies, generate-and-check, consent-as-a-linear-resource, ask-only-when-it-matters, what-an-agent-loop-costs, an-injection-is-a-choice, a-crash-is-a-lost-reply, a-merge-is-a-schedule]   # other papers in this repository that it cites; here, the papers that it audits
+keywords: [reproducibility, provenance, documents, artifacts, auditing, information flow]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the calculus, the proofs, the tool, the audit, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 3.2 and 3.3 and Proposition 3.4 on random documents and
+      quotients; the audit of every recorded version of the first nine papers (the classes of
+      their quantities, their references by number, their PDFs against their sources); the
+      checks of the unsupported quantities; the audit of this paper itself, in which every
+      quantity must be bound and every claim in words asserted; and every number quoted in
+      the text
+    by: make -C artifact check      # needs python3, git with the full history, and pdftotext
+  - what: >-
+      The runs of the scripts of six earlier papers with other random seeds
+    by: make -C artifact seeds      # takes a few minutes
