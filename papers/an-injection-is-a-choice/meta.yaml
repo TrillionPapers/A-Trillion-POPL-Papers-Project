@@ -1,0 +1,15 @@
+title: "An Injection Is a Choice: Checked Endorsement for Agents That Read Untrusted Text"
+idea: checked-endorsement        # the file in ideas/ that the paper grew from
+builds-on: [generate-and-check, consent-as-a-linear-resource, ask-only-when-it-matters]   # other papers in this repository that it cites
+keywords: [information flow, integrity, endorsement, refinement types, prompt injection, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the idea, the calculus, the type system, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 5.1 and 5.4 on 6,000 random programs (24,000 evaluations),
+      Theorem 5.6 on 6,000 random programs (24,000 opaque evaluations), the verdicts of the
+      checker on the programs of Sections 2 and 6, the numbers of Section 6, and the
+      rejection of 15 checkers with one broken rule each
+    by: make -C artifact check      # needs python3

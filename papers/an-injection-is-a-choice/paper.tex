@@ -1,0 +1,1065 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\T}{\kw{T}}
+\newcommand{\E}{\kw{E}}
+\newcommand{\U}{\kw{U}}
+\newcommand{\lab}{\mathrm{lab}}
+\newcommand{\model}[1]{\kw{model}(#1)}
+\newcommand{\act}[2]{\kw{act}\;#1(#2)}
+\newcommand{\grd}[2]{\kw{act}_\pi\;#1(#2)}
+\newcommand{\ask}[5]{\kw{ask}\;#1(#2)\;\kw{as}\;#3\;\kw{then}\;#4\;\kw{else}\;#5}
+\newcommand{\chk}[5]{\kw{check}\;#1\;\kw{as}\;#2.\,#3\;\kw{then}\;#4\;\kw{else}\;#5}
+\newcommand{\letin}[2]{\kw{let}\;#1 = #2\;\kw{in}}
+\newcommand{\ite}[3]{\kw{if}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\iter}[4]{\kw{iter}\;#1\;\kw{from}\;#2\;\kw{as}\;#3.\;#4}
+\newcommand{\ev}[3]{#1 \Downarrow #2 \triangleright #3}
+\newcommand{\oev}[4]{#1 \Downarrow_{#2} #3 \triangleright #4}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\op}{\star}
+\newcommand{\ty}[4]{\Gamma; #1; #2 \vdash #3 : #4}
+\newcommand{\post}[1]{\langle #1 \rangle}
+\newcommand{\defeq}{\;\triangleq\;}
+\newcommand{\vis}[2]{#1|_{#2}}
+\newsavebox{\progbox}
+\newenvironment{prog}
+  {\begin{lrbox}{\progbox}$\displaystyle\begin{array}{@{}l@{\qquad}l@{}}}
+  {\end{array}$\end{lrbox}%
+   \ifdim\wd\progbox>\linewidth
+     \PackageWarning{paper}{Overfull program display by \the\dimexpr\wd\progbox-\linewidth\relax}%
+   \fi
+   \[\usebox{\progbox}\]\ignorespacesafterend}
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{An Injection Is a Choice: Checked Endorsement for Agents That Read Untrusted Text}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script tests the theorems on random programs. At the time of writing nobody has reviewed the
+paper.}
+
+\begin{abstract}
+A guardrail validates what an agent is about to do. What does it guarantee when the agent has
+read text that an attacker wrote? We give a type system for agent programs in which data has
+one of three levels of integrity: trusted, endorsed, and untrusted. The answer of the model is
+as untrusted as its question. A check by trusted code endorses an untrusted value and records
+the predicate that the value passed. An action that endorsed data influences must satisfy the
+policy of the action, and any other action that untrusted data influences needs the approval
+of a person. We prove that every guarded action satisfies its policy, and we characterize what
+the attacker can still do. In the \emph{opaque semantics} untrusted values have no content,
+and a check of such a value either chooses a value that the check accepts or refuses. On its
+unapproved actions, every execution under attack is an execution of the opaque semantics, and
+for programs that check what the model generates the converse holds. An injection is
+therefore a choice among the values that the checks accept, no more and no less. It follows
+that a model cannot endorse, that the reference data of a check must be trusted, that a check
+gives the attacker the logarithm of its acceptance set in bits of control, and that policies
+for single actions do not add up while budgets do. A script tests the theorems on random
+programs, and it shows that the tests reject each of \exRules{} checkers with one rule broken.
+\end{abstract}
+
+\keywords{information flow, integrity, endorsement, refinement types, prompt injection, agents}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+An agent reads text from outside: web pages, mail, the output of tools. Some of that text is
+written by people who want the agent to do something else than its user asked. The model that
+drives the agent cannot be relied on to tell instructions from data, and an agent that follows
+the instructions in a web page has been attacked by \emph{prompt
+injection}~\cite{greshake2023}.
+
+Defenses fall into two groups. The first group works on the model: it is trained or prompted
+to resist, or a second model is asked to judge whether an input or an action looks like an
+attack~\cite{inan2023}. The second group works on the program around the model: it tracks
+which data came from outside and restricts what such data may
+influence~\cite{debenedetti2025,costa2025,beurerkellner2025}. A common element of the second
+group is the \emph{guardrail}, a piece of ordinary code that validates the arguments of a tool
+call before the call is made: the amount is below a limit, the recipient is on a list, the
+address has an allowed domain.
+
+This paper asks what a guardrail guarantees. The question has a precise form. Suppose that the
+attacker controls everything the agent reads, and that on any input that contains the
+attacker's text the model answers whatever the attacker wants. Which sequences of actions can
+the agent then be made to perform?
+
+An earlier paper in this series~\cite{tpp5} answered a part of the question for programs
+without guardrails. It labelled data as trusted or untrusted, let the answer of the model
+inherit the label of its question, and required the approval of a person for every action
+that untrusted data can influence. Its theorem says that the other actions do not depend on
+untrusted data at all. That system has no way to turn untrusted data into something an agent
+may act on by itself, and the paper named \emph{endorsement by sound checkers} as the next
+step. We take that step here, and it changes the shape of the guarantee: after a check, an
+action is no longer independent of the attacker. The attacker's influence has to be measured.
+
+\paragraph{The type system.} Data has one of three labels,
+$\T \sqsubset \E \sqsubset \U$: trusted, endorsed, untrusted. The expression
+$\chk{t}{x}{\varphi}{e_1}{e_2}$ runs the predicate $\varphi$, which is trusted code, on the
+value of $t$. If it holds, $e_1$ runs with $x$ bound to that value, at the label $\E$ and with
+$\varphi$ recorded as a fact; otherwise $e_2$ runs. There are three ways to act. The trusted
+action $\act{a}{t}$ needs a trusted payload and a trusted program counter. The guarded action
+$\grd{a}{t}$ accepts endorsed influence, and the facts recorded by the checks must entail the
+policy $\pi_a$ of the action. The approved action $\kw{ask}\;a(t)$ accepts anything and shows
+the payload to a person. A model that is asked about untrusted data returns untrusted data,
+so no call of the model can stand in for a check.
+
+\paragraph{The guarantee.} Theorem~\ref{thm:policy} states that every guarded action satisfies
+its policy. The main result says what the attacker can do within the policies. We define a
+second semantics, the \emph{opaque semantics}, in which an untrusted value is a token $\op$
+without content. Computing with $\op$ gives $\op$, a branch on $\op$ is skipped, and a check
+of $\op$ makes a choice: it continues with any value that satisfies the predicate, or it
+refuses. Theorem~\ref{thm:abstraction} states that the unapproved actions of every real
+execution are the actions of an opaque execution. The opaque semantics never looks at
+untrusted data, so nothing that the attacker writes matters except through these choices.
+Theorem~\ref{thm:exact} states the converse for programs that check values right after the
+model has generated them: every opaque execution is realized by an attack. For such programs
+the opaque semantics is exactly the set of behaviors under attack. A program can be read as
+its opaque semantics, which contains no model and no untrusted text, and verified by ordinary
+means.
+
+\paragraph{Consequences.} Section~\ref{sec:laws} draws six consequences for the design of
+guardrails, each with a program that the type checker accepts or rejects
+(Table~\ref{tab:laws}). Some of them restate practice, and others are less obvious: a check
+against reference data that came from outside endorses nothing, the result of a guarded
+action is itself only endorsed, and a per-action limit of $L$ lets an attacker spend $nL$ in
+$n$ turns, where a budget in the state of the loop bounds the total.
+
+\begin{table}[t]
+\caption{The consequences of Section~\ref{sec:laws}.}
+\label{tab:laws}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Law & Reason \\
+\midrule
+A model cannot endorse (\S\ref{sec:judge}) & its verdict has the label of what it judged \\
+Reference data must be trusted (\S\ref{sec:reference}) & the decision of a check has the label of its parameters \\
+A check is worth its acceptance set (\S\ref{sec:bits}) & at most $\log_2(s+1)$ bits of control for $s$ accepted values \\
+Limits do not add up, budgets do (\S\ref{sec:budget}) & a policy constrains one action, an invariant the sum \\
+Results of guarded actions are endorsed (\S\ref{sec:result}) & the world answers to a payload that the attacker chose \\
+The attacker can always refuse (\S\ref{sec:refuse}) & a fallback to approval is the attacker's to trigger \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{What is new.} Checked endorsement is not new. Type systems for integrity have had
+constructs that let a value pass to a higher level of trust after a test, and Askarov and
+Myers~\cite{askarov2011} gave semantic conditions for them in terms of the attacker's
+influence; Section~\ref{sec:related} relates our results to theirs. Our contributions are the
+following.
+\begin{itemize}
+\item A calculus and a type system for agents with three integrity labels, a model whose
+answers inherit the label of its question, checks that record refinements, and actions with
+policies (Sections~\ref{sec:calculus} and~\ref{sec:types}).
+\item The opaque semantics and the two theorems that relate it to attacks: every attack is a
+sequence of choices, and for generate-and-check programs every sequence of choices is an
+attack (Section~\ref{sec:guarantees}). The theorems hold at both cuts of the lattice: the
+trusted actions are produced without any choice, and the guarded actions with choices only.
+\item A bound on the attacker's control by the sizes of the acceptance sets, and six laws for
+guardrails (Section~\ref{sec:laws}).
+\item An executable version of both semantics, tests of the theorems on \exPrograms{} random
+programs each, and a mutation test in which \exRules{} checkers with one broken rule are all
+rejected (Section~\ref{sec:tests}).
+\end{itemize}
+
+\paragraph{What the paper does not do.} The guarantee is for the worst case: the model is
+assumed to obey the attacker completely on tainted input, and the results are statements
+about sets of possible traces, without probabilities. We treat integrity only. A leak of
+secrets appears in this paper only as an action with an attacker-chosen payload, such as the
+address of a request. The values of the calculus are abstract, and writing checks with small
+acceptance sets for real payloads is the hard part of the practice, which we do not address.
+The proofs are on paper.
+
+\section{Overview: Paying an Invoice}
+\label{sec:overview}
+
+An agent fetches a message from the inbox of its user, lets the model extract the amount of
+the invoice in it, and pays. The message comes from outside, so the action
+$\nm{fetch}$ has an untrusted result. The policy of the deployment is that payments made
+without a question stay within a limit: $\pi_{\nm{pay}}(x) \defeq x \le L$.
+
+\paragraph{Without a guard.} The first program pays what the model says:
+\begin{prog}
+\letin{m}{\act{\nm{fetch}}{\nm{inbox}}} & m : \U \\
+\letin{p}{\model{m}} & p : \U \\
+\act{\nm{pay}}{p} & \text{rejected}
+\end{prog}
+The model was asked about untrusted text, so its answer $p$ is untrusted, and a trusted
+action does not accept it. The system of the earlier paper offers one repair, which is to ask:
+$\kw{ask}\;\nm{pay}(p)$ shows the amount to a person and pays if the person agrees. The
+program is then accepted, and every payment is one that a person saw.
+
+\paragraph{A model as the guard.} A popular repair is to let a model judge the payment:
+\begin{prog}
+\ldots\; \letin{j}{\model{p}} & j : \U \\
+\ite{j = 1}{\grd{\nm{pay}}{p}}{0} & \text{rejected}
+\end{prog}
+The verdict $j$ is an answer of the model to a question that contains untrusted data, so it
+is untrusted. The branch on $j$ runs at an untrusted program counter, and no action without
+approval is allowed there. This is the worst-case view: text that can make one model pay can
+make another model say that paying is fine.
+
+\paragraph{A check as the guard.} The third program validates the amount with code:
+\begin{prog}
+\ldots\; \kw{check}\;p\;\kw{as}\;x.\,x \le L & x : \E, \text{ and } x \le L \text{ is recorded} \\
+\quad \kw{then}\;\grd{\nm{pay}}{x} & \text{accepted: } x \le L \text{ entails } \pi_{\nm{pay}}(x) \\
+\quad \kw{else}\;\ask{\nm{pay}}{p}{r}{r}{0} & \text{a person decides}
+\end{prog}
+The check endorses the amount. Inside the first branch $x$ has the label $\E$, the program
+counter has the label $\E$ as well, because whether this branch runs was decided by the
+attacker's value, and the fact $x \le L$ is available. The guarded action is accepted because
+its payload and its program counter are at most $\E$ and the recorded fact entails the policy.
+
+\paragraph{What the attacker can do.} In the opaque semantics the third program runs as
+follows. The result of $\nm{fetch}$ is $\op$. The model is asked about $\op$ and answers
+$\op$. The check of $\op$ chooses: either some $x$ with $x \le L$, and then the agent pays
+$x$, or refusal, and then the person is asked about a payload that is $\op$, which the opaque
+semantics skips. The clean traces are therefore the payments of $0$ to $L$ and the empty
+trace. Theorem~\ref{thm:abstraction} says that no attack produces any other unapproved
+action, and Theorem~\ref{thm:exact} says that every one of these is produced by some attack.
+The attacker's control over the unapproved behavior of this agent is a choice among $L + 2$
+alternatives, whatever the message says and however the model reacts to it.
+
+\paragraph{Where the limit comes from.} Suppose that the limit is not a constant of the
+program. If the program takes it from the message, as in $\letin{l}{\model{m}}$ followed by a
+check of $x \le l$, the check compares one untrusted value with another: the decision of the
+check is untrusted, the branch runs at an untrusted program counter, and the guarded action
+is rejected. If the program takes the limit from its user, by an action with a trusted result,
+the check endorses $x$ with the fact $x \le l$, and the payment is accepted where the program
+has also established $l \le L$.
+
+\section{A Calculus of Agents with Guards}
+\label{sec:calculus}
+
+\paragraph{Values, terms, predicates.} Let $V$ be a set of values; in the examples they are
+natural numbers. A \emph{term} is built from variables, values and total functions on values,
+and a \emph{predicate} is a Boolean combination of comparisons of terms:
+\[
+t ::= x \mid c \mid f(t_1, \ldots, t_k) \qquad\qquad
+\varphi, \psi, \pi ::= t_1 \le t_2 \mid t_1 = t_2 \mid \neg\varphi \mid \varphi \wedge \psi
+  \mid \varphi \vee \psi \mid \kw{true}
+\]
+Terms and predicates are the trusted code of the calculus: they are total and deterministic,
+and they do not call the model. A closed term $t$ has a value $\sem{t}$, and a closed
+predicate holds or does not. We write $\Phi \models \psi$ when every assignment of values to
+variables that satisfies all predicates in the set $\Phi$ satisfies $\psi$.
+
+\paragraph{Actions.} There is a fixed set of actions. Each action $a$ has an arity, a label
+$\ell_a \in \{\T, \U\}$ for the results that the world returns to it, and a \emph{policy}
+$\pi_a$, a predicate over the variables $x_1, \ldots, x_k$ that stand for its payload. The
+labels and the policies are chosen by whoever deploys the agent. Reading the instructions of
+the user is an action with a trusted result, and fetching a web page is an action with an
+untrusted result.
+
+\paragraph{Expressions.} Figure~\ref{fig:syntax} gives the syntax. The expression
+$\model{\vec t}$ calls the model. There are three forms of action: the trusted action
+$\act{a}{\vec t}$, the guarded action $\grd{a}{\vec t}$, and the approved action
+$\ask{a}{\vec t}{x}{e_1}{e_2}$, which asks a person and, if the person agrees, performs the
+action and continues with its result in $x$. The check $\chk{t}{x}{\varphi}{e_1}{e_2}$ tests
+$\varphi$ with $x$ standing for the value of $t$; the other variables of $\varphi$ are its
+\emph{parameters}. The loop $\iter{n}{t}{x}{e}$ runs its body $n$ times on a state, for a
+number $n$. All evaluations terminate. A harness has a limit on its turns, and with bounded
+loops no statement in this paper needs a proviso about termination.
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}r@{\;}l@{}}
+e ::= & t \mid \model{\vec t} \mid \act{a}{\vec t} \mid \grd{a}{\vec t}
+  \mid \ask{a}{\vec t}{x}{e_1}{e_2} \\
+\mid & \letin{x}{e_1}\; e_2 \mid \ite{\varphi}{e_1}{e_2} \mid \chk{t}{x}{\varphi}{e_1}{e_2}
+  \mid \iter{n}{t}{x}{e}
+\end{array}
+\]
+\Description{The grammar of expressions.}
+\caption{Syntax of expressions.}
+\label{fig:syntax}
+\end{figure}
+
+\paragraph{Semantics.} An \emph{event} records an action: $\kw{act}(a, \vec c)$ for a trusted
+action with payload $\vec c$, $\kw{grd}(a, \vec c)$ for a guarded one, and
+$\kw{ok}(a, \vec c)$ or $\kw{no}(a, \vec c)$ for a request that the person granted or
+declined. A \emph{trace} $\tau$ is a sequence of events. Figure~\ref{fig:real} defines the
+judgment $\ev{e}{c}{\tau}$: the closed expression $e$ evaluates to the value $c$ with the
+trace $\tau$. The judgment is nondeterministic in three places. The model returns any value
+(\textsc{R-Model}), the world returns any value as the result of an action (\textsc{R-Act},
+\textsc{R-Guard}, \textsc{R-Yes}), and the person agrees or not (\textsc{R-Yes},
+\textsc{R-No}). There are no labels and no monitors at run time: a check is an ordinary test,
+and a guarded action is an ordinary action. What the labels promise is the subject of
+Section~\ref{sec:guarantees}.
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=R-Term]{ }{\ev{t}{\sem{t}}{\eps}}
+\and
+\inferrule*[right=R-Model]{ }{\ev{\model{\vec t}}{c}{\eps}}
+\and
+\inferrule*[right=R-Act]{ }{\ev{\act{a}{\vec t}}{r}{\kw{act}(a, \sem{\vec t})}}
+\and
+\inferrule*[right=R-Guard]{ }{\ev{\grd{a}{\vec t}}{r}{\kw{grd}(a, \sem{\vec t})}}
+\and
+\inferrule*[right=R-Yes]{\ev{e_1\{r/x\}}{c}{\tau}}
+  {\ev{\ask{a}{\vec t}{x}{e_1}{e_2}}{c}{\kw{ok}(a, \sem{\vec t}) \cdot \tau}}
+\and
+\inferrule*[right=R-No]{\ev{e_2}{c}{\tau}}
+  {\ev{\ask{a}{\vec t}{x}{e_1}{e_2}}{c}{\kw{no}(a, \sem{\vec t}) \cdot \tau}}
+\and
+\inferrule*[right=R-Let]{\ev{e_1}{c_1}{\tau_1} \\ \ev{e_2\{c_1/x\}}{c_2}{\tau_2}}
+  {\ev{\letin{x}{e_1}\; e_2}{c_2}{\tau_1 \cdot \tau_2}}
+\and
+\inferrule*[right=R-If]{\ev{e_k}{c}{\tau} \\ k = 1 \text{ if } \varphi \text{ holds, else } k = 2}
+  {\ev{\ite{\varphi}{e_1}{e_2}}{c}{\tau}}
+\and
+\inferrule*[right=R-Pass]{\varphi\{\sem{t}/x\} \text{ holds} \\ \ev{e_1\{\sem{t}/x\}}{c}{\tau}}
+  {\ev{\chk{t}{x}{\varphi}{e_1}{e_2}}{c}{\tau}}
+\and
+\inferrule*[right=R-Fail]{\varphi\{\sem{t}/x\} \text{ does not hold} \\ \ev{e_2}{c}{\tau}}
+  {\ev{\chk{t}{x}{\varphi}{e_1}{e_2}}{c}{\tau}}
+\and
+\inferrule*[right=R-Iter0]{ }{\ev{\iter{0}{t}{x}{e}}{\sem{t}}{\eps}}
+\and
+\inferrule*[right=R-Iter]{\ev{\iter{n}{t}{x}{e}}{c_1}{\tau_1} \\ \ev{e\{c_1/x\}}{c_2}{\tau_2}}
+  {\ev{\iter{n+1}{t}{x}{e}}{c_2}{\tau_1 \cdot \tau_2}}
+\end{mathpar}
+\Description{Twelve inference rules for the evaluation of expressions with traces.}
+\caption{The real semantics. The values $c$ in \textsc{R-Model} and $r$ in the rules for
+actions are arbitrary.}
+\label{fig:real}
+\end{figure}
+
+\paragraph{The attacker.} The attacker has no rule of its own. It is the nondeterminism of
+the world wherever a result has the label $\U$, and of the model wherever its question
+depends on such a result. The theorems quantify over all evaluations, and so over all
+attackers, all models, and all persons.
+
+\section{The Type System}
+\label{sec:types}
+
+\paragraph{Labels.} The labels are $\T \sqsubset \E \sqsubset \U$, with join $\sqcup$ and
+meet $\sqcap$. An environment $\Gamma$ gives a label to each variable. The label
+$\lab_\Gamma(t)$ of a term is the join of the labels of its variables, and $\T$ if it has
+none; likewise for sequences of terms and for predicates. We omit the subscript.
+
+\paragraph{Judgment.} The judgment $\ty{\Phi}{pc}{e}{\ell\,\post{\psi}}$ says that the
+expression $e$, at the program counter label $pc$ and under the facts $\Phi$, has a result of
+label $\ell$ that satisfies the predicate $\psi$, in which the variable $\nu$ stands for the
+result. The program counter label bounds the labels of the data that decided whether $e$
+runs. The facts are predicates over the variables of $\Gamma$ that hold whenever $e$ runs.
+Figure~\ref{fig:typing} gives the rules. Bound variables are fresh, and the postcondition of
+a rule's conclusion does not mention the variable that the rule binds.
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Term]{ }{\ty{\Phi}{pc}{t}{\lab(t)\,\post{\nu = t}}}
+\and
+\inferrule*[right=Model]{ }{\ty{\Phi}{pc}{\model{\vec t}}{\lab(\vec t)\,\post{\kw{true}}}}
+\and
+\inferrule*[right=Act]{\lab(\vec t) \sqcup pc = \T}
+  {\ty{\Phi}{pc}{\act{a}{\vec t}}{\ell_a\,\post{\kw{true}}}}
+\and
+\inferrule*[right=Act-$\pi$]{\lab(\vec t) \sqcup pc \sqsubseteq \E \\ \Phi \models \pi_a\{\vec t/\vec x\}}
+  {\ty{\Phi}{pc}{\grd{a}{\vec t}}{\ell_a \sqcup \lab(\vec t)\,\post{\kw{true}}}}
+\and
+\inferrule*[right=Ask]{\ell = \lab(\vec t) \\
+  \Gamma, x : \ell_a \sqcup \ell; \Phi; pc \sqcup \ell \vdash e_1 : \ell'\,\post{\psi} \\
+  \ty{\Phi}{pc \sqcup \ell}{e_2}{\ell'\,\post{\psi}}}
+  {\ty{\Phi}{pc}{\ask{a}{\vec t}{x}{e_1}{e_2}}{\ell' \sqcup \ell\,\post{\psi}}}
+\and
+\inferrule*[right=Let]{\ty{\Phi}{pc}{e_1}{\ell_1\,\post{\psi_1}} \\
+  \Gamma, x : \ell_1; \Phi, \psi_1\{x/\nu\}; pc \vdash e_2 : \ell_2\,\post{\psi_2}}
+  {\ty{\Phi}{pc}{\letin{x}{e_1}\; e_2}{\ell_2\,\post{\psi_2}}}
+\and
+\inferrule*[right=If]{\ell = \lab(\varphi) \\
+  \ty{\Phi, \varphi}{pc \sqcup \ell}{e_1}{\ell'\,\post{\psi}} \\
+  \ty{\Phi, \neg\varphi}{pc \sqcup \ell}{e_2}{\ell'\,\post{\psi}}}
+  {\ty{\Phi}{pc}{\ite{\varphi}{e_1}{e_2}}{\ell' \sqcup \ell\,\post{\psi}}}
+\and
+\inferrule*[right=Check]{\ell_x = \lab(t) \sqcap \E \\ \ell_d = \ell_x \sqcup \lab(\varphi \setminus x) \\
+  \Gamma, x : \ell_x; \Phi, \varphi, x = t; pc \sqcup \ell_d \vdash e_1 : \ell'\,\post{\psi} \\
+  \ty{\Phi}{pc \sqcup \ell_d}{e_2}{\ell'\,\post{\psi}}}
+  {\ty{\Phi}{pc}{\chk{t}{x}{\varphi}{e_1}{e_2}}{\ell' \sqcup \ell_d\,\post{\psi}}}
+\and
+\inferrule*[right=Iter]{\lab(t) \sqsubseteq \ell \\ \Phi \models \psi\{t/\nu\} \\
+  \Gamma, x : \ell; \Phi, \psi\{x/\nu\}; pc \vdash e : \ell\,\post{\psi}}
+  {\ty{\Phi}{pc}{\iter{n}{t}{x}{e}}{\ell\,\post{\psi}}}
+\and
+\inferrule*[right=Sub]{\ty{\Phi}{pc}{e}{\ell\,\post{\psi}} \\ \ell \sqsubseteq \ell' \\ \Phi, \psi \models \psi'}
+  {\ty{\Phi}{pc}{e}{\ell'\,\post{\psi'}}}
+\end{mathpar}
+\Description{Ten typing rules with integrity labels, facts, and postconditions.}
+\caption{Typing rules. $\lab(\varphi \setminus x)$ is the join of the labels of the
+parameters of the check.}
+\label{fig:typing}
+\end{figure}
+
+\paragraph{The model.} In \textsc{Model} the answer has the label of the question. The rule
+has no premise and promises nothing about the answer. The model is trusted on trusted
+questions in the sense of integrity: its mistakes there are not the attacker's doing, and
+this paper does not bound them.
+
+\paragraph{Three ways to act.} \textsc{Act} is the rule of a program that needs no guard:
+neither the payload nor the decision to act is influenced by anything from outside, not even
+through a check. \textsc{Act-$\pi$} admits endorsed influence on the payload or on the
+decision, and then the facts must entail the policy. The result of a guarded action has at
+least the label of its payload, since the world's answer depends on a payload that the
+attacker chose (Section~\ref{sec:result}). \textsc{Ask} admits everything. Its branches run at
+a program counter raised by the label of what the person was shown: a person who reads
+untrusted text can be misled by it, so the decision of the person is as untrusted as the
+request.
+
+\paragraph{Checks.} \textsc{Check} is the only rule that lowers a label. The variable $x$
+gets the label $\ell_x = \lab(t) \sqcap \E$: an untrusted candidate becomes endorsed, and a
+trusted one stays trusted. The decision of the check depends on the candidate and on the
+parameters, so its label is $\ell_d = \ell_x \sqcup \lab(\varphi \setminus x)$, and both
+branches run at a program counter raised by $\ell_d$. Two things follow. A check of an
+untrusted candidate against trusted parameters has $\ell_d = \E$: the attacker decides which
+branch runs, but only by choosing a value inside or outside the predicate. A check against
+untrusted parameters has $\ell_d = \U$, and nothing that needs a label below $\U$ can happen
+in its branches: it is an ordinary test on untrusted data (Section~\ref{sec:reference}). The
+first branch is typed with the facts $\varphi$ and $x = t$.
+
+\paragraph{Facts.} The facts and postconditions form a small system of refinements. A
+$\kw{let}$ adds the postcondition of the bound expression as a fact about the variable, a
+conditional adds its test, and a check adds its predicate. The policy of a guarded action is
+then a matter of entailment. A loop has an invariant $\psi$ on its state, which holds at the
+start, is preserved by the body, and is the postcondition of the loop.
+Section~\ref{sec:budget} uses it to bound the sum of the payments of a loop.
+
+\paragraph{Relation to the earlier system.} A program without checks never gets the label
+$\E$ from these rules. Its guarded actions are then typed like trusted actions with a policy,
+and the system is the two-level system of~\cite{tpp5}, with a simpler form of approval: there
+a request returns a linear token that a later action consumes~\cite{tpp4}, and here asking
+and acting are one expression.
+
+\section{Guarantees}
+\label{sec:guarantees}
+
+\subsection{Guarded Actions Satisfy Their Policies}
+
+A substitution $\gamma$ maps variables to values. It \emph{satisfies} $\Phi$ if every
+predicate of $\Phi$ holds under it.
+
+\begin{theorem}[Policies]
+\label{thm:policy}
+Let $\ty{\Phi}{pc}{e}{\ell\,\post{\psi}}$, let $\gamma$ satisfy $\Phi$, and let
+$\ev{e\gamma}{c}{\tau}$. Then $\psi\{c/\nu\}$ holds under $\gamma$, and every event
+$\kw{grd}(a, \vec c)$ in $\tau$ satisfies $\pi_a\{\vec c/\vec x\}$.
+\end{theorem}
+
+\begin{proof}
+By induction on the typing derivation. \textsc{Term}: the result is $\sem{t\gamma}$.
+\textsc{Model}, \textsc{Act}: the postcondition is $\kw{true}$ and there is no guarded event.
+\textsc{Act-$\pi$}: the event is $\kw{grd}(a, \sem{\vec t\gamma})$, and
+$\pi_a\{\vec t/\vec x\}$ holds under $\gamma$ because $\gamma$ satisfies $\Phi$.
+\textsc{Let}: by the induction hypothesis $\psi_1\{c_1/\nu\}$ holds, so
+$\gamma[x \mapsto c_1]$ satisfies $\Phi, \psi_1\{x/\nu\}$, and the hypothesis applies to
+$e_2$. \textsc{If}: the branch that runs is typed with a test that holds under $\gamma$.
+\textsc{Check}: if the check passes with the value $c_0 = \sem{t\gamma}$, then
+$\gamma[x \mapsto c_0]$ satisfies $\varphi$ and $x = t$. \textsc{Ask}: directly.
+\textsc{Iter}: by induction on $n$, with the invariant $\psi$. \textsc{Sub}: by the
+definition of entailment.
+\end{proof}
+
+The theorem needs no assumption about the model or the attacker, and the labels play no role
+in it. It is the guarantee of a guardrail as an engineer states it: no payment above the
+limit leaves without a question. It does not say which payments below the limit the attacker
+can cause, or which other actions. That is the subject of the rest of this section.
+
+\subsection{The Opaque Semantics}
+
+An \emph{opaque value} is a value or the token $\op$. In an \emph{opaque expression}
+variables have been replaced by opaque values, so $\op$ may occur where a value may. The
+opaque value $\sem{t}$ of a term is $\op$ if $\op$ occurs in $t$, and its value otherwise.
+
+The opaque semantics has a parameter $\kappa \in \{\E, \U\}$, the level from which data is
+opaque. Figure~\ref{fig:opaque} defines the judgment $\oev{e}{\kappa}{o}{\tau}$ for an opaque
+expression $e$, an opaque value $o$ and a trace $\tau$. An action whose result is untrusted
+returns $\op$. The model returns $\op$ when it is asked about $\op$ (\textsc{O-Model}). A
+request with $\op$ in its payload, a conditional with $\op$ in its test, and a check with
+$\op$ among its parameters are not evaluated at all: they return $\op$ and leave no events
+(\textsc{O-Skip}). The interesting rules are those for a check of a candidate that is $\op$.
+At the level $\U$ the check makes a choice: \textsc{O-Choose} continues the first branch with
+any value that satisfies the predicate, and \textsc{O-Refuse} continues with the second
+branch, provided that some value fails the predicate. At the level $\E$ endorsed data is
+opaque too, and the check is skipped.
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=O-Term]{ }{\oev{t}{\kappa}{\sem{t}}{\eps}}
+\and
+\inferrule*[right=O-Model]{o = \op \text{ if } \op \in \vec t,\ \text{else any value}}
+  {\oev{\model{\vec t}}{\kappa}{o}{\eps}}
+\and
+\inferrule*[right=O-Act]{\op \notin \vec t \\ o = \op \text{ if } \ell_a = \U,\ \text{else any value}}
+  {\oev{\act{a}{\vec t}}{\kappa}{o}{\kw{act}(a, \sem{\vec t})}}
+\and
+\inferrule*[right=O-Guard]{\op \notin \vec t \\ o = \op \text{ if } \ell_a = \U,\ \text{else any value}}
+  {\oev{\grd{a}{\vec t}}{\kappa}{o}{\kw{grd}(a, \sem{\vec t})}}
+\and
+\inferrule*[right=O-Guard-Skip]{\op \in \vec t}{\oev{\grd{a}{\vec t}}{\E}{\op}{\eps}}
+\and
+\inferrule*[right=O-Yes]{\op \notin \vec t \\ o' = \op \text{ if } \ell_a = \U,\ \text{else any value} \\
+  \oev{e_1\{o'/x\}}{\kappa}{o}{\tau}}
+  {\oev{\ask{a}{\vec t}{x}{e_1}{e_2}}{\kappa}{o}{\kw{ok}(a, \sem{\vec t}) \cdot \tau}}
+\and
+\inferrule*[right=O-Skip]{e \text{ is } \kw{ask}\ldots \text{ with } \op \text{ in its payload, or }
+  \kw{if}\ldots \text{ with } \op \text{ in its test, or} \\
+  \kw{check}\ldots \text{ with } \op \text{ among its parameters, or with } \op
+  \text{ in its candidate and } \kappa = \E}
+  {\oev{e}{\kappa}{\op}{\eps}}
+\and
+\inferrule*[right=O-Choose]{\op \in t \\ \op \notin \varphi \\ \varphi\{c/x\} \text{ holds} \\
+  \oev{e_1\{c/x\}}{\U}{o}{\tau}}
+  {\oev{\chk{t}{x}{\varphi}{e_1}{e_2}}{\U}{o}{\tau}}
+\and
+\inferrule*[right=O-Refuse]{\op \in t \\ \op \notin \varphi \\ \varphi\{c/x\} \text{ fails for some } c \\
+  \oev{e_2}{\U}{o}{\tau}}
+  {\oev{\chk{t}{x}{\varphi}{e_1}{e_2}}{\U}{o}{\tau}}
+\end{mathpar}
+\Description{Nine inference rules of the opaque semantics.}
+\caption{The opaque semantics at the level $\kappa$. The rules \textsc{O-No}, \textsc{O-Let},
+\textsc{O-If}, \textsc{O-Pass}, \textsc{O-Fail}, \textsc{O-Iter0} and \textsc{O-Iter} are the
+rules of Figure~\ref{fig:real} for expressions whose payload, test, candidate and parameters
+contain no $\op$, with opaque values as results.}
+\label{fig:opaque}
+\end{figure}
+
+The \emph{visible} part $\vis{\tau}{\kappa}$ of a trace consists of its unapproved actions
+below the level $\kappa$: $\vis{\tau}{\U}$ keeps the events $\kw{act}$ and $\kw{grd}$, and
+$\vis{\tau}{\E}$ keeps the events $\kw{act}$. We call $\vis{\tau}{\U}$ the \emph{clean
+trace}. Approved actions are not visible at either level. They are vouched for by the person
+who saw them, and the type system promises nothing more about them.
+
+The opaque semantics puts no labels on data. What it treats as opaque is decided by the
+values: the results of actions with $\ell_a = \U$, and everything computed from them.
+
+\subsection{Every Attack Is a Sequence of Choices}
+
+An opaque value $o$ \emph{matches} a value $c$ at the label $\ell$ if $o = c$, or $o = \op$
+and $\kappa \sqsubseteq \ell$. An opaque substitution $\gamma^\circ$ matches $\gamma$ at
+$\Gamma$ if $\gamma^\circ(x)$ matches $\gamma(x)$ at $\Gamma(x)$ for every $x$. So data below
+the level $\kappa$ is the same in both, and data at or above $\kappa$ may be hidden.
+
+\begin{lemma}[Quiet]
+\label{lem:quiet}
+If $\ty{\Phi}{pc}{e}{\ell\,\post{\psi}}$ and $\kappa \sqsubseteq pc$, then every evaluation
+$\ev{e\gamma}{c}{\tau}$ has $\vis{\tau}{\kappa} = \eps$.
+\end{lemma}
+
+\begin{proof}
+By induction on the derivation. \textsc{Act} requires $pc = \T$, which is below $\kappa$, so
+it does not occur. \textsc{Act-$\pi$} requires $pc \sqsubseteq \E$, so $\kappa = \E$, and the
+event $\kw{grd}$ is not visible at $\E$. All other rules type their premises at $pc$ or
+above, and the events $\kw{ok}$ and $\kw{no}$ are never visible.
+\end{proof}
+
+\begin{lemma}[Totality]
+\label{lem:total}
+Every closed expression has an evaluation in the real semantics.
+\end{lemma}
+
+\begin{proof}
+By induction on the expression, and on $n$ for a loop: terms and predicates are total.
+\end{proof}
+
+\begin{theorem}[Every attack is a sequence of choices]
+\label{thm:abstraction}
+Let $\ty{\Phi}{pc}{e}{\ell\,\post{\psi}}$, let $\kappa \in \{\E, \U\}$, and let
+$\gamma^\circ$ match $\gamma$ at $\Gamma$. If $\ev{e\gamma}{c}{\tau}$, then there are $o$ and
+$\tau^\circ$ such that
+\[
+\oev{e\gamma^\circ}{\kappa}{o}{\tau^\circ}, \qquad
+\vis{\tau^\circ}{\kappa} = \vis{\tau}{\kappa}, \qquad
+o \text{ matches } c \text{ at } \ell .
+\]
+\end{theorem}
+
+\begin{proof}
+By induction on the typing derivation. We use two facts about terms and predicates, which
+follow from the definition of matching. For a term $t$, the opaque value of $t\gamma^\circ$
+matches $\sem{t\gamma}$ at $\lab(t)$: either no variable of $t$ is hidden and the values are
+equal, or some variable is hidden, its label is at least $\kappa$, and so is $\lab(t)$. For a
+predicate $\varphi$, either $\varphi\gamma^\circ$ contains no $\op$ and holds exactly when
+$\varphi\gamma$ holds, or it contains $\op$ and $\kappa \sqsubseteq \lab(\varphi)$.
+
+\textsc{Term}: the first fact. \textsc{Model}: if $\vec t\gamma^\circ$ contains no $\op$,
+\textsc{O-Model} returns the same value $c$; otherwise it returns $\op$, and
+$\kappa \sqsubseteq \lab(\vec t)$.
+
+\textsc{Act}: since $\lab(\vec t) = \T$ is below $\kappa$, the payloads are equal and contain
+no $\op$. \textsc{O-Act} emits the same event, and it returns the same result $r$ if
+$\ell_a = \T$ and $\op$ if $\ell_a = \U$; both match $r$ at $\ell_a$.
+
+\textsc{Act-$\pi$}: if $\vec t\gamma^\circ$ contains no $\op$, \textsc{O-Guard} emits the
+same event, and its result matches $r$ at $\ell_a \sqcup \lab(\vec t)$ as before. If it
+contains $\op$, then $\kappa \sqsubseteq \lab(\vec t) \sqsubseteq \E$, so $\kappa = \E$.
+\textsc{O-Guard-Skip} applies, the real event $\kw{grd}$ is not visible at $\E$, and $\op$
+matches $r$ at a label that is at least $\E$.
+
+\textsc{Ask}: if the payload $\vec t\gamma^\circ$ contains $\op$, then
+$\kappa \sqsubseteq \ell$. \textsc{O-Skip} applies. The real evaluation continues with a
+branch that is typed at $pc \sqcup \ell$, so its visible trace is empty by
+Lemma~\ref{lem:quiet}, and the result label is at least $\ell$. Otherwise the payloads are
+equal. If the real evaluation used \textsc{R-Yes} with the result $r$, we use \textsc{O-Yes}
+with $o' = r$ if $\ell_a = \T$ and $o' = \op$ otherwise; $o'$ matches $r$ at
+$\ell_a \sqcup \ell$, and the induction hypothesis applies to $e_1$ with the substitutions
+extended by $x$. The case of \textsc{R-No} is similar.
+
+\textsc{Let}: the induction hypothesis for $e_1$ gives $o_1$ that matches $c_1$ at $\ell_1$,
+so $\gamma^\circ[x \mapsto o_1]$ matches $\gamma[x \mapsto c_1]$ at $\Gamma, x : \ell_1$, and
+the hypothesis applies to $e_2$. The visible traces concatenate.
+
+\textsc{If}: if $\varphi\gamma^\circ$ contains $\op$, then $\kappa \sqsubseteq \ell$.
+\textsc{O-Skip} applies, the branch that the real evaluation runs is quiet by
+Lemma~\ref{lem:quiet}, and the result label is at least $\ell$. Otherwise both evaluations
+take the same branch, and the induction hypothesis applies.
+
+\textsc{Check}: let $c_0 = \sem{t\gamma}$. There are four cases. (a) A parameter of the check
+is hidden. Then $\kappa \sqsubseteq \lab(\varphi \setminus x) \sqsubseteq \ell_d$, and
+\textsc{O-Skip} applies as in the case of \textsc{If}. (b) No parameter is hidden, the
+candidate $t\gamma^\circ$ contains $\op$, and $\kappa = \E$. Then $\E \sqsubseteq \lab(t)$,
+so $\ell_x = \E$ and $\kappa \sqsubseteq \ell_d$; again \textsc{O-Skip} applies. (c) No
+parameter is hidden, the candidate contains $\op$, and $\kappa = \U$. If the real check
+passed, then $\varphi\{c_0/x\}$ holds under $\gamma$, and it holds under $\gamma^\circ$ as
+well because the parameters are equal. \textsc{O-Choose} with $c = c_0$ continues with
+$e_1\{c_0/x\}$. The substitutions extended by $x \mapsto c_0$ match at
+$\Gamma, x : \ell_x$, and the induction hypothesis applies to $e_1$. If the real check
+failed, $c_0$ is a value that fails the predicate, \textsc{O-Refuse} applies, and the
+hypothesis applies to $e_2$. (d) Nothing is hidden. Then the candidate and the outcome are
+the same, \textsc{O-Pass} or \textsc{O-Fail} applies, and the hypothesis applies to the
+branch.
+
+\textsc{Iter}: by induction on $n$, with the induction hypothesis for the body at each turn.
+\textsc{Sub}: a value that matches at $\ell$ matches at every label above $\ell$.
+\end{proof}
+
+For a closed program the theorem reads as follows. Let $e$ be closed with
+$\cdot; \cdot; \T \vdash e : \ell\,\post{\psi}$. At the level $\U$: whatever the outside
+world returns and whatever the model answers, the clean trace of the execution is the clean
+trace of an opaque evaluation. That evaluation performs the same trusted and guarded
+actions, although every value from outside is $\op$ to it. The only trace of the attacker in
+it is the sequence of choices at \textsc{O-Choose} and \textsc{O-Refuse}.
+
+\begin{corollary}[Trusted actions]
+\label{cor:trusted}
+For a closed well-typed program, the trusted actions of every real evaluation, in their
+order, are the trusted actions of an opaque evaluation at the level $\E$. Such an evaluation
+uses neither \textsc{O-Choose} nor \textsc{O-Refuse}.
+\end{corollary}
+
+This is the theorem at $\kappa = \E$. A trusted action is beyond the reach of the attacker
+even through the choices that checks leave: an endorsed value cannot flow into it and cannot
+decide whether it happens. It is the noninterference result of~\cite{tpp5}, extended to
+programs with checks.
+
+\subsection{Every Sequence of Choices Is an Attack}
+
+The opaque semantics may offer more than an attacker can do. A check of a term such as
+$f(u)$ for an untrusted $u$ can only see the values in the image of $f$, and a value that is
+checked twice is the same value both times, while the opaque semantics chooses twice. These
+differences disappear when checks are applied where guardrails usually sit, on what the
+model has just produced. An expression is in \emph{generate-and-check form} if every check in
+it occurs as $\letin{y}{\model{\vec t}}\; \chk{y}{x}{\varphi}{e_1}{e_2}$.
+
+\begin{theorem}[Every sequence of choices is an attack]
+\label{thm:exact}
+Let $\ty{\Phi}{pc}{e}{\ell\,\post{\psi}}$ with $e$ in generate-and-check form, and let
+$\gamma^\circ$ match $\gamma$ at $\Gamma$ for $\kappa = \U$. If
+$\oev{e\gamma^\circ}{\U}{o}{\tau^\circ}$, then there are $c$ and $\tau$ such that
+$\ev{e\gamma}{c}{\tau}$, $\vis{\tau}{\U} = \vis{\tau^\circ}{\U}$, and $o$ matches $c$ at
+$\ell$.
+\end{theorem}
+
+\begin{proof}
+By induction on the typing derivation, with the cases of the proof of
+Theorem~\ref{thm:abstraction} read in the other direction. Where the opaque evaluation
+returns a value from the model, the world or the person, the real evaluation returns the
+same one; where it returns $\op$, the label of the result is $\U$, and the real evaluation
+returns any value. Where the opaque evaluation skips an expression by \textsc{O-Skip}, the
+real semantics has an evaluation of that expression by Lemma~\ref{lem:total}. The skipped
+expression has $\op$ in its payload, its test or its parameters, so its branches are typed
+at the program counter label $\U$ and are quiet by Lemma~\ref{lem:quiet}, and its own events
+are not visible. \textsc{O-Guard-Skip} does not occur at the level $\U$.
+
+The remaining case is a check of a candidate that is $\op$ with parameters that are not. By
+the form of $e$, the check is the body of a $\kw{let}$ that binds its candidate $y$ to
+$\model{\vec t}$, and $y$ is $\op$ because $\vec t\gamma^\circ$ contains $\op$. If the opaque
+evaluation uses \textsc{O-Choose} with the value $c$, the real evaluation lets the model
+answer $c$. The parameters are equal in both evaluations, so the real check passes, and both
+continue with $e_1\{c/x\}$; the substitutions still match, with $y$ hidden. If the opaque
+evaluation uses \textsc{O-Refuse}, some value $c'$ fails the predicate, the real evaluation
+lets the model answer $c'$, and both continue with $e_2$.
+\end{proof}
+
+The proof lets the model answer what the attack needs. This is the assumption of the worst
+case made concrete: a model that reads the attacker's text can be made to say anything. For
+programs in generate-and-check form the two theorems give an equality: the set of clean
+traces under all attacks is the set of clean traces of the opaque semantics.
+
+\subsection{Counting}
+
+The opaque semantics at the level $\U$ has two kinds of nondeterminism. The \emph{answers}
+are the values that the model returns to questions without $\op$, the values that the world
+returns to actions with trusted results, and the decisions of the person. The \emph{choices}
+are the uses of \textsc{O-Choose}, with one option for each value that satisfies the
+predicate, and of \textsc{O-Refuse}, which is one more option when some value fails it.
+Suppose that the answers are given by functions of the request, so that only the choices
+remain.
+
+\begin{corollary}[Capacity]
+\label{cor:capacity}
+Let $e$ be closed and well typed, and let the answers be given by functions. Then the clean
+trace of an opaque evaluation of $e$ at the level $\U$ is determined by its sequence of
+choices. If every such evaluation makes at most $k$ choices, each among at most $s$ accepted
+values, then $e$ has at most $(s+1)^k$ clean traces. More generally, the number of clean
+traces is at most the largest product of the numbers of options along an evaluation.
+\end{corollary}
+
+\begin{proof}
+With the answers fixed, every rule other than \textsc{O-Choose} and \textsc{O-Refuse}
+determines its result and its premises, so the evaluations form a tree that branches only at
+the choices. The number of leaves of a tree is at most the largest product of the branching
+degrees along a path, by induction on the tree.
+\end{proof}
+
+By Theorem~\ref{thm:abstraction}, these are all the clean traces that an attacker can cause,
+against a model, a world and a person that answer by the given functions wherever the
+attacker's data is not involved. In bits, a check with $s$ accepted values gives the
+attacker at most $\log_2(s+1)$ bits of control over the unapproved actions each time it
+runs.
+
+\begin{corollary}[No check, no influence]
+\label{cor:nocheck}
+Let $e$ be closed, well typed, and without checks, and let the answers be given by
+functions. Then $e$ has exactly one clean trace.
+\end{corollary}
+
+\begin{proof}
+Without checks there are no choices, so Corollary~\ref{cor:capacity} gives at most one
+clean trace. There is one: by Lemma~\ref{lem:total} the program has a real evaluation whose
+answers are given by the functions, and the opaque evaluation that
+Theorem~\ref{thm:abstraction} constructs from it uses the same answers.
+\end{proof}
+
+\section{Six Laws for Guardrails}
+\label{sec:laws}
+
+This section reads the theorems as advice. Each law comes with a program, and the script of
+Section~\ref{sec:tests} confirms the verdict of the type checker on each. In the script the
+value set is $\{0, \ldots, 4\}$ and the limit $L$ of payments is $3$, so its numbers are
+small; the programs are those shown here.
+
+\subsection{A Model Cannot Endorse}
+\label{sec:judge}
+
+The program of Section~\ref{sec:overview} that asks a model to judge a payment is rejected,
+and the reason is not particular to that program. By Corollary~\ref{cor:nocheck}, a program
+without checks has a single clean trace: for given answers to its trusted questions, its
+unapproved actions are the same under every attack. A program may call the model on
+untrusted data as often as it likes, to classify it, to summarize it, or to look for
+attacks in it. Whatever comes back is untrusted, and the type system keeps it away from
+every action that is not approved. Endorsement is the privilege of code and of people.
+
+This is a statement about guarantees and says nothing against the practical value of such
+classifiers. A classifier that catches most injections lowers the rate of attacks that
+reach a check or a person. It does not shrink the set of things that can happen, which is
+what this paper measures.
+
+\subsection{Reference Data Must Be Trusted}
+\label{sec:reference}
+
+A check compares a candidate with something: a limit, a list of contacts, a pattern. Where
+that something comes from matters as much as the comparison.
+\begin{prog}
+\letin{l}{\model{m}} & l : \U \text{, a limit taken from the message} \\
+\chk{p}{x}{x \le l}{\grd{\nm{pay}}{x}}{0} & \ell_d = \U \text{: rejected}
+\end{prog}
+In \textsc{Check} the label of the decision includes the labels of the parameters. With an
+untrusted limit, $\ell_d = \U$, the first branch runs at an untrusted program counter, and
+\textsc{Act-$\pi$} rejects the payment. The opaque semantics shows why this is right: with
+$\op$ among its parameters the check is skipped, because an attacker who controls the limit
+controls the outcome for every candidate. The same program with the limit read from the
+user is accepted, provided the facts entail the policy:
+\begin{prog}
+\letin{l}{\act{\nm{read}}{}} & l : \T \\
+\kw{check}\;p\;\kw{as}\;x.\,x \le l\;\kw{then} & x : \E \text{, fact } x \le l \\
+\quad \ite{l \le L}{\grd{\nm{pay}}{x}}{\ldots} & x \le l,\; l \le L \models x \le L
+\end{prog}
+A common instance is an allowlist of recipients that the agent has itself fetched from a
+place the attacker can write to.
+
+\subsection{A Check Is Worth Its Acceptance Set}
+\label{sec:bits}
+
+How much does a check leave to the attacker? Corollary~\ref{cor:capacity} answers with a
+number. An agent that lets the model classify a message into one of three queues and files
+it accordingly,
+\begin{prog}
+\letin{k}{\model{m}} \\
+\kw{check}\;k\;\kw{as}\;x.\,1 \le x \wedge x \le 3 \\
+\quad \kw{then}\;\ite{x = 1}{\grd{\nm{file}}{1}}{\ite{x = 2}{\grd{\nm{file}}{2}}{\grd{\nm{file}}{3}}} \\
+\quad \kw{else}\;0
+\end{prog}
+has exactly \exRoutes{} clean traces: the three queues and no action. The attacker controls
+two bits. The payment agent of Section~\ref{sec:overview} has $L + 2$ clean traces, which
+the script confirms as \exInvoiceTraces{} for $L = 3$. A check that validates free text
+against a format has an acceptance set that is astronomically large, and the corollary then
+says that the check is worth little: the attacker chooses among all well-formed texts. A
+guardrail is strong in proportion to how few values it lets through, and the theorem makes
+the count a quantity that can be compared across designs. By Theorem~\ref{thm:exact} the
+count is exact for programs in generate-and-check form.
+
+\subsection{Limits Do Not Add Up, Budgets Do}
+\label{sec:budget}
+
+A policy constrains one action. An agent that handles $n$ invoices in a loop, each with the
+check $x \le L$, satisfies the policy at every payment and can still be made to pay $nL$ in
+total: the opaque semantics chooses $L$ at every turn, and by Theorem~\ref{thm:exact} an
+attack realizes the choice. The remedy is to make the total a part of the state and of the
+check:
+\begin{prog}
+\kw{iter}\;n\;\kw{from}\;0\;\kw{as}\;s.\ & \text{invariant } \nu \le B \\
+\quad \letin{m}{\act{\nm{fetch}}{\nm{inbox}}}\; \letin{p}{\model{m}} & m, p : \U \\
+\quad \kw{check}\;p\;\kw{as}\;x.\,x \le L \wedge s + x \le B & x : \E \\
+\quad\quad \kw{then}\;\letin{r}{\grd{\nm{pay}}{x}}\; s + x & \nu = s + x \text{ and } s + x \le B \\
+\quad\quad \kw{else}\;s & \nu = s \text{ and } s \le B
+\end{prog}
+The state $s$ is the sum of the payments so far. It has the label $\E$, since endorsed
+amounts flow into it, and that is allowed for a parameter of a check: the decision of the
+check then has the label $\E$. The invariant $\nu \le B$ holds at the start, and each branch
+of the check preserves it, by the fact that the check records and by the invariant on $s$.
+By Theorem~\ref{thm:policy} the result of the loop is at most $B$, and the result is the
+total paid. The attacker now chooses a sequence of payments with a sum of at most $B$.
+
+In the script, with $n = 4$, $L = 3$ and $B = 3$, the largest total over all clean traces is
+\exTotalWithout{} without the budget and \exTotalWith{} with it, and the number of clean
+traces falls from \exTracesWithout{} to \exTracesWith. A budget is a check whose parameter is
+endorsed state. The type system admits such parameters and keeps the bookkeeping honest: if
+the program forgot to add a payment to $s$, the invariant would still hold and the theorem
+would still bound $s$, but $s$ would no longer be the total, and that is a property of the
+program for which a stronger postcondition is needed.
+
+\subsection{The Result of a Guarded Action Is Endorsed}
+\label{sec:result}
+
+The world answers to what it was sent. If an attacker chose the payload of an action within
+its policy, the result of the action is under the attacker's influence even when the action
+has a trusted result label. \textsc{Act-$\pi$} therefore gives the result the label
+$\ell_a \sqcup \lab(\vec t)$. With $k$ an untrusted answer of the model as before, the
+following program uses the result of a guarded action in a trusted action and is rejected:
+\begin{prog}
+\letin{y}{\chk{k}{x}{x \le 4}{x}{0}} & y : \E \\
+\letin{r}{\grd{\nm{file}}{y}} & r : \E \text{, not } \T \\
+\act{\nm{log}}{r} & \text{rejected}
+\end{prog}
+We did not see the need for this join when we first wrote the rule. The mutation test of
+Section~\ref{sec:tests} breaks each rule in turn, and a checker whose guarded actions
+return results of label $\ell_a$ alone accepts this program, on which the opaque semantics
+at the level $\E$ is stuck: it would have to perform a trusted action on $\op$. A lookup in
+a trusted database under a key that the attacker selected is the everyday form of this
+flow.
+
+\subsection{The Attacker Can Always Refuse}
+\label{sec:refuse}
+
+The rule \textsc{O-Refuse} is as much a part of the attacker's power as \textsc{O-Choose}:
+an attacker can always make the model produce a value that fails the check. Whatever a
+program does in the second branch of a check is therefore the attacker's to trigger. The
+payment agent of Section~\ref{sec:overview} falls back to asking the person. In a loop over
+$n$ messages the attacker can cause $n$ questions, each about a payload of the attacker's
+choosing. This turns a guardrail into a way of spending the attention of the person, which
+is the resource that selective approval was meant to protect~\cite{tpp5}. The opaque
+semantics does not list these questions among the clean traces, since approved actions are
+outside its guarantee, but it shows the choice that leads to them. A second branch that
+abstains, or a counter in the state of the loop that bounds the number of questions as the
+budget bounds the payments, removes the lever.
+
+The same reading applies to availability. Refusal is always possible, so no check-guarded
+action can be guaranteed to happen under attack. Checks buy integrity and sell liveness,
+and an earlier paper in this series prices that trade for an honest model that merely
+errs~\cite{tpp3}.
+
+\section{Testing the Claims}
+\label{sec:tests}
+
+The artifact is one Python script, \texttt{flow.py}, of about 840 lines without
+dependencies. It instantiates the set of values with $\{0, \ldots, 4\}$, so that entailment
+between predicates is decided by enumeration, and it contains the following parts.
+
+\paragraph{A type checker.} It implements Figure~\ref{fig:typing} in an algorithmic form
+that computes the least label of each expression and checks postconditions against a given
+predicate. The invariants of loops are written in the programs.
+
+\paragraph{Two interpreters.} One implements Figure~\ref{fig:real} and one
+Figure~\ref{fig:opaque}. Each returns the value, the events and a log of its decisions, and
+each can be \emph{guided} by a log of the other: the opaque interpreter then takes the
+answers and the outcomes of the checks from a real evaluation and fails if a rule of the
+opaque semantics does not permit the step, and the real interpreter takes the answers and
+the choices from an opaque evaluation and lets the model produce the chosen values. Guided
+evaluation is the construction in the proofs of Theorems~\ref{thm:abstraction}
+and~\ref{thm:exact}, as a program.
+
+\paragraph{Random programs.} One generator builds programs that are well typed by
+construction. A second one builds programs without regard to the rules, and the tests keep
+those that the checker accepts. For \exPrograms{} programs and four real evaluations of
+each, the script checks that every guarded event satisfies its policy
+(Theorem~\ref{thm:policy}) and that the guided opaque evaluation exists at both levels, has
+the same visible trace, and returns a matching value (Theorem~\ref{thm:abstraction}). For
+\exPaired{} programs in generate-and-check form and four opaque evaluations of each with
+random choices, it checks that the guided real evaluation exists and has the same clean
+trace (Theorem~\ref{thm:exact}). All checks pass.
+
+\paragraph{Broken rules.} Passing tests show little unless they can fail. The checker has a
+switch that breaks one rule at a time: the answer of the model is trusted, a trusted action
+accepts any payload, a guarded action accepts untrusted influence, the policy is not
+checked, the result of a guarded action has the label $\ell_a$ only, the branches of
+\textsc{Ask}, \textsc{If} or \textsc{Check} do not raise the program counter, the results of
+these three do not include the label of the decision, a $\kw{let}$ forgets the label of the
+bound expression, a check endorses to $\T$, a check ignores the labels of its parameters,
+and a loop does not iterate its label to a fixed point. For each of these \exRules{} broken
+checkers the script searches for a program that the broken checker accepts and on which a
+test fails, and it finds one in every case. The search tries the program of
+Section~\ref{sec:result} first, which exposes five of the broken rules, and then random
+programs. The slowest case, a conditional whose result forgets the label of its test, needs
+\exSlowest{} candidates. We added the program of Section~\ref{sec:result} to the search
+after random programs alone had failed to expose the missing join in the result of a guarded
+action; they rarely contain that flow.
+
+The mutation test also found a label that carries no weight. In \textsc{Ask} the variable
+$x$ could have the label $\ell_a$ alone: the program counter of its branch already includes
+the label of the payload, and the proof of Theorem~\ref{thm:abstraction} goes through
+unchanged. No test rejects that variant. We keep the label $\ell_a \sqcup \ell$, which says
+what the result depends on.
+
+\paragraph{The examples.} The script runs the checker on the programs of
+Sections~\ref{sec:overview} and~\ref{sec:laws} and confirms each verdict. It enumerates all
+sequences of choices of the classification agent, the payment agent and the two loops of
+Section~\ref{sec:budget}, with answers given by fixed functions, and reports the numbers of
+clean traces quoted above together with the bound of Corollary~\ref{cor:capacity}; for the
+loop with a budget there are \exTracesWith{} clean traces against a bound of \exBoundWith.
+The command \texttt{make -C artifact check} runs everything in about ten seconds and
+compares the output with the committed copy.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Integrity and information flow.} Labels on data and a program counter label go
+back to the lattice model of Denning~\cite{denning1976} and to type systems for secure
+information flow~\cite{volpano1996,sabelfeld2003}. {\O}rb{\ae}k and
+Palsberg~\cite{orbaek1997} analyze trust in a $\lambda$-calculus with constructs that mark
+data as trusted or distrusted and a construct that requires trust. Our labels and our rules
+for conditionals are in this tradition.
+
+\paragraph{Endorsement and its semantics.} Noninterference forbids all influence, and
+practical systems need controlled exceptions. For confidentiality the exception is
+declassification, whose dimensions Sabelfeld and Sands~\cite{sabelfeld2009} classify, and
+for integrity it is endorsement. Robust declassification~\cite{zdancewic2001} asks that an
+attacker cannot influence what is released, and qualified
+robustness~\cite{myers2006} extends it to programs that endorse. Askarov and
+Myers~\cite{askarov2011} characterize security by the attacker's influence, define the
+attacker's impact on trusted locations, and give conditions and a type system for
+\emph{checked endorsement}, in which a value is endorsed only if a test on it succeeds.
+The check of our calculus is a checked endorsement in their sense, and the idea of stating
+the guarantee as a bound on the attacker's influence is theirs. Our formulation differs in
+three respects. The guarantee is a refinement between two semantics of the same program,
+one of which never inspects untrusted data, so that the attacked program can be verified as
+an ordinary nondeterministic program. The refinement is exact for a natural class of
+programs. And the endorsed value carries the predicate of its check as a refinement, which
+connects endorsement to the policies of actions. Relaxed
+noninterference~\cite{li2005} specifies downgrading by the programs through which data may
+pass; a check with its predicate is such a specification for integrity. Clarkson and
+Schneider~\cite{clarkson2010} quantify integrity with information theory, as the
+contamination of trusted data by untrusted inputs. Our capacity bound is a possibilistic
+count in the same spirit and uses no probabilities.
+
+\paragraph{Refinements.} Recording the predicate of a test as a fact about a variable is the
+basic move of refinement types~\cite{freeman1991,rondon2008}. We use a deliberately small
+fragment, with entailment as an oracle.
+
+\paragraph{Prompt injection.} Greshake et al.~\cite{greshake2023} showed that text retrieved
+by an application can take control of the model in it. CaMeL~\cite{debenedetti2025} extracts
+the control flow and the data flow from the trusted request of the user, so that untrusted
+data cannot affect the flow of the program, and enforces policies with capabilities when
+tools are called. Costa et al.~\cite{costa2025} give a formal model of agent planners,
+characterize what dynamic taint tracking can enforce, and build a planner that tracks
+integrity and confidentiality labels. Beurer-Kellner et al.~\cite{beurerkellner2025} propose
+design patterns for agents with provable resistance to injection and discuss their cost in
+utility, and AgentDojo~\cite{debenedetti2024} measures attacks and defenses on agents with
+tools. Safeguard models such as Llama Guard~\cite{inan2023} classify inputs and outputs with
+a model; Section~\ref{sec:judge} says what such a classifier can and cannot contribute to a
+guarantee. These systems track flows at run time or fix an architecture. We give a static
+discipline, and a theorem that says what remains possible once checks have been placed:
+which is what a designer must know to decide whether a pattern is strong enough.
+
+\paragraph{This series.} The two-level system without endorsement is~\cite{tpp5}, and its
+approvals are the linear tokens of~\cite{tpp4}. The same construct, a check of what a model
+generated, is analyzed for honest models in~\cite{tpp3}: there a check turns errors into
+abstentions with a probability, and here it turns an attack into a choice within a set.
+
+\section{Limits and Open Problems}
+\label{sec:limits}
+
+\paragraph{Limits.} The attacker of this paper is as strong as possible, and the results
+are possibilistic: they say which traces can occur and do not say how likely an attack is to
+steer a real model to a given choice. The labels $\ell_a$ are declarations. If an approved
+action with an untrusted payload changes the state of the world, and a later action with a
+trusted result reads that state, the declaration is wrong, and no theorem here notices. The
+person is modelled as nondeterminism; a person who approves without reading provides no
+protection, and the calculus cannot tell. Predicates are total functions on abstract values.
+For real payloads, which are strings and structured documents, the difficulty is to write
+predicates whose acceptance sets are small and still useful. The calculus has bounded loops
+and no functions. The proofs are not mechanized.
+
+\paragraph{Open problems.}
+\begin{enumerate}
+\item \emph{Probabilities.} With a distribution on the answers of an honest model and an
+attacker who controls only a part of the input, the capacity of a check becomes a quantity
+of information, and it should compose with the reliability grades of~\cite{tpp3}. A single
+judgment could then bound both the error of an agent that is not attacked and the influence
+on one that is.
+\item \emph{Confidentiality.} The dual system has secret data, public sinks, and checks that
+declassify. An agent that reads a secret and writes to an address needs both systems at
+once, and the known interaction between them is robustness: the attacker must not choose
+what is declassified.
+\item \emph{Choosing where to check.} Given a program without checks and policies for its
+actions, synthesize the checks with the smallest total capacity that make it well typed, and
+ask a person for the rest.
+\item \emph{Structured values.} For strings, an acceptance set is a language. Its size at a
+given length, or the entropy of the checker's grammar, would be the measure that replaces
+$\log_2(s+1)$.
+\item \emph{Monitors.} The static discipline has a dynamic counterpart with labels at run
+time, which would let a harness enforce it on programs that a model writes. The opaque
+semantics suggests a design: run the planner on $\op$.
+\item \emph{Mechanization.} Theorems~\ref{thm:abstraction} and~\ref{thm:exact} are
+inductions over a first-order big-step semantics, and the guided interpreters of the
+artifact are their computational content.
+\end{enumerate}
+
+\section{Conclusion}
+
+A guardrail that is ordinary code turns an injection into a choice. The attacker picks one
+of the values that the check accepts, or makes the check fail, and has no other influence
+on what the agent does without approval. The type system finds the places where a program
+relies on more than that, and the opaque semantics is the program that remains: no model, no
+untrusted text, and a choice wherever a check stands. Guardrails can then be compared by
+counting, and agents can be verified against their opaque semantics by the means that
+already exist for nondeterministic programs.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

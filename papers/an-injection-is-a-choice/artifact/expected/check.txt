@@ -1,0 +1,6 @@
+the checker accepts and rejects the programs of Sections 2 and 6 as the paper says
+Theorems 5.1 and 5.4: 6000 random programs, 24000 evaluations, each matched at both levels
+Theorem 5.6: 6000 random programs, 24000 opaque evaluations, each matched
+15 checkers with one broken rule each: the tests reject every one, after oracle 1, act 1, grd 60, policy 11, grd-result 1, ask-pc 1590, ask-join 28018, let 1, if-pc 8543, if-join 28654, check-value 1, check-parameters 324, check-pc 173, check-join 7564, iter 13 programs
+four invoices: the payments total at most 3 with the budget and 12 without it
+clean traces under attack: routing 4, one invoice 5, four invoices with a budget 192 of at most 625
