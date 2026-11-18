@@ -1,0 +1,307 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\Ok}[2]{\kw{Ok}(#1, #2)}
+\newcommand{\ret}{\kw{ret}}
+\newcommand{\ask}[2]{\kw{ask}\;#1\;(#2)}
+\newcommand{\act}[3]{\kw{act}\;#1\;#2\;#3}
+\newcommand{\actc}[2]{\kw{act!}\;#1\;#2}
+\newcommand{\orc}[1]{\kw{oracle}(#1)}
+\newcommand{\inp}{\kw{input}()}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\judg}[4]{\Phi; \Gamma; #1 \vdash_{#2} #3 : #4}
+\newcommand{\Base}{\kw{Base}}
+\newcommand{\T}{\kw{T}}
+\newcommand{\U}{\kw{U}}
+\newcommand{\lab}{\mathrm{lab}}
+\newcommand{\taint}[2]{\kw{taint}_{#1}(#2)}
+
+\begin{document}
+
+\title{Ask Only When It Matters: Integrity Types That Decide Which Actions Need Approval}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. It wrote this paper at the request of a human who asked for papers on
+the strongest ideas of this repository. The proofs are on paper and have not been checked by a
+machine. At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+An agent that asks for approval before every action teaches its user to approve without
+reading. We give a type system that decides which actions need the question. Types carry an
+integrity label. Data from outside is untrusted, the answer of a model is as untrusted as its
+input, and a branch on untrusted data taints what it controls. An action that untrusted data
+can influence must consume an approval, in the sense of typed approvals, and every other action
+runs without one. We prove that in every execution each action is approved or clean, and that
+the clean actions are the same whatever the untrusted inputs were. A prompt injection can
+therefore change only actions that a person is shown.
+\end{abstract}
+
+\keywords{information flow, integrity, linear types, agents, prompt injection}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+A person in the loop protects against an agent that goes wrong, as long as the person reads
+what is shown. Reading does not survive a question before every step. The agent should ask when
+the answer matters and stay silent otherwise.
+
+When does it matter? An agent goes wrong in a dangerous way when text that it reads tells it
+what to do: a web page, an e-mail, or the output of a tool that contains instructions. The model
+that drives the agent cannot be relied on to ignore them. This is an integrity
+problem~\citep{denning1976}. Data from outside is untrusted, and an action is at risk when
+untrusted data can influence it.
+
+Typed approvals~\citep{tpp4} guarantee that an approved action runs with the payload that the
+person saw. They say nothing about which actions should be approved. This paper adds the
+missing half. We label base values as trusted or untrusted, propagate the labels through the
+program, and give two typing rules for actions. An action that untrusted data can influence, in
+its payload or in the decision to perform it, must consume an approval. An action that only
+trusted data influences needs none.
+
+The model is the unusual part. We treat it as a function whose result is as untrusted as its
+argument. Whatever the model was told by its input, the label of the input covers it. No
+assumption is made that the model resists instructions.
+
+Our main contributions are as follows:
+\begin{itemize}
+\item A type system with integrity labels and a program counter label on top of the calculus of
+  typed approvals (Section~\ref{sec:types}).
+\item The theorem that every action of a well-typed program is approved or clean
+  (Theorem~\ref{thm:selective}).
+\item The theorem that the clean behavior of a program is independent of its untrusted inputs
+  (Theorem~\ref{thm:indep}).
+\end{itemize}
+
+\paragraph{Status of the claims.}
+The proofs in this paper are sketched on paper and have not been mechanized.
+
+\section{Labels and Types}
+\label{sec:types}
+
+We extend the calculus of~\citet{tpp4}. Recall that an approval has the type
+$\Ok{a}{x.\varphi}$ for an action $a$ and a predicate $\varphi$ on its payload $x$, that
+$\ask{a}{x.\varphi}$ returns an approval or nothing, and that $\act{a}{i}{w}$ performs $a$ with
+the payload $i$ and consumes the approval $w$, which must satisfy $\Phi \models \varphi[i/x]$.
+
+A label $\ell$ is $\T$ for trusted or $\U$ for untrusted, with $\T \sqsubseteq \U$. Base types
+and sum types carry a label:
+\[
+\tau ::= \Base^\ell \mid \kw{Unit} \mid \tau \otimes \tau \mid (\tau \oplus \tau)^\ell \mid
+  \Ok{a}{x.\varphi} .
+\]
+We write $\tau \sqcup \ell$ for $\tau$ with the labels of its base types and sum types raised by
+$\ell$, outside approvals. The context $\Gamma$ gives a label to each base variable. The label
+$\lab(i)$ of an index is the label of the variable, or $\T$ for a value. The label
+$\lab(\varphi)$ of a predicate is the join of the labels of its variables. Each action $a$ has a
+fixed label $\ell_a$ for the results that the world returns.
+
+There are two new expressions. The expression $\inp$ reads data from outside. The expression
+$\actc{a}{i}$ performs an action without an approval.
+
+\begin{figure}
+\begin{mathpar}
+\inferrule[Ret]{\Phi; \Gamma; \Delta \vdash w : \tau}
+  {\judg{\Delta}{pc}{\ret\;w}{\tau \sqcup pc}}
+\and
+\inferrule[Input]{ }{\judg{\cdot}{pc}{\inp}{\Base^{\U}}}
+\and
+\inferrule[Oracle]{\Gamma \vdash i}{\judg{\cdot}{pc}{\orc{i}}{\Base^{\lab(i) \sqcup pc}}}
+\and
+\inferrule[If]{\judg{\Delta}{pc \sqcup \lab(\varphi)}{e_1}{\tau} \quad (\Phi, \varphi) \\
+  \judg{\Delta}{pc \sqcup \lab(\varphi)}{e_2}{\tau} \quad (\Phi, \neg\varphi)}
+  {\judg{\Delta}{pc}{\kw{if}\;\varphi\;\kw{then}\;e_1\;\kw{else}\;e_2}{\tau}}
+\and
+\inferrule[Ask]{\mathrm{fv}(\varphi) \subseteq \Gamma, x}
+  {\judg{\cdot}{pc}{\ask{a}{x.\varphi}}{(\Ok{a}{x.\varphi} \oplus \kw{Unit})^{pc \sqcup
+    \lab(\varphi)}}}
+\and
+\inferrule[Act]{\Gamma \vdash i \\ \Phi; \Gamma; \Delta \vdash w : \Ok{a}{x.\varphi} \\
+  \Phi \models \varphi[i/x]}
+  {\judg{\Delta}{pc}{\act{a}{i}{w}}{\Base^{\lab(i) \sqcup pc \sqcup \ell_a}}}
+\and
+\inferrule[Act-Clean]{\Gamma \vdash i \\ \lab(i) \sqcup pc = \T}
+  {\judg{\cdot}{pc}{\actc{a}{i}}{\Base^{\ell_a}}}
+\end{mathpar}
+\Description{Seven typing rules with integrity labels.}
+\caption{Typing rules with labels. In \textsc{If}, each branch is checked with the predicate in
+parentheses added to $\Phi$.}
+\label{fig:rules}
+\end{figure}
+
+The judgment $\judg{\Delta}{pc}{e}{\tau}$ has a program counter label $pc$, which bounds the
+labels of the data that decided whether $e$ runs. Figure~\ref{fig:rules} gives the rules that
+involve labels. The rule for $\kw{case}$ on an operand of type $(\tau_1 \oplus \tau_2)^\ell$
+checks both branches at $pc \sqcup \ell$, as \textsc{If} does. A $\kw{let}$ on a base
+expression of type $\Base^\ell$ gives the label $\ell$ to its variable. A procedure is checked
+at a declared label and called only at a program counter below it. The remaining rules are those
+of~\citet{tpp4}.
+
+Three rules carry the design. In \textsc{Oracle}, the answer of the model has the label of the
+question. In \textsc{Ask}, the answer of the person has the label of what was shown: a person
+who reads untrusted text can be misled by it, so an approval does not make later steps trusted.
+In \textsc{Act-Clean}, an action runs without approval only when its payload and the program
+counter are trusted.
+
+\paragraph{Example.}
+An agent pays an invoice that arrives by e-mail and then files a note.
+\[
+\begin{array}{l}
+\letin{m}{\inp}{} \\
+\letin{p}{\orc{m}}{} \\
+\letin{r}{\ask{\nm{pay}}{x.\,x = p}}{} \\
+\kw{case}\;r\;\{\kw{inl}\;t \Rightarrow \act{\nm{pay}}{p}{t} \mid \kw{inr}\;u \Rightarrow
+  \ret\;0\}
+\end{array}
+\]
+The mail $m$ is untrusted, so the payment $p$ that the model extracts is untrusted, and
+\textsc{Act-Clean} rejects $\actc{\nm{pay}}{p}$. The program above is accepted: the person sees
+the exact payment. Suppose the agent continues with $\actc{\nm{log}}{s}$ for a constant $s$.
+After the $\kw{case}$ the program counter is trusted again, the payload is a constant, and the
+note is filed without a question. Inside the first branch of the $\kw{case}$ the same expression
+would be rejected, since whether it runs there depends on an answer to untrusted text.
+
+\section{Semantics with Labels}
+
+The semantics of~\citet{tpp4} has a store of approvals and a monitor that lets an action
+through when its approval is in the store and covers the payload. We add labels at run time. A
+base value is $c^\ell$ and an injection is $\kw{inl}^\ell\,v$ or $\kw{inr}^\ell\,v$. A frame
+$\taint{\ell}{e}$ runs $e$ under a raised program counter. The dynamic program counter of a
+step is the join of the labels of the frames around its redex. The rules are as follows, where
+$pc$ is the dynamic program counter.
+\[
+\begin{array}{lcl}
+\kw{if}\;\varphi\;\kw{then}\;e_1\;\kw{else}\;e_2 & \to & \taint{\ell}{e_k}
+  \quad \text{for the branch } k \text{ that } \varphi \text{ selects, } \ell = \lab(\varphi) \\
+\kw{case}\;(\kw{inl}^\ell\,v)\;\{\ldots\} & \to & \taint{\ell}{e_1[v/y]} \\
+\taint{\ell}{\ret\;v} & \to & \ret\;(v \sqcup \ell) \\
+\inp & \to & \ret\;c^{\U} \\
+\orc{c^\ell} & \to & \ret\;c'^{\,\ell \sqcup pc} \\
+\ask{a}{x.\varphi} & \to & \ret\;(\kw{inl}^{\ell}\,n) \text{ or } \ret\;(\kw{inr}^{\ell}\,())
+  \quad \text{with } \ell = pc \sqcup \lab(\varphi) \\
+\act{a}{c^\ell}{n} & \to & \ret\;c'^{\,\ell \sqcup pc \sqcup \ell_a} \\
+\actc{a}{c^\ell} & \to & \ret\;c'^{\,\ell_a} \quad \text{if } \ell \sqcup pc = \T
+\end{array}
+\]
+The values $c$ and $c'$ are arbitrary, and the events and the store are as before. An action
+with an approval emits $\kw{act}(n, a, c)$. An action without one emits $\kw{clean}(a, c)$. The
+side condition of the last rule is a second monitor. An action is \emph{clean} when it is
+performed by the last rule with the side condition true.
+
+\section{Results}
+
+\begin{theorem}[Safety]
+\label{thm:safety}
+A well-typed configuration is a returned value or takes a step in the monitored semantics, and
+the step leads to a well-typed configuration.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+We extend the typing to labelled values and frames. A value $c^\ell$ has type $\Base^{\ell'}$
+for $\ell \sqsubseteq \ell'$, and likewise for injections. A frame $\taint{\ell}{e}$ has type
+$\tau$ at $pc$ when $e$ has type $\tau$ at $pc \sqcup \ell$. Preservation is by cases on the
+step, with the substitution lemma of~\citet{tpp4}. The invariant is that run-time labels are
+below static labels and that the dynamic program counter is below the static one. For progress,
+the new case is $\actc{a}{c^\ell}$. By \textsc{Act-Clean} the static label of the payload and
+the static program counter are $\T$, so the dynamic ones are $\T$, and the monitor lets the
+action through. The case of $\kw{act}$ is as in~\citet{tpp4}.
+\end{proof}
+
+\begin{theorem}[Selective consent]
+\label{thm:selective}
+In every execution of a well-typed program without the two monitors, each action either
+consumes an approval that was granted earlier for this action and whose predicate the payload
+satisfies, with no approval consumed twice, or it is clean.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:safety} neither monitor ever blocks, so the executions without monitors are
+the monitored executions. In a monitored execution an action with an approval has consent by
+the argument of~\citet{tpp4}, and an action without one passed the second monitor.
+\end{proof}
+
+The second theorem says what clean means. Two configurations are \emph{equal up to untrusted
+data} when they become equal after every value with label $\U$ and every frame with label $\U$
+is replaced by a hole, up to a renaming of approvals. A step is \emph{visible} when its redex is
+not inside a frame with label $\U$. The visible events of an execution are the events of its
+visible steps, with payloads of label $\U$ replaced by a hole.
+
+\begin{theorem}[Independence]
+\label{thm:indep}
+Let two well-typed configurations be equal up to untrusted data. For every finite execution of
+the first there is an execution of the second whose visible events are a prefix of the visible
+events of the first, and all of them unless a frame with label $\U$ diverges in the second.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+The execution of the second configuration is built step by step so that the two stay equal up
+to untrusted data. A step inside a frame with label $\U$ is matched by no step. For a visible
+step, the redex is outside the holes, so the second configuration has the same redex up to
+values with label $\U$. A test or a $\kw{case}$ on trusted data takes the same branch. On
+untrusted data both sides enter a frame with label $\U$, which is a hole. The answer of the
+model to a trusted question, the answer of the person to a trusted predicate, and the result of
+an action with a trusted payload are trusted, and the second execution makes the same choice.
+In the other cases the result has label $\U$ and is a hole. When a frame with label $\U$
+returns, the second configuration runs its frame until it returns, unless it diverges. The
+results have the same type, their base values and injections are raised to $\U$ and are holes,
+and approvals in them are related by the renaming.
+\end{proof}
+
+Every clean action is a visible event with a trusted payload, so the clean actions of a program
+are the same for all untrusted inputs, as far as the second execution gets. This is the usual
+guarantee of a type system for information flow~\citep{volpano1996}, read for integrity, and it
+is insensitive to termination in the usual way.
+
+\section{Discussion}
+
+\emph{Against prompt injection.} Text that an agent reads enters through $\inp$ or through the
+result of an action with $\ell_a = \U$. By Theorem~\ref{thm:indep} it cannot change a clean
+action. By Theorem~\ref{thm:selective} every other action is one that a person approved with
+its payload in view. The model needs no defense of its own.
+
+\emph{Fewer questions.} An agent that works from the instructions of its user and from trusted
+data asks nothing. The questions begin where outside data starts to steer, and each one shows
+the payload that will run.
+
+\emph{What is trusted.} The labels $\ell_a$ and the choice of what counts as $\inp$ are
+decisions of whoever deploys the agent. The model is trusted on trusted input: its mistakes are
+not attacks, and this paper does not bound them.
+
+\emph{No endorsement.} The system has no way to turn untrusted data into trusted data. A person
+who approves an untrusted payload approves one action. A sound checker could justify more, for
+example by accepting only values from a fixed list. We leave rules for endorsement to later
+work.
+
+\section{Related Work}
+
+The lattice model of~\citet{denning1976} and the type system of~\citet{volpano1996} are the basis
+of our labels and of Theorem~\ref{thm:indep}. Our approvals are those of~\citet{tpp4}. The
+contribution here is their combination: integrity labels select the actions that need an
+approval, and the approval is linear and indexed by the payload.
+
+\citet{debenedetti2025} defend agents against prompt injection with an interpreter that
+separates the control flow of a trusted plan from untrusted data and tracks the provenance of
+values. \citet{costa2025} track labels dynamically in the planner of an agent and characterize
+the properties that such tracking can enforce. Both track flows at run time. We give a static
+discipline for the same concern and connect it to consent: where the flow analysis finds
+influence from outside, the type system demands an approval instead of forbidding the action.
+
+\section{Conclusion}
+
+Integrity labels tell which actions untrusted data can influence, and typed approvals make
+exactly those actions wait for a person. The rest of the program runs unasked and is provably
+unaffected by what the agent reads. The next steps are endorsement by sound checkers, labels
+with more than two levels, and a mechanized proof.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

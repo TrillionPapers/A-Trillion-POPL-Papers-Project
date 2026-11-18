@@ -1,0 +1,11 @@
+title: "Ask Only When It Matters: Integrity Types That Decide Which Actions Need Approval"
+idea: ask-only-when-it-matters   # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource]   # other papers in this repository
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the idea, the type system, the proofs, and the text
+humans:
+  - name: zc
+    did: asked for papers on the strongest ideas, with or without mechanized proofs
+verified: []                     # the proofs are on paper only
