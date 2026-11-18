@@ -1,0 +1,2417 @@
+# Lean 4.36.0: 2416 modules
+Init.BinderNameHint	635	657	
+Init.BinderPredicates	597 626	623 627	
+Init.ByCases	597 597 639		
+Init.CbvSimproc	657	623	
+Init.Classical	636		
+Init.Coe	635 635		
+Init.Control	7 8 9 10 11 12 13 24 25 26 27 28 29		
+Init.Control.Basic	0 31		
+Init.Control.Do	10 25		
+Init.Control.EState	27 503		
+Init.Control.Except	7 12		
+Init.Control.ExceptCps	14	639	
+Init.Control.Id	24		
+Init.Control.Lawful	14 15 16 17 20		
+Init.Control.Lawful.Basic	12 597	542	
+Init.Control.Lawful.Instances	14 25 27 29 542		10 25 27
+Init.Control.Lawful.Lemmas	4 14 542	2	
+Init.Control.Lawful.MonadAttach	18 19		
+Init.Control.Lawful.MonadAttach.Instances	9 14 27 29 542	19	
+Init.Control.Lawful.MonadAttach.Lemmas	4 14 21	23 637	24
+Init.Control.Lawful.MonadLift	21 22 23		
+Init.Control.Lawful.MonadLift.Basic	626		
+Init.Control.Lawful.MonadLift.Instances	11 21 25 27 28 29	15 23	10 11 12 25 28 29
+Init.Control.Lawful.MonadLift.Lemmas	14 21	542	
+Init.Control.MonadAttach	31		
+Init.Control.Option	24 336		
+Init.Control.Reader	10		
+Init.Control.State	10		
+Init.Control.StateCps	14 542		
+Init.Control.StateRef	26 655		
+Init.Conv	622 657		
+Init.Core	641 657		
+Init.Data	33 34 70 73 74 83 84 90 91 96 101 102 112 142 144 149 150 151 173 238 239 296 330 331 333 344 352 363 364 365 366 367 368 371 392 396 405 419 420 495 499 502 507 516 517 540		
+Init.Data.AC	543	2 636	
+Init.Data.Array	35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 54 55 56 57 58 60 61 62 64 65 66 71 72		
+Init.Data.Array.Attach	50	39 40	240
+Init.Data.Array.Basic	8 65 294 543 662	624 665	65 294
+Init.Data.Array.BasicAux	65 661	311	36
+Init.Data.Array.BinSearch	36	83 628 665	
+Init.Data.Array.Bootstrap	243	253 292	36
+Init.Data.Array.Count	1 542 627	50 83 245 263	36
+Init.Data.Array.DecidableEq	36 314	2 4 73 83 261 637	36
+Init.Data.Array.Erase	50	39 83 246 262 264 292 628	36
+Init.Data.Array.Extract	1 542 627	2 39 50 83 274 292 628	
+Init.Data.Array.FinRange	36	50 59 107 628	
+Init.Data.Array.Find	35 337	2 39 54 83 107 245 248 249 265 273 274 292 628	36
+Init.Data.Array.GetLit	543	36	
+Init.Data.Array.InsertIdx	36	266 293 314 628	
+Init.Data.Array.InsertionSort	36		
+Init.Data.Array.Int	56 251 252	164	
+Init.Data.Array.Lemmas	293 314 316	2 41 83 107 248 262 267 274 280 295 311 325 341 364 628 658	36 39 243
+Init.Data.Array.Lex	52 53		
+Init.Data.Array.Lex.Basic	36	628 665	
+Init.Data.Array.Lex.Lemmas	52 73 149 353 636	2 39 41 50 83 254 262 274	52
+Init.Data.Array.MapIdx	255	59	36 255
+Init.Data.Array.Mem	36 665	242 311 624	
+Init.Data.Array.MinMax	50 353	39 41 256 292 357	
+Init.Data.Array.Monadic	35	83	36 243
+Init.Data.Array.Nat	56	50 270 273	
+Init.Data.Array.OfFn	276	39 57 107 247 341 628	36
+Init.Data.Array.Package	53 362	277	
+Init.Data.Array.Perm	36	50 269 274 279 628	36
+Init.Data.Array.QSort	63		
+Init.Data.Array.QSort.Basic	346 520	628 665	
+Init.Data.Array.Range	1 314 542	2 40 54 72 248 271 280	36 59
+Init.Data.Array.Set	657		
+Init.Data.Array.Sort	67 68		
+Init.Data.Array.Sort.Basic	70 406	628	
+Init.Data.Array.Sort.Lemmas	61 67 285	2 39 50 54 287 409 416	67 285
+Init.Data.Array.Subarray	36 418		
+Init.Data.Array.Subarray.Split	69	628	69
+Init.Data.Array.TakeDrop	36 627	50 274 292	36
+Init.Data.Array.Zip	13 149	50 274 295 341 364 628	36
+Init.Data.BEq	597	83	
+Init.Data.BitVec	75 76 77 78 79 80 81 82		
+Init.Data.BitVec.Basic	83 154 159 662	300 311 314 623 628 665	
+Init.Data.BitVec.BasicAux	597	297	
+Init.Data.BitVec.Bitblast	1 80 81 314	2 78 79 170 306 317 325 658	75 158 299
+Init.Data.BitVec.Bootstrap	75	2 306 542 658	75
+Init.Data.BitVec.Decidable	75 636	4 78 542	
+Init.Data.BitVec.Folds	75 542	81 106	75
+Init.Data.BitVec.Lemmas	75 107 242 636	2 78 155 161 165 170 253 274 292 306 316 317 325 658	75 76
+Init.Data.BitVec.Package	75 362	81 301 318	
+Init.Data.Bool	627		
+Init.Data.ByteArray	85 86 87 88 89		
+Init.Data.ByteArray.Basic	41 240	39 50 628	509
+Init.Data.ByteArray.Bootstrap	241		
+Init.Data.ByteArray.Extra	85	426 508	
+Init.Data.ByteArray.Lemmas	85	2 39 43 50 628	
+Init.Data.ByteArray.Lex	53 60 88 345 350 355 358 362 515		
+Init.Data.Cast	5		
+Init.Data.Char	92 93 94 95		
+Init.Data.Char.Basic	509	305	
+Init.Data.Char.Lemmas	92 542	513	92
+Init.Data.Char.Order	92 353	93 355 636	
+Init.Data.Char.Ordinal	92 110 149	2 93 94 107 167 311 325 341 513 544	
+Init.Data.Dyadic	97 98 99 100		
+Init.Data.Dyadic.Basic	154 353 393	2 155 161 170 300 341 394 628	
+Init.Data.Dyadic.Instances	97 585	394	
+Init.Data.Dyadic.Inv	97	168 394	
+Init.Data.Dyadic.Round	97	2 98 155 161 170 341 579 584 628	
+Init.Data.Erased	4 542	547	
+Init.Data.Fin	103 105 106 107 108 109 110 111		
+Init.Data.Fin.Basic	297 299	305	
+Init.Data.Fin.Bitwise	103	300 305	
+Init.Data.Fin.Fold	14 542	107 314 611 628 658 665	
+Init.Data.Fin.Iterate	103	611 636 665	
+Init.Data.Fin.Lemmas	305 320 353 542 627	2 311 314 611 628 658	
+Init.Data.Fin.Log2	635	315	
+Init.Data.Fin.MinMax	103	316 318 357	
+Init.Data.Fin.OverflowAware	103	107	
+Init.Data.Fin.Package	109 362	2 107 301 318 357	
+Init.Data.Float	113 114 115		
+Init.Data.Float.Float	116 503		
+Init.Data.Float.Float32	113 117		
+Init.Data.Float.Model	116 117 118 121		
+Init.Data.Float.Model.Float	120 123 139		
+Init.Data.Float.Model.Float32	120 123 139		
+Init.Data.Float.Model.Format	119 120		
+Init.Data.Float.Model.Format.Basic	152 315		
+Init.Data.Float.Model.Format.Valid	138		
+Init.Data.Float.Model.Unpacked	122 123 137 140 141		
+Init.Data.Float.Model.Unpacked.Basic	141 171		
+Init.Data.Float.Model.Unpacked.Operations	124 125 126 127 128 129 130 131 132 133 134 135 136		
+Init.Data.Float.Model.Unpacked.Operations.Add	140		
+Init.Data.Float.Model.Unpacked.Operations.Compare	122		
+Init.Data.Float.Model.Unpacked.Operations.Div	140		
+Init.Data.Float.Model.Unpacked.Operations.Fma	140		
+Init.Data.Float.Model.Unpacked.Operations.MinMax	125		
+Init.Data.Float.Model.Unpacked.Operations.Mul	140		
+Init.Data.Float.Model.Unpacked.Operations.OfNat	140 397		
+Init.Data.Float.Model.Unpacked.Operations.OfScientific	126 129 300		
+Init.Data.Float.Model.Unpacked.Operations.Sign	122		
+Init.Data.Float.Model.Unpacked.Operations.Sqrt	140 327		
+Init.Data.Float.Model.Unpacked.Operations.Status	122		
+Init.Data.Float.Model.Unpacked.Operations.Sub	140		
+Init.Data.Float.Model.Unpacked.Operations.ToNat	140 397		
+Init.Data.Float.Model.Unpacked.Pack	138 139		
+Init.Data.Float.Model.Unpacked.Pack.Basic	78 81 119 122 298 628		
+Init.Data.Float.Model.Unpacked.Pack.Lemmas	120 138		
+Init.Data.Float.Model.Unpacked.Round	119 122 141		
+Init.Data.Float.Model.Unpacked.Sign	75 152 346 395		
+Init.Data.FloatArray	143		
+Init.Data.FloatArray.Basic	113 504 543	542	
+Init.Data.Format	145 146 147 148		
+Init.Data.Format.Basic	152 422	27 299	
+Init.Data.Format.Instances	503	191 487	
+Init.Data.Format.Macro	622 626		
+Init.Data.Format.Syntax	503	146 147 506	
+Init.Data.Function	597	4 627	
+Init.Data.Hashable	508	36	
+Init.Data.Int	152 153 156 157 158 163 164 165 166 167 168 169 170 172		
+Init.Data.Int.Basic	90 297		
+Init.Data.Int.Bitwise	154 155		
+Init.Data.Int.Bitwise.Basic	152 299		
+Init.Data.Int.Bitwise.Lemmas	154 159	2 161 170 300 314 628 637	154
+Init.Data.Int.Compare	346 354	628	346
+Init.Data.Int.Cooper	163	161 628 637	
+Init.Data.Int.DivMod	159 160 161 162		
+Init.Data.Int.DivMod.Basic	152	305	
+Init.Data.Int.DivMod.Bootstrap	159 305	2 164 168 307 637	
+Init.Data.Int.DivMod.Lemmas	159 305 627	2 83 306 314 628 637 658	
+Init.Data.Int.DivMod.Pow	159	2 160 161 170 637	
+Init.Data.Int.Gcd	159 313	161 170 307 628 637	
+Init.Data.Int.Lemmas	152	636	
+Init.Data.Int.LemmasAux	164	2 170 628	
+Init.Data.Int.Linear	83 163 366	157 165 619	33 163
+Init.Data.Int.OfNat	90 152 159 305	2 161 165 170 628	
+Init.Data.Int.Order	353 627	2 164 357	
+Init.Data.Int.Package	362	156 168	
+Init.Data.Int.Pow	152	2 314 628 637	
+Init.Data.Int.Repr	395 426		
+Init.Data.Int.ToString	504	165 168	171
+Init.Data.Iterators	174 175 189 202 204 232 233 237		
+Init.Data.Iterators.Basic	627 665	542 636	
+Init.Data.Iterators.Combinators	176 178 179 180 187 188		
+Init.Data.Iterators.Combinators.Append	181		
+Init.Data.Iterators.Combinators.Attach	182		
+Init.Data.Iterators.Combinators.FilterMap	183		
+Init.Data.Iterators.Combinators.FlatMap	184	178	
+Init.Data.Iterators.Combinators.Monadic	181 183 184 185 186		
+Init.Data.Iterators.Combinators.Monadic.Append	4 196	2 341 628	
+Init.Data.Iterators.Combinators.Monadic.Attach	196		
+Init.Data.Iterators.Combinators.Monadic.FilterMap	196 232	636	
+Init.Data.Iterators.Combinators.Monadic.FlatMap	183	341	
+Init.Data.Iterators.Combinators.Monadic.Take	4 196	2 628	
+Init.Data.Iterators.Combinators.Monadic.ULift	193		
+Init.Data.Iterators.Combinators.Take	185		
+Init.Data.Iterators.Combinators.ULift	186		
+Init.Data.Iterators.Consumers	190 191 192 193 199 200 201		
+Init.Data.Iterators.Consumers.Access	194 199 201 542 664		
+Init.Data.Iterators.Consumers.Collect	195 199 201		
+Init.Data.Iterators.Consumers.Loop	196 199 201		
+Init.Data.Iterators.Consumers.Monadic	194 195 196 197		
+Init.Data.Iterators.Consumers.Monadic.Access	174		
+Init.Data.Iterators.Consumers.Monadic.Collect	197 198 542 664		
+Init.Data.Iterators.Consumers.Monadic.Loop	197 198 203 664	636	
+Init.Data.Iterators.Consumers.Monadic.Partial	174		
+Init.Data.Iterators.Consumers.Monadic.Total	174		
+Init.Data.Iterators.Consumers.Partial	174		
+Init.Data.Iterators.Consumers.Stream	194 419		
+Init.Data.Iterators.Consumers.Total	174		
+Init.Data.Iterators.Internal	203		
+Init.Data.Iterators.Internal.LawfulMonadLiftFunction	20		
+Init.Data.Iterators.Lemmas	206 220 228		
+Init.Data.Iterators.Lemmas.Basic	174		
+Init.Data.Iterators.Lemmas.Combinators	207 208 209 210 211 218 219		
+Init.Data.Iterators.Lemmas.Combinators.Append	176 190 191 212	205 221 222 628	
+Init.Data.Iterators.Lemmas.Combinators.Attach	35 177 192 222	213 223	177 182
+Init.Data.Iterators.Lemmas.Combinators.FilterMap	178 191 192 243	50 83 205 214 222 223 226	
+Init.Data.Iterators.Lemmas.Combinators.FlatMap	178 179 191	209 214 215 259 341	179
+Init.Data.Iterators.Lemmas.Combinators.Monadic	212 213 214 215 216 217		
+Init.Data.Iterators.Lemmas.Combinators.Monadic.Append	181 195	225 227 253 293	
+Init.Data.Iterators.Lemmas.Combinators.Monadic.Attach	182 195 240	50 225 226 227	182
+Init.Data.Iterators.Lemmas.Combinators.Monadic.FilterMap	183 195 243	57 83 225 226 227	195
+Init.Data.Iterators.Lemmas.Combinators.Monadic.FlatMap	184 195	50 214 224 227	184
+Init.Data.Iterators.Lemmas.Combinators.Monadic.Take	185 195	225 227 314	
+Init.Data.Iterators.Lemmas.Combinators.Monadic.ULift	186	50 225 226 227	
+Init.Data.Iterators.Lemmas.Combinators.Take	187 190 191 216	50 205 221 222 274	
+Init.Data.Iterators.Lemmas.Combinators.ULift	188 191 192	50 217 222 223	188
+Init.Data.Iterators.Lemmas.Consumers	221 222 223 224		
+Init.Data.Iterators.Lemmas.Consumers.Access	190		
+Init.Data.Iterators.Lemmas.Consumers.Collect	190 191	39 50 205 225 341	190 191 198 201
+Init.Data.Iterators.Lemmas.Consumers.Loop	191 192 259	57 205 222 248 341	192 195 226
+Init.Data.Iterators.Lemmas.Consumers.Monadic	225 226		
+Init.Data.Iterators.Lemmas.Consumers.Monadic.Collect	13 195	39 50 227	195 198 664
+Init.Data.Iterators.Lemmas.Consumers.Monadic.Loop	195 196 243	50 83 225 227 628	196
+Init.Data.Iterators.Lemmas.Monadic.Basic	174		
+Init.Data.Iterators.Lemmas.Producers	229 230		
+Init.Data.Iterators.Lemmas.Producers.List	234	222 231	
+Init.Data.Iterators.Lemmas.Producers.Monadic	231		
+Init.Data.Iterators.Lemmas.Producers.Monadic.List	236	225 293	
+Init.Data.Iterators.PostconditionMonad	14 21 542 627	496 636	
+Init.Data.Iterators.Producers	234 235		
+Init.Data.Iterators.Producers.List	236		
+Init.Data.Iterators.Producers.Monadic	236		
+Init.Data.Iterators.Producers.Monadic.List	189	314	
+Init.Data.Iterators.ToIterator	174		
+Init.Data.LawfulHashable	31		
+Init.Data.List	240 241 242 243 244 245 246 247 248 249 250 253 254 255 256 257 258 259 260 275 276 277 278 279 280 281 284 288 291 292 293 294 295		
+Init.Data.List.Attach	253	245 496	
+Init.Data.List.Basic	275 540 597 639	297	
+Init.Data.List.BasicAux	543 665	2 4 36 311	
+Init.Data.List.Control	13		
+Init.Data.List.ControlImpl	243 249		
+Init.Data.List.Count	1 542 627	2 83 253 291 341 658	
+Init.Data.List.Erase	1 542 627	2 83 248 278 291 292 314 628 658	
+Init.Data.List.FinRange	243 276	259	276
+Init.Data.List.Find	240	107 249 280 291 292 314 364 628	240
+Init.Data.List.Impl	542	39 83 253 341	
+Init.Data.List.Int	251 252		
+Init.Data.List.Int.Prod	170 241	164 253	
+Init.Data.List.Int.Sum	159 241	161 256 628	
+Init.Data.List.Lemmas	1 73 242 243 340	83 341 546 658	242 243
+Init.Data.List.Lex	73 149 353 542 627	2 83 274 291 292 314 357 358 658	
+Init.Data.List.MapIdx	276 335	2 39 271 274 280 292 364 496 628	
+Init.Data.List.MinMax	240 497	83 278 291 341 357 496	
+Init.Data.List.MinMaxIdx	258	2 83 274 291 314 628	
+Init.Data.List.MinMaxOn	253 292 341 359	2 83 256 291 357	
+Init.Data.List.Monadic	240	39 83	243
+Init.Data.List.Nat	261 262 263 264 265 266 267 268 269 270 271 272 273 274		
+Init.Data.List.Nat.BEq	314	83 253	
+Init.Data.List.Nat.Basic	256	83 245 311 314 316 341 628	
+Init.Data.List.Nat.Count	543	2 83 245 253 291 314 316 628	
+Init.Data.List.Nat.Erase	543	246 274 292 628	
+Init.Data.List.Nat.Find	1 627	248 271 274 292 341 364 628	
+Init.Data.List.Nat.InsertIdx	543	246 253 267 314 341 628	
+Init.Data.List.Nat.Modify	542 627	2 246 264 274 292 314 341 628	
+Init.Data.List.Nat.Pairwise	247 248 627	107 274 278 291 292	
+Init.Data.List.Nat.Perm	543	274 279 292 628 658	
+Init.Data.List.Nat.Prod	1 627	253 314	
+Init.Data.List.Nat.Range	314 542	2 246 248 274 278 280 295 307 341 628 658	
+Init.Data.List.Nat.Sublist	149 542 627	262 274 291 292 314 628	
+Init.Data.List.Nat.Sum	1 627	256 306 314 316 341 628	
+Init.Data.List.Nat.TakeDrop	253 316	2 83 248 291 292 295 314 341 628	
+Init.Data.List.Notation	597 626		
+Init.Data.List.OfFn	105 627	107 253 314 341	
+Init.Data.List.Package	362	254	
+Init.Data.List.Pairwise	240	2 245 291 292 341	
+Init.Data.List.Perm	240	246 278 291 292 314	240
+Init.Data.List.Range	1 542 627	253 291 295 341	
+Init.Data.List.Scan	282 283		
+Init.Data.List.Scan.Basic	12 241		
+Init.Data.List.Scan.Lemmas	253 282	292 314 341	282
+Init.Data.List.Sort	285 286 287		
+Init.Data.List.Sort.Basic	542	274 292 314 628	
+Init.Data.List.Sort.Impl	285	287 311	285
+Init.Data.List.Sort.Lemmas	1 83 285	271 278 279 280 291 311 364	285
+Init.Data.List.SplitOn	289 290		
+Init.Data.List.SplitOn.Basic	241 627	39 253	
+Init.Data.List.SplitOn.Lemmas	289	2 267	289
+Init.Data.List.Sublist	1 542 636	83 253 292 658	
+Init.Data.List.TakeDrop	1 542	2 83 253 305 341	241
+Init.Data.List.ToArray	259	2 39 83 246 248 264 266 274 291 292 295 314 341 628 658	36 65 243
+Init.Data.List.ToArrayImpl	635	241	
+Init.Data.List.Zip	149 542 627	253 292 341	
+Init.Data.Nat	297 298 301 302 303 304 307 308 309 310 310 313 314 315 316 317 318 318 319 320 321 325 326 329		
+Init.Data.Nat.Basic	330 597 639		
+Init.Data.Nat.Bitwise	299 300		
+Init.Data.Nat.Bitwise.Basic	597	305 624 665	
+Init.Data.Nat.Bitwise.Lemmas	1 83 315	2 170 314 628 637 658	299
+Init.Data.Nat.Compare	354		346
+Init.Data.Nat.Control	626	628	
+Init.Data.Nat.Coprime	309	307	
+Init.Data.Nat.Div	305 306		
+Init.Data.Nat.Div.Basic	330 662	624 665	
+Init.Data.Nat.Div.Lemmas	307 627	2 314 325 628 637 658	
+Init.Data.Nat.Dvd	305 639	275 297 623	
+Init.Data.Nat.Fold	247	107 253 628	
+Init.Data.Nat.Gcd	305 627	307 637 665	
+Init.Data.Nat.Internal	311 312		
+Init.Data.Nat.Internal.Linear	366	2 83 364 619	
+Init.Data.Nat.Internal.SOM	311	2 242 364 622	
+Init.Data.Nat.Lcm	309	307 314 637	
+Init.Data.Nat.Lemmas	305 315 636	2 307 311 316 317 628 637 658	299 315
+Init.Data.Nat.Log2	597	305 627 665	
+Init.Data.Nat.MinMax	297	2 636	
+Init.Data.Nat.Mod	597	307 628 637	
+Init.Data.Nat.Order	297 353	316 355 627	
+Init.Data.Nat.Package	362	301 318	
+Init.Data.Nat.PowMod	314	628 637 665	
+Init.Data.Nat.Power2	322 323 324		
+Init.Data.Nat.Power2.Basic	597	311 627 665	
+Init.Data.Nat.Power2.Bitwise	315 322 636	2 170 300 314 324 628 637	322
+Init.Data.Nat.Power2.Lemmas	322	2 314 628 637	322
+Init.Data.Nat.Simproc	597	83 314	
+Init.Data.Nat.Sqrt	327 328		
+Init.Data.Nat.Sqrt.Basic	299 315 635 665		
+Init.Data.Nat.Sqrt.Lemmas	327	314 317 628 658	327
+Init.Data.Nat.ToString	92 395 421 477 503	93 298 306 314 325 627 628 637 665	395
+Init.Data.NeZero	31 540		
+Init.Data.OfScientific	114 332	50 315 622	
+Init.Data.OfScientific.Basic	635		
+Init.Data.Option	334 335 336 337 338 339 340 341 342 343		
+Init.Data.Option.Array	13 341	39 50 83 295 342	340
+Init.Data.Option.Attach	35 341	83 334 342 496	
+Init.Data.Option.Basic	7 597		
+Init.Data.Option.BasicAux	661		
+Init.Data.Option.Coe	5		
+Init.Data.Option.Function	149	627	
+Init.Data.Option.Instances	336		
+Init.Data.Option.Lemmas	337 340 542 636	4 73 83	337 340
+Init.Data.Option.List	243 341	83 253	243 340
+Init.Data.Option.Monadic	13 341		340
+Init.Data.Ord	345 346 347 348 349 350 351		
+Init.Data.Ord.Array	346	2 36 628 665	
+Init.Data.Ord.Basic	92 636	2 4 542	
+Init.Data.Ord.BitVec	361	81	
+Init.Data.Ord.SInt	354 361 397	357 403	
+Init.Data.Ord.String	423	93	
+Init.Data.Ord.UInt	354 361 508	357 513	
+Init.Data.Ord.Vector	361 520	39 529	
+Init.Data.Order	353 354 355 356 357 358 359 360 361 362		
+Init.Data.Order.Classes	31		
+Init.Data.Order.ClassesExtra	346		
+Init.Data.Order.Factories	353	4	
+Init.Data.Order.FactoriesExtra	353 354 361	83	
+Init.Data.Order.Lemmas	4 73 355	83	355
+Init.Data.Order.LemmasExtra	4 149 353 354 361	2 83 356 357 637	
+Init.Data.Order.MinMaxOn	360	357	
+Init.Data.Order.Opposite	353 354	356 357	
+Init.Data.Order.Ord	36 73 345	2 39 41 50 83 168 253 261 291 341	
+Init.Data.Order.PackageFactories	356	83	
+Init.Data.PLift	31		
+Init.Data.Prod	627		
+Init.Data.Queue	243		
+Init.Data.RArray	543	636	
+Init.Data.Random	651	87	
+Init.Data.Range	369 370		
+Init.Data.Range.Basic	7 597 597	628 665	
+Init.Data.Range.Lemmas	243 369	259 280 306 658	369
+Init.Data.Range.Polymorphic	372 373 374 375 376 378 379 381 382 383 384 385 388 389 390		
+Init.Data.Range.Polymorphic.Basic	340 386		
+Init.Data.Range.Polymorphic.BitVec	377	78 81 314 341 628	
+Init.Data.Range.Polymorphic.Char	95 375	94 107 341 383	
+Init.Data.Range.Polymorphic.Fin	110 377	2 107 167 311 341 544	
+Init.Data.Range.Polymorphic.GetElemTactic	597		
+Init.Data.Range.Polymorphic.Instances	372	2 314 341 628	
+Init.Data.Range.Polymorphic.Int	377	628	
+Init.Data.Range.Polymorphic.IntLemmas	242 378 381	2 39 50 341 382 628	
+Init.Data.Range.Polymorphic.Internal.SignedBitVec	78 81 161 170 306 314 317 341 373 628		
+Init.Data.Range.Polymorphic.Iterators	191 372 387	192 341	
+Init.Data.Range.Polymorphic.Lemmas	243 357 381	39 57 205 222 223 278 311 628	192 372 381 387
+Init.Data.Range.Polymorphic.Map	149 372	339 341 357	
+Init.Data.Range.Polymorphic.Nat	377	314 316 628 637	
+Init.Data.Range.Polymorphic.NatLemmas	242 381 384	2 39 50 280 325 341 382 628	
+Init.Data.Range.Polymorphic.PRange	391		
+Init.Data.Range.Polymorphic.RangeIterator	194 196 386	2 83 226 253 291 341	
+Init.Data.Range.Polymorphic.SInt	377 403	2 165 653	380 397
+Init.Data.Range.Polymorphic.Stream	381 419		
+Init.Data.Range.Polymorphic.UInt	373 513	2 81 341	
+Init.Data.Range.Polymorphic.UpwardEnumerable	4 353	341	
+Init.Data.Rat	393 394		
+Init.Data.Rat.Basic	159 303 332 426 504 505	150 160 161 164 168 170 307	
+Init.Data.Rat.Lemmas	163 393	2 83 161 170 307 628 658	
+Init.Data.Repr	12 145 509	92	
+Init.Data.SInt	397 398 399 400 401 402 403 404		
+Init.Data.SInt.Basic	504 508		
+Init.Data.SInt.Bitwise	397 542	77 403 653	75 81 397 508
+Init.Data.SInt.Decidable	79 397 636		
+Init.Data.SInt.Float	113 397		
+Init.Data.SInt.Float32	114 397		
+Init.Data.SInt.IntToBitVec	398 403 512	2	
+Init.Data.SInt.Lemmas	81 168 397	2 77 78 161 165 170 513 653	75 299 397 508
+Init.Data.SInt.Package	362	348 403	
+Init.Data.Slice	406 410 412 413 417 418		
+Init.Data.Slice.Array	407 408 409		
+Init.Data.Slice.Array.Basic	69 384 417		
+Init.Data.Slice.Array.Iterator	69 418 504	628	372
+Init.Data.Slice.Array.Lemmas	70 243 316 407 408	274 292 411 412 416	69 70 381 382 407 408 418
+Init.Data.Slice.Basic	31		
+Init.Data.Slice.InternalLemmas	191 418	220 243	418
+Init.Data.Slice.Lemmas	191 243 418	220 411	418
+Init.Data.Slice.List	414 415 416		
+Init.Data.Slice.List.Basic	410 417		
+Init.Data.Slice.List.Iterator	187 234 414 418 504		372
+Init.Data.Slice.List.Lemmas	415	218 229 274 292 325 412	381 382 414 415 418
+Init.Data.Slice.Notation	386		
+Init.Data.Slice.Operations	192 237 410	191	
+Init.Data.Stream	69 368	407	
+Init.Data.String	421 422 422 423 424 425 426 427 428 429 430 433 434 435 436 477 478 479 480 481 486 487 488 489 490 491 492 493 494		
+Init.Data.String.Basic	92 425 426	2 39 50 88 93 274 291 292 341 628	
+Init.Data.String.Bootstrap	86 509	92	
+Init.Data.String.Compare	89	421	
+Init.Data.String.Csimp	421	222 444	
+Init.Data.String.Decode	85 508	78 81 88 93 311 316 341 510 513 628	
+Init.Data.String.Defs	486	88 628	
+Init.Data.String.Extra	421	477 487 493	85 421
+Init.Data.String.FindPos	421	437 480 628	
+Init.Data.String.Hashable	150 426		
+Init.Data.String.Iter	431 432		
+Init.Data.String.Iter.Basic	178 191		
+Init.Data.String.Iter.Intercalate	183 421	488	
+Init.Data.String.Iterate	178 192 421 428	191 439 628	
+Init.Data.String.Iterator	479		
+Init.Data.String.Legacy	421		
+Init.Data.String.Lemmas	437 438 439 440 441 442 443 444 445 446 447 448 449 472 473 474 475 476		
+Init.Data.String.Lemmas.Basic	421	88 316	421
+Init.Data.String.Lemmas.Decode	89 92 346 350 421 426	81 82 89 93 94 241 253 254 277 291 357 358 421 425 513 628	425
+Init.Data.String.Lemmas.FindPos	428	2 341 357 448 480	428
+Init.Data.String.Lemmas.Hashable	238 488	473	488
+Init.Data.String.Lemmas.Intercalate	426 488	2	426 488
+Init.Data.String.Lemmas.IsEmpty	421	437 448 480	426
+Init.Data.String.Lemmas.Iter	432 488	209 223 441	426 432
+Init.Data.String.Lemmas.Iterate	191 433 448 474	2 209 222 223 437 480 493 496	433
+Init.Data.String.Lemmas.Length	477 479	441 447	
+Init.Data.String.Lemmas.Lossy	478	437	425 478
+Init.Data.String.Lemmas.Modify	479	437	479
+Init.Data.String.Lemmas.Order	421	2 357 437 480 628	
+Init.Data.String.Lemmas.Pattern	450 451 452 457 458 459 463 467		
+Init.Data.String.Lemmas.Pattern.Basic	191 437 474 482	2 222 341 357 439 442 448 480 493	482
+Init.Data.String.Lemmas.Pattern.Char	450 458 483 487 488	341 357 437 439 448 480 628	483 487 488
+Init.Data.String.Lemmas.Pattern.Find	453 454 455 456		
+Init.Data.String.Lemmas.Pattern.Find.Basic	450 487 488	167 223 437 448 480 544	487 488
+Init.Data.String.Lemmas.Pattern.Find.Char	474 487 488	341 437 444 448 451 453 480 493 544	
+Init.Data.String.Lemmas.Pattern.Find.Pred	474 487 488	341 437 444 448 453 458 480 493 544	487 488
+Init.Data.String.Lemmas.Pattern.Find.String	487	2 223 291 453 466	485 488
+Init.Data.String.Lemmas.Pattern.Memcmp	482	2 88 316	482
+Init.Data.String.Lemmas.Pattern.Pred	450 484 487 488	341 357 437 439 444 448 480 628	484 487 488
+Init.Data.String.Lemmas.Pattern.Split	460 461 462		
+Init.Data.String.Lemmas.Pattern.Split.Basic	450 487 488	2 205 209 222 341 357 442 448 480 493	487 488
+Init.Data.String.Lemmas.Pattern.Split.Char	289 451 460 487 488	2 209 290 357 441 448 451 460 462 473 480 493	460
+Init.Data.String.Lemmas.Pattern.Split.Pred	289 458 460 487 488	2 209 290 357 448 458 460 480 493	460
+Init.Data.String.Lemmas.Pattern.String	464 465 466		
+Init.Data.String.Lemmas.Pattern.String.Basic	450 485	88 437 441 442 474 480 628	
+Init.Data.String.Lemmas.Pattern.String.ForwardPattern	464 485 488	88 437 457 458	485 488
+Init.Data.String.Lemmas.Pattern.String.ForwardSearcher	464 485 487 488	205 222 437 442 480 529	485 487 488
+Init.Data.String.Lemmas.Pattern.TakeDrop	468 469 470 471		
+Init.Data.String.Lemmas.Pattern.TakeDrop.Basic	450 488 492	2 437 441 448 480	488 492
+Init.Data.String.Lemmas.Pattern.TakeDrop.Char	488 492	291 341 439 451 468	
+Init.Data.String.Lemmas.Pattern.TakeDrop.Pred	448 488 492	2 341 357 437 439 441 458 468 480	
+Init.Data.String.Lemmas.Pattern.TakeDrop.String	474 488 492	291 341 437 463 468	
+Init.Data.String.Lemmas.Search	487	439 473	487
+Init.Data.String.Lemmas.Slice	488	88 437 439 442 457	488
+Init.Data.String.Lemmas.Splits	421 428	88 274 292 316 318 437 439 442 448 480 628	
+Init.Data.String.Lemmas.StringOrder	421 423	438	
+Init.Data.String.Lemmas.TakeDrop	492	474	488 492
+Init.Data.String.Length	421	93	
+Init.Data.String.Lossy	421 425	628 665	
+Init.Data.String.Modify	493	88 93	
+Init.Data.String.OrderInstances	353 362 426	362 547 628	
+Init.Data.String.Pattern	482 483 484 485		
+Init.Data.String.Pattern.Basic	196 421 426 428	192 439 442 448 480 493 628	
+Init.Data.String.Pattern.Char	484		
+Init.Data.String.Pattern.Pred	421 442 482	341 439 448 493 628	
+Init.Data.String.Pattern.String	428 482 520	2 50 341 439 493 628	
+Init.Data.String.PosRaw	85	325 628	
+Init.Data.String.Search	488		
+Init.Data.String.Slice	178 346 423 431 433 481 490 494	191 192 341 493 628	
+Init.Data.String.Stream	419 421		
+Init.Data.String.Subslice	421	437 442	
+Init.Data.String.Substring	488	337	
+Init.Data.String.TakeDrop	491		
+Init.Data.String.Termination	428 474	2 341 439 628	
+Init.Data.String.ToSlice	426		
+Init.Data.Subtype	496 497 498		
+Init.Data.Subtype.Basic	542		
+Init.Data.Subtype.Order	353	357 542	
+Init.Data.Subtype.OrderExtra	346		
+Init.Data.Sum	500 501		
+Init.Data.Sum.Basic	636	619	
+Init.Data.Sum.Lemmas	500 542		500
+Init.Data.ToString	503 504 505 506		
+Init.Data.ToString.Basic	395	92	
+Init.Data.ToString.Extra	171 426		
+Init.Data.ToString.Macro	622 626		
+Init.Data.ToString.Name	491	487 492	
+Init.Data.UInt	508 509 510 511 512 513 514 515		
+Init.Data.UInt.Basic	75		
+Init.Data.UInt.BasicAux	76 103	305	
+Init.Data.UInt.Bitwise	298 314 508 542	78 81 104 513 653	75 508
+Init.Data.UInt.Decidable	79 508 636		
+Init.Data.UInt.IntToBitVec	510 513		
+Init.Data.UInt.Lemmas	306 353 508 542	2 78 81 161 653	75 76 104 508 509
+Init.Data.UInt.Log2	635	108 509	
+Init.Data.UInt.Package	350 362	513	
+Init.Data.ULift	31		
+Init.Data.Vector	518 520 521 522 523 524 525 526 527 528 529 530 531 532 533 534 535 536 537 538 539		
+Init.Data.Vector.Algebra	520 544	529	
+Init.Data.Vector.Attach	529		35
+Init.Data.Vector.Basic	41	47 54 58 628	
+Init.Data.Vector.Count	1 520	529	40 520
+Init.Data.Vector.DecidableEq	520	529	
+Init.Data.Vector.Erase	1 520	42 529 628	
+Init.Data.Vector.Extract	520	2 39 43 529 628	
+Init.Data.Vector.FinRange	520	107 529 534 628	
+Init.Data.Vector.Find	519	45 83 107 248 249 496	36 520
+Init.Data.Vector.InsertIdx	520	47 529 628	
+Init.Data.Vector.Int	520	49 164 529	
+Init.Data.Vector.Lemmas	255 520	2 39 40 45 59 83 107 292 325 658	36 520
+Init.Data.Vector.Lex	52 73 149 353 520	39 53 529	52 520
+Init.Data.Vector.MapIdx	519	2	36 520
+Init.Data.Vector.Monadic	519	57	520
+Init.Data.Vector.Nat	1 520	58 529	
+Init.Data.Vector.OfFn	59 520	107 532 658	520
+Init.Data.Vector.Package	351 362 530	277	
+Init.Data.Vector.Perm	61 520	269 529	36 520
+Init.Data.Vector.Range	1 520	2 45 64 531 539	36 520
+Init.Data.Vector.Stream	419 520	407	
+Init.Data.Vector.Zip	149 520	72 529	36 520
+Init.Data.Zero	657		
+Init.Dynamic	635	31	
+Init.Ext	637		
+Init.GetElem	336 661		
+Init.Grind	545 546 547 548 549 550 551 552 566 567 568 569 570 575 576 577 578 586 587 588 597 598 599		
+Init.Grind.AC	83 366	4 619	
+Init.Grind.Annotated	626		
+Init.Grind.Attr	657		
+Init.Grind.Cases	597		
+Init.Grind.Config	31		
+Init.Grind.Ext	542		
+Init.Grind.FieldNormNum	393 593	2 394 628	
+Init.Grind.Homo	553 554 555 556 557 558 559 560 561 562 563 564 565 645		
+Init.Grind.Homo.BitVec	77 78 81	547	
+Init.Grind.Homo.Extra	155 160 161 164 165 168 170 300 314	547 628	
+Init.Grind.Homo.Fin	104 107 108 161	547 628	108
+Init.Grind.Homo.ISize	398 403 510 513	547	
+Init.Grind.Homo.Int16	398 403 510 513	547	
+Init.Grind.Homo.Int32	398 403 510 513	547	
+Init.Grind.Homo.Int64	398 403 510 513	547	
+Init.Grind.Homo.Int8	398 403 510 513	547	
+Init.Grind.Homo.UInt16	398 403 510 513	547	
+Init.Grind.Homo.UInt32	398 403 510 513	547	
+Init.Grind.Homo.UInt64	398 403 510 513	547	
+Init.Grind.Homo.UInt8	398 403 510 513	547	
+Init.Grind.Homo.USize	398 403 510 513	547	
+Init.Grind.Injective	149 627	4	
+Init.Grind.Interactive	547		
+Init.Grind.Lemmas	543 589 627	2 4 83	
+Init.Grind.Lint	657		
+Init.Grind.Module	571 572 573 574		
+Init.Grind.Module.Basic	159	164	
+Init.Grind.Module.Envelope	582	628 637	33
+Init.Grind.Module.NatModuleNorm	581	33 161 165 628	
+Init.Grind.Module.OfNatModule	572		
+Init.Grind.Norm	628	2	
+Init.Grind.Offset	597	628	
+Init.Grind.Order	585	165 542 583 628	
+Init.Grind.Ordered	579 580 581 582 583 584 585		
+Init.Grind.Ordered.Field	585 593	583 637	
+Init.Grind.Ordered.Int	585 605	628	
+Init.Grind.Ordered.Linarith	83 366 585 593	161 171 314 583 619 628 665	33 346
+Init.Grind.Ordered.Module	353 571 627	2 314 583 628 637	
+Init.Grind.Ordered.Order	353 597	357	
+Init.Grind.Ordered.Rat	585 607		
+Init.Grind.Ordered.Ring	582 589	314 583 628 637	
+Init.Grind.PP	426 597		
+Init.Grind.Propagator	622 657	623	
+Init.Grind.Ring	589 590 591 592 593 594 595 596		
+Init.Grind.Ring.Basic	571	2 161 165 170 306 314 628 637	
+Init.Grind.Ring.CommSemiringAdapter	591 592	165 628	
+Init.Grind.Ring.CommSolver	4 83 161 309 346 366 542 585 593 605	150 165 171 311 583 619 628 665	346
+Init.Grind.Ring.Envelope	585	628 637	33
+Init.Grind.Ring.Field	305 589	2 628 637 658	
+Init.Grind.Ring.FieldSolver	309 579 591	314 619 628	
+Init.Grind.Ring.IntSolver	166 591 605	161 165 628	
+Init.Grind.Ring.OfScientific	332 593		
+Init.Grind.Tactics	31 567		
+Init.Grind.ToInt			
+Init.Grind.Util	90 597 597	4	
+Init.GrindInstances	601 602		
+Init.GrindInstances.Nat	582	628	
+Init.GrindInstances.Ring	603 604 605 606 607 608 609		
+Init.GrindInstances.Ring.BitVec	81 589	78	75
+Init.GrindInstances.Ring.Fin	107 589	168 306 314 316 628	540
+Init.GrindInstances.Ring.Int	164 170 589	161 622	
+Init.GrindInstances.Ring.Nat	585	314 628	
+Init.GrindInstances.Ring.Rat	394 596	161 164	
+Init.GrindInstances.Ring.SInt	403 589	161 170 307	75 397
+Init.GrindInstances.Ring.UInt	513 589	161 165 168 170	508
+Init.Guard	30		
+Init.Hints	597	627	
+Init.Internal	613		
+Init.Internal.Order	614 615 616 617 618		
+Init.Internal.Order.Basic		2	
+Init.Internal.Order.Lemmas	259 614	39	36 243 336
+Init.Internal.Order.MonadTail	614		
+Init.Internal.Order.Tactic	626		
+Init.Internal.Order.While	616 666		666
+Init.LawfulBEqTactics	31	2 4 83	
+Init.LetFun		626	
+Init.MacroTrace	622 626	505	
+Init.Meta	623 623 647		
+Init.Meta.Defs	36 624	46 92 624 665	
+Init.MetaTypes	31		
+Init.MethodSpecsSimp	635		
+Init.Notation	5		
+Init.NotationExtra	30 543	623	
+Init.Omega	630 631 632 633 634		
+Init.Omega.Coeffs	632		632
+Init.Omega.Constraint	629	164 168 505 631 636 637	
+Init.Omega.Int	103 159 662	2 164 168 636	
+Init.Omega.IntList	160 309	164 168 307 636 637	
+Init.Omega.LinearCombo	629	164 505 637	
+Init.Omega.Logic	597	636	
+Init.Prelude			
+Init.PropLemmas	627		
+Init.RCases	622		
+Init.ShareCommon	27 508		
+Init.SimpLemmas	31		
+Init.Simproc	657	623	
+Init.SizeOf	626	657	
+Init.SizeOfLemmas	92	311 624	92 641
+Init.Sym	644 645 646		
+Init.Sym.DSimp.DSimprocDSL	657		
+Init.Sym.Lemmas	161 307 393 397 475	81 168 513	
+Init.Sym.Simp.SimprocDSL	657		
+Init.Syntax	635	65	
+Init.System	649 651 653 654 656		
+Init.System.CancelToken	654		
+Init.System.FilePath	503	187 190 191 477 479 487 653	
+Init.System.IO	8 346 421 650 652	171 249 255 350 487 492 505	
+Init.System.IOError	503	479	
+Init.System.Platform	305 639	297 422	
+Init.System.Promise	651		
+Init.System.ST	10 627	4	
+Init.System.Uri	650	187 477 479 487 492 628 653 666	
+Init.Tactics	626		
+Init.TacticsExtra	622 657	36	
+Init.Task	31	241 299	
+Init.Try	657		
+Init.Util	503		
+Init.WF	0 597	297	
+Init.WFComputable	662	627 665	
+Init.WFExtrinsicFix	627 662	4 542	
+Init.WFTactics			
+Init.While	4 31		
+Lean.AddDecl	669 1369 1763 1864	787 1250 1895	
+Lean.Attributes	787 796		
+Lean.AutoDecl	796 1858		
+Lean.AuxRecursor	1202	492	
+Lean.BuiltinDocAttr	699	874	
+Lean.Cadical	673 674		
+Lean.Cadical.Basic	397 651 2236	674	
+Lean.Cadical.Internal	397 422 651		
+Lean.Class	668	1867	
+Lean.CompactedRegion	651 845		
+Lean.Compiler	679 680 682 683 684 698 700 786 787 789 791 792 795		
+Lean.Compiler.BorrowedAnnotation	1206		
+Lean.Compiler.CSimpAttr	1810 1896	1207	
+Lean.Compiler.ClosedTermCache	1203		
+Lean.Compiler.ExportAttr	668		
+Lean.Compiler.ExternAttr	668 1804	357 448 480	
+Lean.Compiler.FFI	650	487	
+Lean.Compiler.IR	685 686 687 688 690 691 692 693 694 695 696 697		
+Lean.Compiler.IR.Basic	682	381	
+Lean.Compiler.IR.Checker	687	1809	
+Lean.Compiler.IR.CompilerM	681 690 746	147 699 705	788
+Lean.Compiler.IR.EmitLLVM	689 691 693 790	381 680 782 788 1809	
+Lean.Compiler.IR.EmitUtil	687 699		
+Lean.Compiler.IR.Format	685	147	
+Lean.Compiler.IR.LLVMBindings	651		
+Lean.Compiler.IR.Meta	687		
+Lean.Compiler.IR.NormIds	685		
+Lean.Compiler.IR.Sorry	687		
+Lean.Compiler.IR.ToIR	687 696		
+Lean.Compiler.IR.ToIRType	690 738		
+Lean.Compiler.IR.UnboxResult	685		
+Lean.Compiler.ImplementedByAttr	975		
+Lean.Compiler.InitAttr	667 978	389 788 790	
+Lean.Compiler.InlineAttrs	668	1363	
+Lean.Compiler.LCNF	702 705 706 707 708 709 712 713 715 716 725 728 730 731 732 733 734 736 737 738 740 741 742 743 744 747 748 750 751 755 771 772 773 775 776 779 780 782 783		
+Lean.Compiler.LCNF.AlphaEqv	705	628	
+Lean.Compiler.LCNF.AuxDeclCache	714 729		
+Lean.Compiler.LCNF.BaseTypes	712		
+Lean.Compiler.LCNF.Basic	682 782 795 1322	628 1809	
+Lean.Compiler.LCNF.Bind	728		
+Lean.Compiler.LCNF.CSE	740 776 791		
+Lean.Compiler.LCNF.Check	711 743		
+Lean.Compiler.LCNF.Closure	712 1877		
+Lean.Compiler.LCNF.CoalesceRC	712 740		
+Lean.Compiler.LCNF.CompatibleTypes	728		
+Lean.Compiler.LCNF.CompilerM	713 732		
+Lean.Compiler.LCNF.ConfigOptions	851		
+Lean.Compiler.LCNF.DeclHash	705		
+Lean.Compiler.LCNF.DependsOn	705		
+Lean.Compiler.LCNF.ElimDead	740		
+Lean.Compiler.LCNF.ElimDeadBranches	728		
+Lean.Compiler.LCNF.EmitC	712	628 666 680 681 699 719 729 742 743 769 770 788 790 1809	
+Lean.Compiler.LCNF.EmitUtil	712	699 742	
+Lean.Compiler.LCNF.ExpandResetReuse	740	666	
+Lean.Compiler.LCNF.ExplicitBoxing	712 740	703 716 742 1809	
+Lean.Compiler.LCNF.ExplicitRC	712 740	742 743	
+Lean.Compiler.LCNF.ExtractClosed	680 729 776 791	143 715 716	
+Lean.Compiler.LCNF.FVarUtil	712		
+Lean.Compiler.LCNF.FixedParams	705		
+Lean.Compiler.LCNF.FloatLetIn	724 740	742	
+Lean.Compiler.LCNF.InferBorrow	712 740	681 724 737 742 743 2029 2078	
+Lean.Compiler.LCNF.InferType	739 742	628	
+Lean.Compiler.LCNF.Internalize	706		
+Lean.Compiler.LCNF.Irrelevant	712 1202	704 783	
+Lean.Compiler.LCNF.JoinPoints	724 728 747 754		
+Lean.Compiler.LCNF.LCtx	705		
+Lean.Compiler.LCNF.LambdaLifting	703 709 734 737		
+Lean.Compiler.LCNF.Level	705 1867		
+Lean.Compiler.LCNF.LiveVars	712	715	
+Lean.Compiler.LCNF.Main	685 712	684 708 741 773 775 778 794 1344	
+Lean.Compiler.LCNF.MonadScope	705		
+Lean.Compiler.LCNF.MonoTypes	704 730 783		
+Lean.Compiler.LCNF.OtherDecl	712	738 778	
+Lean.Compiler.LCNF.PassManager	712	107 628	
+Lean.Compiler.LCNF.Passes	707 710 717 720 721 722 723 726 727 731 733 748 749 750 753 755 769 770 772 774 777 780 781 784		
+Lean.Compiler.LCNF.PhaseExt	740 746		
+Lean.Compiler.LCNF.PrettyPrinter	729 1798	147	
+Lean.Compiler.LCNF.Probing	742		
+Lean.Compiler.LCNF.PropagateBorrow	712 740	742	
+Lean.Compiler.LCNF.PublicDeclsExt	1203		
+Lean.Compiler.LCNF.PullFunDecls	715 740		
+Lean.Compiler.LCNF.PullLetDecls	715 740		
+Lean.Compiler.LCNF.PushProj	740	729	
+Lean.Compiler.LCNF.ReduceArity	729		
+Lean.Compiler.LCNF.ReduceJpArity	728		
+Lean.Compiler.LCNF.Renaming	712		
+Lean.Compiler.LCNF.ResetReuse	712 740	715 735 742 745	
+Lean.Compiler.LCNF.ScopeM	712		
+Lean.Compiler.LCNF.Simp	751 756 757 759 761 762 763 764 765 766 767 768		
+Lean.Compiler.LCNF.Simp.Basic	712		
+Lean.Compiler.LCNF.Simp.Config	31		
+Lean.Compiler.LCNF.Simp.ConstantFold	514 728	513 783	
+Lean.Compiler.LCNF.Simp.DefaultAlt	766	768	
+Lean.Compiler.LCNF.Simp.DiscrM	728 756		
+Lean.Compiler.LCNF.Simp.FunDeclInfo	756	147	
+Lean.Compiler.LCNF.Simp.InlineCandidate	766		
+Lean.Compiler.LCNF.Simp.InlineProj	766		
+Lean.Compiler.LCNF.Simp.JpCases	715 729 760		
+Lean.Compiler.LCNF.Simp.Main	758 759 762 763 767 768		
+Lean.Compiler.LCNF.Simp.SimpM	698 702 716 743 752 757 761 764		
+Lean.Compiler.LCNF.Simp.SimpValue	766		
+Lean.Compiler.LCNF.Simp.Used	766	628	
+Lean.Compiler.LCNF.SimpCase	712 740	628 702	
+Lean.Compiler.LCNF.SimpleGroundExpr	712 740	666	
+Lean.Compiler.LCNF.SpecInfo	725 728		
+Lean.Compiler.LCNF.Specialize	724 737 771	628 709 734 755 776 1753	
+Lean.Compiler.LCNF.SplitSCC	712	1900	
+Lean.Compiler.LCNF.StructProjCases	738 743		
+Lean.Compiler.LCNF.ToDecl	699 779	666 681 794 1344 1753	
+Lean.Compiler.LCNF.ToExpr	705	628	
+Lean.Compiler.LCNF.ToImpure	740	147 742 778	
+Lean.Compiler.LCNF.ToImpureType	730	147 738 1809	
+Lean.Compiler.LCNF.ToLCNF	679 698 706 791 1269	147 628 783 785 792 1275 1757 1763	
+Lean.Compiler.LCNF.ToMono	698 728 738 792	666	
+Lean.Compiler.LCNF.Toposort	712 740	699	
+Lean.Compiler.LCNF.Types	678 1320	628 1763	
+Lean.Compiler.LCNF.Util	143 796 1896		
+Lean.Compiler.LCNF.Visibility	698 740	742 794 1207	
+Lean.Compiler.LCNF.WithPtrEq	1272	1320 1757	
+Lean.Compiler.Main	701	794	
+Lean.Compiler.MetaAttr	1202		
+Lean.Compiler.ModPkgExt	1203	790	
+Lean.Compiler.NameDemangling	790	433 487 492 666 849	
+Lean.Compiler.NameMangling	1856	439 492 513 628	
+Lean.Compiler.NeverExtractAttr	668		
+Lean.Compiler.NoncomputableAttr	1202		
+Lean.Compiler.Old	1203	492	
+Lean.Compiler.Options	1906		
+Lean.Compiler.Specialize	1272	628	
+Lean.CoreM	1215 1808 1895	666 792	
+Lean.Data	799 802 804 811 814 823 824 825 826 827 845 846 849 850 851 853 854 855 856 857 858 861 863		
+Lean.Data.Array	381 384	419	
+Lean.Data.AssocList	249		
+Lean.Data.DeclarationRange	856		
+Lean.Data.EditDistance	421	318 357 368 477 520 666	
+Lean.Data.Format	146 851		
+Lean.Data.FuzzyMatching	331 338 368 381 384	1823	
+Lean.Data.Html	805 806 807 808 810		
+Lean.Data.Html.Basic	46 541 816 1861	55	
+Lean.Data.Html.CharRef	635	38 421 423 666 809	
+Lean.Data.Html.Elab	479 810 1197	805	
+Lean.Data.Html.Printer	805	487 809	
+Lean.Data.Html.Spec	635	38 423 479	
+Lean.Data.Html.Syntax	500 806 809 1317	635	
+Lean.Data.Iterators	812		
+Lean.Data.Iterators.Producers	813		
+Lean.Data.Iterators.Producers.PersistentHashMap	69 70 854	55 189 292 409 628	
+Lean.Data.Json	816 817 820 821 822		
+Lean.Data.Json.Basic	150 331 349 368 2096	381 384 491 505	
+Lean.Data.Json.Elab	817 1860		
+Lean.Data.Json.FromToJson	818 819		
+Lean.Data.Json.FromToJson.Basic	505 821	46	
+Lean.Data.Json.FromToJson.Extra	818 2089		
+Lean.Data.Json.Parser	815 2202		
+Lean.Data.Json.Printer	802 815	487 513 628	
+Lean.Data.Json.Stream	820 821		
+Lean.Data.JsonRpc	818 822		
+Lean.Data.KVMap	148 504 506		
+Lean.Data.LBool	503		
+Lean.Data.LOption	421		
+Lean.Data.Lsp	828 830 831 832 833 834 835 836 837 838 839 840 841 842 843 844		
+Lean.Data.Lsp.Basic	338 814 829		
+Lean.Data.Lsp.BasicAux	818		
+Lean.Data.Lsp.CancelParams	823		
+Lean.Data.Lsp.Capabilities	823 833 836 840		
+Lean.Data.Lsp.Client	828		
+Lean.Data.Lsp.CodeActions	835		
+Lean.Data.Lsp.Communication	823	191 487 492	
+Lean.Data.Lsp.Diagnostics	828 842		
+Lean.Data.Lsp.Extra	841 1845		
+Lean.Data.Lsp.InitShutdown	831 844		
+Lean.Data.Lsp.Internal	46 800 823 828	628	
+Lean.Data.Lsp.Ipc	834 835 836 840	285 666	
+Lean.Data.Lsp.LanguageFeatures	46 487 828 1206	818	
+Lean.Data.Lsp.TextSync	828		
+Lean.Data.Lsp.Utf16	829 865	487	
+Lean.Data.Lsp.Window	818		
+Lean.Data.Lsp.Workspace	828		
+Lean.Data.Name	346	349 350 477 487 492	
+Lean.Data.NameMap	847 848		
+Lean.Data.NameMap.AdditionalOperations	848 2104		
+Lean.Data.NameMap.Basic	845 862 2009 2105		
+Lean.Data.NameTrie	857	349	
+Lean.Data.OpenDecl	504 506		
+Lean.Data.Options	824 848 1211	505	
+Lean.Data.PPContext	850 1203 1759		
+Lean.Data.PersistentArray	308 508	426 505 628	
+Lean.Data.PersistentHashMap	10 36 37 508	50 426 505	
+Lean.Data.PersistentHashSet	854		
+Lean.Data.Position	818 1861		
+Lean.Data.PrefixTree	2096		
+Lean.Data.RArray	366 1297	628	
+Lean.Data.RBMap	36 311 346	665	
+Lean.Data.RBTree			
+Lean.Data.SMap	176 813 854 2000 2002		
+Lean.Data.SSet	861		
+Lean.Data.Trie	338 802	628	
+Lean.Declaration	1206	350 505	
+Lean.DeclarationRange	1761		
+Lean.DefEqAttrib	1272	1276 1757	
+Lean.DeprecatedModule	788		
+Lean.DocString	871 873 874 1777 1780 1808		
+Lean.DocString.Add	870 877 1198	875 957	
+Lean.DocString.DeferredCheck	541 850 851 1203		
+Lean.DocString.Extension	427 477 487 492 865 870 877	628 1803	
+Lean.DocString.Formatter	876 1801	376 381 878	
+Lean.DocString.Links	1860	477 487 492 505 666	
+Lean.DocString.Markdown	477 487 492 796 871 877	505 666	
+Lean.DocString.Parser	876	381 424 666	
+Lean.DocString.Syntax	877 1779	1779	
+Lean.DocString.Types	46 344	301	
+Lean.DocString.View	876 877 1779	876	
+Lean.Elab	880 881 882 885 886 887 889 890 902 903 904 905 906 908 910 912 913 915 928 929 931 933 949 957 958 963 964 966 967 968 969 970 971 972 973 974 981 982 983 985 987 988 990 991 992 993 994 996 997 998 999 1036 1037 1040 1041 1042 1044 1045 1046 1047 1049 1061 1108 1197 1199		
+Lean.Elab.App	887 1040 1210 1523	255 628 931	965
+Lean.Elab.Arg	1197		
+Lean.Elab.AssertExists	908		
+Lean.Elab.Attributes	147 699 1200	1778	
+Lean.Elab.AutoBound	1317		
+Lean.Elab.AuxDef	908		
+Lean.Elab.BinderPredicates	986 1253		
+Lean.Elab.Binders	988	1250	
+Lean.Elab.BindersUtil	1778	647 1768 1778	
+Lean.Elab.BuiltinCommand	908 966 995 1365	318 357 653 867 913 932 1239	
+Lean.Elab.BuiltinDo	891 892 893 894 895 896 897 898 899 900 901		
+Lean.Elab.BuiltinDo.Basic	950	1768	
+Lean.Elab.BuiltinDo.For	891	8 101 666 1362 1768 2402	
+Lean.Elab.BuiltinDo.Forward	950	887 951 953 1768	
+Lean.Elab.BuiltinDo.If	950	891 1768	
+Lean.Elab.BuiltinDo.Jump	950	1768	
+Lean.Elab.BuiltinDo.Let	950	101 891 955 1768	
+Lean.Elab.BuiltinDo.Match	950	628 798 891 955 988 989 1768	
+Lean.Elab.BuiltinDo.MatchExpr	950	628 891 955 1768	
+Lean.Elab.BuiltinDo.Misc	893 950	1768	
+Lean.Elab.BuiltinDo.Repeat	891	892 1768	
+Lean.Elab.BuiltinDo.TryCatch	950	951 1768	
+Lean.Elab.BuiltinEvalCommand	992	794 1365	965
+Lean.Elab.BuiltinNotation	698 887 966 1210	678 1768	
+Lean.Elab.BuiltinTerm	966 995 1043 1298 1758	792	
+Lean.Elab.Calc	880		
+Lean.Elab.CheckTactic	908 1109 1151 1277		
+Lean.Elab.Coinductive	1008 1162 1259 1707		
+Lean.Elab.Command	887 909 1043 1255 1298 1767	932	
+Lean.Elab.Command.Scope	1778		
+Lean.Elab.Command.WithWeakNamespace	908		
+Lean.Elab.ComputedFields	698 1027 1287	682	
+Lean.Elab.Config	1272		
+Lean.Elab.ConfigEval	914 916 917 918 919 920 921 922 923		
+Lean.Elab.ConfigEval.Basic	923 1048	924	
+Lean.Elab.ConfigEval.Builtins	916 917	1253	
+Lean.Elab.ConfigEval.Commands	626		
+Lean.Elab.ConfigEval.DeriveEvalConfigItem	914 918 919 921	924	
+Lean.Elab.ConfigEval.DeriveEvalExpr	908 914 1305	924 926	965
+Lean.Elab.ConfigEval.DeriveEvalTerm	908 914	924 926	965
+Lean.Elab.ConfigEval.Extra	921		
+Lean.Elab.ConfigEval.Instances	914		
+Lean.Elab.ConfigEval.MetaInstances	916 921	918 919	
+Lean.Elab.ConfigEval.Types	1198 1778		
+Lean.Elab.ConfigEval.Util	908		
+Lean.Elab.DeclModifiers	869 1250	1767	
+Lean.Elab.DeclNameGen	908	479 628	
+Lean.Elab.DeclUtil	1276 1767		
+Lean.Elab.Declaration	992 993	682	
+Lean.Elab.DeclarationRange	1767		
+Lean.Elab.DefView	926 927		
+Lean.Elab.DeprecatedArg	1202 1264	1197 1239	
+Lean.Elab.DeprecatedSyntax	1200 1250 1761		
+Lean.Elab.Deriving	934 935 936 937 938 939 940 941 942 943 944 945 946 947 948		
+Lean.Elab.Deriving.BEq	851	59 935 948 1288 1290 1367	
+Lean.Elab.Deriving.Basic	880 926	792 1758	
+Lean.Elab.Deriving.DecEq	851	59 935 948 1288 1290 1319 1355 1367	
+Lean.Elab.Deriving.FromToJson	935 948		
+Lean.Elab.Deriving.Hashable	935 948 1319		
+Lean.Elab.Deriving.Inhabited	935	948	
+Lean.Elab.Deriving.LawfulBEq		619 935 948	
+Lean.Elab.Deriving.Nonempty	935	948	
+Lean.Elab.Deriving.Ord	851	59 935 948 1288 1290 1367	
+Lean.Elab.Deriving.ReflBEq		619 935 948	
+Lean.Elab.Deriving.Repr	935 948 1319		
+Lean.Elab.Deriving.SizeOf	935 1368	948	
+Lean.Elab.Deriving.ToExpr		935 948	
+Lean.Elab.Deriving.TypeName	935		
+Lean.Elab.Deriving.Util	908	926	
+Lean.Elab.Do	950 951 953 954 955 956		
+Lean.Elab.Do.Basic	887 953 1764	101 628 1362 1768	
+Lean.Elab.Do.Control	950	8 1362	
+Lean.Elab.Do.ForwardSyntax	1778	1198 1768	
+Lean.Elab.Do.InferControlInfo	952 1197	955 1768	
+Lean.Elab.Do.Legacy	888 998 1039	628 1768	
+Lean.Elab.Do.PatternVar	1197	998 1037 1768	
+Lean.Elab.Do.Switch	1198	950 954	
+Lean.Elab.DocString	874 878 909 1198	628 671 875 876	
+Lean.Elab.DocString.Builtin	959 961 962	628 801 878 960 980 995 1108 1365	
+Lean.Elab.DocString.Builtin.Keywords	876 878 960 961 961 962 975 1764	628	
+Lean.Elab.DocString.Builtin.Parsing	666 876 878 1769	35 55	
+Lean.Elab.DocString.Builtin.Postponed	870 1198		
+Lean.Elab.DocString.Builtin.Scopes	957 960		
+Lean.Elab.ElabRules	885 950 986		
+Lean.Elab.ErrorExplanation	1917	1917	
+Lean.Elab.ErrorUtils		1264	
+Lean.Elab.Eval	1048 1305		
+Lean.Elab.Exception	1205		
+Lean.Elab.Extra	880 903		
+Lean.Elab.Frontend	1216 1841 1892	653 794 1255 1893	
+Lean.Elab.GenInjective	908	1290 1321	
+Lean.Elab.GuardMsgs	994 1814		
+Lean.Elab.Idbg	950	1768 1927	
+Lean.Elab.Import	867 1772	479 788 1772	
+Lean.Elab.Inductive	993		
+Lean.Elab.InfoTree	978 979		
+Lean.Elab.InfoTree.Basic	979	147 389 659 1860	
+Lean.Elab.InfoTree.InlayHints	1272		
+Lean.Elab.InfoTree.Main	976 1360 1807	147	
+Lean.Elab.InfoTree.Types	800 850 852 1203 1759 1916		
+Lean.Elab.InfoTree.Util	868 1789		
+Lean.Elab.InfoTrees	908		
+Lean.Elab.InheritDoc		874 978	
+Lean.Elab.LetRec	992		
+Lean.Elab.Level	884		
+Lean.Elab.Macro	986		
+Lean.Elab.MacroArgUtil	1047		
+Lean.Elab.MacroRules	885 1047		
+Lean.Elab.Match	888 998 1038 1048 1312 1337	1345 1349	
+Lean.Elab.MatchAltView	1197		
+Lean.Elab.MatchExpr	1197		
+Lean.Elab.Mixfix	883	647	
+Lean.Elab.MutualDef	935 1005		965
+Lean.Elab.MutualInductive	907 935 1285 1352 1368	255 628 911 1289 1290 1318 1321	
+Lean.Elab.Notation	885 903 1047		
+Lean.Elab.Open	1200 1228 1767	628 1767	
+Lean.Elab.Parallel	1196		
+Lean.Elab.ParseImportsFast	1772		
+Lean.Elab.PatternVar	647 881 989	311 628	
+Lean.Elab.PreDefinition	1000 1001 1002 1003 1005 1006 1012 1025		
+Lean.Elab.PreDefinition.Basic	792 930 1040 1304 1758 1885		
+Lean.Elab.PreDefinition.EqUnfold	1304 1695 1706		
+Lean.Elab.PreDefinition.Eqns		1003 1345 1505 1734 1743	
+Lean.Elab.PreDefinition.EqnsUtils	1272	1521 1522 1699 1743 1744	
+Lean.Elab.PreDefinition.FixedParams	1000	628	
+Lean.Elab.PreDefinition.Main	1008 1012 1031 1900		
+Lean.Elab.PreDefinition.MkInhabitant	1269 1789	628	
+Lean.Elab.PreDefinition.Mutual	1000		
+Lean.Elab.PreDefinition.PartialFixpoint	1009 1010 1011		
+Lean.Elab.PreDefinition.PartialFixpoint.Eqns	1004	614 1522 1699	
+Lean.Elab.PreDefinition.PartialFixpoint.Induction		614 1009 1361	
+Lean.Elab.PreDefinition.PartialFixpoint.Main	1006 1007 1009 1152 1358		
+Lean.Elab.PreDefinition.Structural	1019		
+Lean.Elab.PreDefinition.Structural.BRecOn	1014 1021 1343 1361 1878	318 357	
+Lean.Elab.PreDefinition.Structural.Basic	1309		
+Lean.Elab.PreDefinition.Structural.Eqns	1004	1003 1505 1505 1522 1522 1734 1743	
+Lean.Elab.PreDefinition.Structural.FindRecArg	1014 1021 1024	628	
+Lean.Elab.PreDefinition.Structural.IndGroupInfo	1320		
+Lean.Elab.PreDefinition.Structural.IndPred	1014 1021	628 1318 1878	
+Lean.Elab.PreDefinition.Structural.Main	1007 1013 1015 1016 1018 1020 1022 1749		
+Lean.Elab.PreDefinition.Structural.Preprocess	1040 1757		
+Lean.Elab.PreDefinition.Structural.RecArgInfo	1004 1017		
+Lean.Elab.PreDefinition.Structural.SmartUnfolding	1000 1014		
+Lean.Elab.PreDefinition.TerminationHint	1778	628 1778	
+Lean.Elab.PreDefinition.TerminationMeasure	887	628	
+Lean.Elab.PreDefinition.WF	1027 1031		
+Lean.Elab.PreDefinition.WF.Basic	1053		
+Lean.Elab.PreDefinition.WF.Eqns	1004 1271		
+Lean.Elab.PreDefinition.WF.Fix	798 1000 1026 1270 1343 1517 1878		
+Lean.Elab.PreDefinition.WF.FloatRecApp	1040 1753		
+Lean.Elab.PreDefinition.WF.GuessLex	798 1004 1007 1014 1024 1026 1270 1343 1517 1749 1878	364 1699	
+Lean.Elab.PreDefinition.WF.Main	1028 1029 1030 1032 1033 1034 1035		
+Lean.Elab.PreDefinition.WF.PackMutual	1027 1270		
+Lean.Elab.PreDefinition.WF.Preprocess	1168		
+Lean.Elab.PreDefinition.WF.Rel	1004 1024 1270 1700		
+Lean.Elab.PreDefinition.WF.Unfold	1000 1741	640 1003 1522 1699 1734 1743	
+Lean.Elab.Print	908 1304	1794	
+Lean.Elab.Quotation	1038 1039 1047		
+Lean.Elab.Quotation.Precheck	1039	932	
+Lean.Elab.Quotation.Util	1197		
+Lean.Elab.RecAppSyntax	1206	491	
+Lean.Elab.Recall	908 927 1749 1791		
+Lean.Elab.RecommendedSpelling	908		
+Lean.Elab.SetOption	647 975		
+Lean.Elab.StructInst	880 1045 1372		
+Lean.Elab.StructInstHint	1317	480	
+Lean.Elab.Structure	993 1372	628	
+Lean.Elab.Syntax	908 1775 1775	479 628	
+Lean.Elab.SyntheticMVars	285 1053 1268 1876 1887		965
+Lean.Elab.Tactic	1050 1051 1052 1053 1054 1055 1056 1057 1058 1059 1060 1062 1063 1074 1075 1076 1077 1109 1110 1111 1112 1113 1114 1143 1144 1145 1146 1147 1148 1149 1150 1151 1152 1153 1154 1159 1161 1162 1163 1164 1165 1166 1167 1168 1169 1170 1171 1172 1173 1174 1175 1176 1177 1178 1179		
+Lean.Elab.Tactic.AsAuxLemma	1151		
+Lean.Elab.Tactic.AutoTry		660 904 980 1151 1177 1229	
+Lean.Elab.Tactic.BVDecide	1470 1749	1453 1469 1471 1502 1655	
+Lean.Elab.Tactic.Basic	1197 1752	628 932	
+Lean.Elab.Tactic.BoolToPropSimps	1716		
+Lean.Elab.Tactic.BuiltinTactic	949 966 995 1043 1109 1298 1699	1160 1702	
+Lean.Elab.Tactic.Calc	905 1109		
+Lean.Elab.Tactic.Cbv	1149 1455 1506		
+Lean.Elab.Tactic.CbvSimproc	3 908 1511		
+Lean.Elab.Tactic.Change	1149 1702		
+Lean.Elab.Tactic.Classical	1053		
+Lean.Elab.Tactic.Config	913	1253	
+Lean.Elab.Tactic.Congr	1053 1519		
+Lean.Elab.Tactic.Conv	1064 1065 1066 1067 1068 1069 1070 1071 1072 1073		
+Lean.Elab.Tactic.Conv.Basic	1055 1702		
+Lean.Elab.Tactic.Conv.Cbv	1064 1506		
+Lean.Elab.Tactic.Conv.Change	1059 1064		
+Lean.Elab.Tactic.Conv.Congr	1064 1519 1734		
+Lean.Elab.Tactic.Conv.Delta	1064 1075		
+Lean.Elab.Tactic.Conv.Lets	1064 1147		
+Lean.Elab.Tactic.Conv.Pattern	1064 1168		
+Lean.Elab.Tactic.Conv.Rewrite	1064 1162		
+Lean.Elab.Tactic.Conv.Simp	1064 1170 1174		
+Lean.Elab.Tactic.Conv.Unfold	1072 1178		
+Lean.Elab.Tactic.Decide	1053 1517	913 1109 1356	
+Lean.Elab.Tactic.Delta	1149 1522		
+Lean.Elab.Tactic.DiscrTreeKey	908 1739		
+Lean.Elab.Tactic.Do	1078 1080 1081 1082 1102 1103 1104		
+Lean.Elab.Tactic.Do.Attr	1079 1423 1707 2348 2412	647 666 1303 1435	
+Lean.Elab.Tactic.Do.ConjunctivePre	1272 2412	0 1344	
+Lean.Elab.Tactic.Do.Contract	908 950 1200 2348 2394	567 647 871 1734 1767 1768 1778	
+Lean.Elab.Tactic.Do.LetElim	1707	628	
+Lean.Elab.Tactic.Do.ProofMode	1083 1084 1085 1086 1087 1088 1089 1090 1092 1093 1094 1095 1096 1097 1098 1099 1100 1101		
+Lean.Elab.Tactic.Do.ProofMode.Assumption	1089	1461	
+Lean.Elab.Tactic.Do.ProofMode.Basic	1096 2348		
+Lean.Elab.Tactic.Do.ProofMode.Cases	1096 2348	1084 1091 1097	
+Lean.Elab.Tactic.Do.ProofMode.Clear	1091 2348		
+Lean.Elab.Tactic.Do.ProofMode.Constructor	1096 2348		
+Lean.Elab.Tactic.Do.ProofMode.Delab	1096		
+Lean.Elab.Tactic.Do.ProofMode.Exact	1084 1091 1109		
+Lean.Elab.Tactic.Do.ProofMode.Exfalso	1084		
+Lean.Elab.Tactic.Do.ProofMode.Focus	1096		
+Lean.Elab.Tactic.Do.ProofMode.Frame	1091 2348		
+Lean.Elab.Tactic.Do.ProofMode.Have	1053 2348	1091 1109	
+Lean.Elab.Tactic.Do.ProofMode.Intro	1084		
+Lean.Elab.Tactic.Do.ProofMode.LeftRight	1096 2348		
+Lean.Elab.Tactic.Do.ProofMode.MGoal	1053 2125 2347		
+Lean.Elab.Tactic.Do.ProofMode.Pure	1096	1084 1091 1151 1706	
+Lean.Elab.Tactic.Do.ProofMode.Refine	1083		
+Lean.Elab.Tactic.Do.ProofMode.RenameI	1084		
+Lean.Elab.Tactic.Do.ProofMode.Revert	1084 1091		
+Lean.Elab.Tactic.Do.ProofMode.Specialize	1096 1109	1084 1091	
+Lean.Elab.Tactic.Do.Spec	1078 1083 1092 1094 1097		
+Lean.Elab.Tactic.Do.Syntax	903 2132		
+Lean.Elab.Tactic.Do.VCGen	1105	1081 1100 1102 1106 1107 1749	
+Lean.Elab.Tactic.Do.VCGen.Basic	1078 1168	628 913	
+Lean.Elab.Tactic.Do.VCGen.Split	798 1343 1741	1346 1461 1736	
+Lean.Elab.Tactic.Do.VCGen.SuggestInvariant	1053 1741	55 1096 1734	
+Lean.Elab.Tactic.Doc	908 1777	868 869 957	
+Lean.Elab.Tactic.ElabTerm	1048 1053 1520 1700 1702	913 1317	
+Lean.Elab.Tactic.ExposeNames	1053 1524		
+Lean.Elab.Tactic.Ext	1198	908 1159 1250 1525	
+Lean.Elab.Tactic.FalseOrByContra	1053 1459 1695		
+Lean.Elab.Tactic.Generalize	887 1149 1530		
+Lean.Elab.Tactic.Grind	1116 1117 1118 1119 1120 1121 1122 1123 1124 1126 1127 1128 1129 1130 1131 1132 1134 1135 1136 1137 1138 1139 1140 1141		
+Lean.Elab.Tactic.Grind.Anchor	1689		
+Lean.Elab.Tactic.Grind.Annotated	908	546 2365	
+Lean.Elab.Tactic.Grind.BVDecide		1052 1118 1470 1471 1619	
+Lean.Elab.Tactic.Grind.Basic	1053 1377 1398 1446 1453 1655	628 1650	
+Lean.Elab.Tactic.Grind.BuiltinTactic	1118	1115 1121 1133 1137 1160 1524 1535 1538 1552 1557 1579 1598 1602 1631 1649 1650 1671 1685 1686 1749	
+Lean.Elab.Tactic.Grind.Cbv		1118 1513	
+Lean.Elab.Tactic.Grind.Config	1118	913	
+Lean.Elab.Tactic.Grind.DSimp		1118 1123 1399 1405 1407 1408	
+Lean.Elab.Tactic.Grind.DSimprocDSL	1118 1396	644	
+Lean.Elab.Tactic.Grind.DSimprocDSLBuiltin		644 1123 1399 1400 1405 1407	
+Lean.Elab.Tactic.Grind.Filter	1118 1641		
+Lean.Elab.Tactic.Grind.Have	1118	1048 1650 1656 1685	
+Lean.Elab.Tactic.Grind.LetToHave		1118 1417 1702	
+Lean.Elab.Tactic.Grind.LiftLet		1118 1418 1702	
+Lean.Elab.Tactic.Grind.Lint	908	569 1121 1749	
+Lean.Elab.Tactic.Grind.LintExceptions		1129	
+Lean.Elab.Tactic.Grind.Main	1121 1222 1655 1749	1133 1626 1642 1672 1684	
+Lean.Elab.Tactic.Grind.Norm		1121 1655 1660	
+Lean.Elab.Tactic.Grind.Param	1118	1048 1115 1644	
+Lean.Elab.Tactic.Grind.RegisterSymDSimp		644 1123 1142 1408	
+Lean.Elab.Tactic.Grind.RegisterSymSimp		646 1138 1142 1450	
+Lean.Elab.Tactic.Grind.Rewrite		1048 1118 1702 1704	
+Lean.Elab.Tactic.Grind.ShowState	1125	1635 1671 1686	
+Lean.Elab.Tactic.Grind.SimprocDSL	1118 1434	646	
+Lean.Elab.Tactic.Grind.SimprocDSLBuiltin		646 1138 1411 1429 1432 1436 1437 1445 1448	
+Lean.Elab.Tactic.Grind.Sym		1048 1118 1138 1149 1411 1430 1432 1436 1437 1438 1445 1450 1459	
+Lean.Elab.Tactic.Grind.Trace	1118	1121 1133 1411 1626 1642 1749	
+Lean.Elab.Tactic.Grind.WithGrindTacticM	908 1118		
+Lean.Elab.Tactic.Guard	610 908 1064		
+Lean.Elab.Tactic.Impossible	913 1053 1278 1517 1695 1703		
+Lean.Elab.Tactic.Induction	1109 1523	318 357 887 1528 1530 1776	
+Lean.Elab.Tactic.Injection	1109 1461 1694		
+Lean.Elab.Tactic.Lets	1149 1696	887 913 1250	
+Lean.Elab.Tactic.LibrarySearch	1109 1697 1749	913	
+Lean.Elab.Tactic.Location	1109		
+Lean.Elab.Tactic.Match	988 1145		
+Lean.Elab.Tactic.Meta	1048		
+Lean.Elab.Tactic.Monotonicity	613 1040 1053 1743		
+Lean.Elab.Tactic.NormCast	1072 1698	913	
+Lean.Elab.Tactic.Omega	1156		
+Lean.Elab.Tactic.Omega.Core	1157 1158		
+Lean.Elab.Tactic.Omega.Frontend	1112 1155 1716	170 255 307 913 1055	
+Lean.Elab.Tactic.Omega.MinNatAbs	168 256 318	2 83 341 658	
+Lean.Elab.Tactic.Omega.OmegaM	628 1269 1274		
+Lean.Elab.Tactic.RCases	1109	628 887 1145 1530 1702	
+Lean.Elab.Tactic.RenameInaccessibles	1197	887	
+Lean.Elab.Tactic.Repeat	1053 1701		
+Lean.Elab.Tactic.Rewrite	1149 1702 1704	913 1304	
+Lean.Elab.Tactic.Rewrites	1149 1702 1705		
+Lean.Elab.Tactic.Rfl	1706		
+Lean.Elab.Tactic.Rwa	1162	1250 1749	
+Lean.Elab.Tactic.Show	1059		
+Lean.Elab.Tactic.ShowTerm	963 1749		
+Lean.Elab.Tactic.Simp	903 1149 1707 1733	913 1276	
+Lean.Elab.Tactic.SimpArith	1168 1749		
+Lean.Elab.Tactic.SimpTrace	963 1168 1222 1749		
+Lean.Elab.Tactic.Simpa	880 1168 1749		
+Lean.Elab.Tactic.Simproc	640 908 1740		
+Lean.Elab.Tactic.SolveByElim	1222 1742	913	
+Lean.Elab.Tactic.Split	1149 1743		
+Lean.Elab.Tactic.Symm	1149 1746		
+Lean.Elab.Tactic.TreeTacAttr	1707		
+Lean.Elab.Tactic.Try	908 980 996 1131 1148 1170 1524 1747 1755	628 904 913	
+Lean.Elab.Tactic.Unfold	1149 1750		
+Lean.Elab.Tactic.VCGen	1181 1182 1183 1187 1189 1190 1191 1192 1193 1194		
+Lean.Elab.Tactic.VCGen.BinderName	1194 1375 1414	1273 1413	
+Lean.Elab.Tactic.VCGen.Context	1105 1185 1193 1377 1435 1446 1689		
+Lean.Elab.Tactic.VCGen.Driver	1151 1181 1192 1411		
+Lean.Elab.Tactic.VCGen.Entails	1181 1190 1194 1453 1702 2394	1412 1413	
+Lean.Elab.Tactic.VCGen.ExcessArgsFrame	1272	1269 2194	
+Lean.Elab.Tactic.VCGen.FrameProc	1195 1375 1377 1689	1269 1412 1413 1752 2192	
+Lean.Elab.Tactic.VCGen.FrameProcAttr	1181		
+Lean.Elab.Tactic.VCGen.Frontend	1104 1118 1131 1181 1182 1186 1430 1432 1436 1437 1445 1447	1424	
+Lean.Elab.Tactic.VCGen.LatticeOp	1184 1377 2194	1267 1269 1445 2193	
+Lean.Elab.Tactic.VCGen.Reduce	1451	1375 1414 1453 1757	
+Lean.Elab.Tactic.VCGen.RuleCache	1106 1181 1188 1191 1194	1412	
+Lean.Elab.Tactic.VCGen.RuleConstruction	1106 1181 1189 1193 1377 1453	1184 1194 2400	
+Lean.Elab.Tactic.VCGen.Solve	1180 1181 1183 1190 1414 1428	364 1412 1413	
+Lean.Elab.Tactic.VCGen.SpecDB	1078 1303 1423	1435 1453	
+Lean.Elab.Tactic.VCGen.Util	1181 1189 1375 1415 1438 1448 1453 1655		
+Lean.Elab.Tactic.VCGen.WPApp	1375 1451	2396	
+Lean.Elab.Task	1053		
+Lean.Elab.Term	925 1198		
+Lean.Elab.Term.TermElabM	883 929 977 984 1023 1201 1239 1279 1778 1866	932	
+Lean.Elab.Time	908		
+Lean.Elab.Util	1207 1213 1769	671 1767	
+Lean.Elab.WhereFinally	1778		
+Lean.EnvExtension	1203		
+Lean.Environment	38 419 541 649 654 676 849 1261 1262 1803 1856 1872 1875 1880 1890 1891	381 405 492 666	
+Lean.ErrorExplanation	873 1202 1264	1264	
+Lean.Exception	1204 1212		
+Lean.Expr	150 1220	628	
+Lean.ExtraModUses	796	389	
+Lean.HeadIndex	1206		
+Lean.Hygiene	802		
+Lean.IdentifierSuggestion	925	628	965
+Lean.ImportingFlag	651		
+Lean.InternalExceptionId	651	505 506	
+Lean.KeyedDeclsAttribute	1810	687 699 1207	
+Lean.LabelAttribute	427 506 868		
+Lean.Language.Basic	1781 1906	976	
+Lean.Language.Lean	973 1217 1218 1219		
+Lean.Language.Lean.Types	908		
+Lean.Language.Lean.Util	1217	980	
+Lean.Language.Util	975	147	
+Lean.Level	62 338 855 1209	311	
+Lean.LibrarySuggestions	1222 1223 1225	1224 1226	
+Lean.LibrarySuggestions.Basic	367 1116 1283 1305	628	
+Lean.LibrarySuggestions.Default	1225		
+Lean.LibrarySuggestions.MePo	1222	1226	
+Lean.LibrarySuggestions.SineQuaNon	1222		1226
+Lean.LibrarySuggestions.SymbolFrequency	1272	653 1222	
+Lean.Linter	1228 1230 1231 1232 1235 1236 1237 1238 1239 1240 1241 1244 1249 1252 1253 1254 1255 1256 1257 1258 1259 1260		
+Lean.Linter.AmbiguousOpen	1250 1808		
+Lean.Linter.Basic	908 1250		
+Lean.Linter.Builtin	908 1260		
+Lean.Linter.CheckUnivs	1229 1260 1867 1876		
+Lean.Linter.CodeQuality	1233 1234		
+Lean.Linter.CodeQuality.Basic	112 344 814 2090		
+Lean.Linter.CodeQuality.Frontend	978 1233 1264	908	
+Lean.Linter.Coe	908 980	1250	1198
+Lean.Linter.ConstructorAsVariable	908 1260		
+Lean.Linter.CoreInternal	1251		
+Lean.Linter.DefProp	1229 1260		
+Lean.Linter.Deprecated	1272	255 628 978 1207 1250 1317 2365 2384	
+Lean.Linter.DocsOnAlt	851	908 980 1250 1775	
+Lean.Linter.EnvLinter	1242 1243		
+Lean.Linter.EnvLinter.Basic	669 978		
+Lean.Linter.EnvLinter.Frontend	1242 1250	796 865 908 1890	
+Lean.Linter.Extra	1245 1246 1247 1248		
+Lean.Linter.Extra.DupNamespace	908 1229		
+Lean.Linter.Extra.UnnecessarySeqFocus	908 1229		
+Lean.Linter.Extra.UnreachableTactic	660 908 1229 1775		
+Lean.Linter.Extra.UnusedDecidableInType	980 1229 1260 1309 1369 1803		
+Lean.Linter.GlobalAttributeIn	908 1229		
+Lean.Linter.Init	1202 1761	149	
+Lean.Linter.InternalModule	1229 1260 1803		
+Lean.Linter.List	980 1229	1250	
+Lean.Linter.MissingDocs	908 1260 1735 1775		
+Lean.Linter.Omit	908 1260		
+Lean.Linter.PersistentLintLog	929 1203 1233 1250 1264		
+Lean.Linter.Sets	626 908 1250	824	
+Lean.Linter.TacticTypeCheck		908 1260 1276 1298	
+Lean.Linter.UnusedSimpArgs	908 1168 1260		
+Lean.Linter.UnusedVariables	908 1260		
+Lean.Linter.Util	980 1197 1233 1250		
+Lean.LoadDynlib	651	492 505	
+Lean.LocalContext	302 853 1206	505 628	
+Lean.Log	1204		
+Lean.Message	406 1888 1903	147 191 477 487	
+Lean.Meta	1267 1268 1269 1272 1273 1274 1277 1278 1279 1280 1281 1284 1285 1295 1297 1298 1299 1304 1305 1306 1307 1308 1309 1310 1311 1312 1314 1316 1317 1318 1319 1320 1321 1322 1324 1325 1327 1328 1329 1330 1331 1351 1353 1360 1364 1365 1366 1368 1369 1372 1373 1454 1455 1753 1755 1756 1757 1758		
+Lean.Meta.ACLt	1301	381 1310	
+Lean.Meta.AbstractMVars	1272		
+Lean.Meta.AbstractNestedProofs	599 1278 1753		
+Lean.Meta.AppBuilder	1297 1314 1454	628 1296 1858	
+Lean.Meta.ArgsPacker	1269 1271 1361	628 666	
+Lean.Meta.ArgsPacker.Basic	36		
+Lean.Meta.Basic	8 675 700 826 1754 1805 1883	381 666	
+Lean.Meta.BinderNameHint	1272		
+Lean.Meta.Canonicalizer	1310 1902 2005	381	
+Lean.Meta.CasesInfo	1272	381	
+Lean.Meta.Check	1369	381 1763	
+Lean.Meta.CheckTactic	1272		
+Lean.Meta.Closure	1276 1462	1876	
+Lean.Meta.Coe	1269	1207 1757	
+Lean.Meta.CoeAttr	1310		
+Lean.Meta.CollectFVars	1272 1865		
+Lean.Meta.CollectMVars	1272 1869		
+Lean.Meta.CompletionName	1344		
+Lean.Meta.CongrTheorems	667 1807	1310 1745 1858	
+Lean.Meta.Constructions	1286 1287 1288 1291 1292 1293 1294		
+Lean.Meta.Constructions.BRecOn	1272	1361 1504 1699	
+Lean.Meta.Constructions.CasesOn	667 1272 1320		
+Lean.Meta.Constructions.CasesOnSameCtor	1272	880 1283 1289 1290 1367	
+Lean.Meta.Constructions.CtorElim	1272	880 1283 1290 1355	
+Lean.Meta.Constructions.CtorIdx	1272	667 698 783 1239 1283	
+Lean.Meta.Constructions.NoConfusion	1272	667 1283 1289 1290 1745	
+Lean.Meta.Constructions.RecOn	667 1283 1287		
+Lean.Meta.Constructions.SparseCasesOn	1272	667 1290 1315 1753	
+Lean.Meta.Constructions.SparseCasesOnEq	1272	1293 1315 1504 1699	
+Lean.Meta.CtorIdxHInj	1272	1290 1699 1745	
+Lean.Meta.CtorRecognizer	1330 1357		
+Lean.Meta.DecLevel	1320		
+Lean.Meta.Diagnostics	1272	1789	
+Lean.Meta.DiscrTree	1300 1301 1303 1757		
+Lean.Meta.DiscrTree.Basic	796 1302	381 628	
+Lean.Meta.DiscrTree.Main	1272 1303	1757	
+Lean.Meta.DiscrTree.Types	1206		
+Lean.Meta.DiscrTree.Util	1300		
+Lean.Meta.Eqns	866 1328 1344 1363	1269	
+Lean.Meta.Eval	667 1276 1867	794	
+Lean.Meta.ExprDefEq	1756 1887	1757	
+Lean.Meta.ExprLens	1859		
+Lean.Meta.ExprTraverse	1859		
+Lean.Meta.ForEachExpr	1272	381	
+Lean.Meta.FunInfo	1320	381	
+Lean.Meta.GeneralizeTelescope	1276 1325		
+Lean.Meta.GeneralizeVars	1272 1865		
+Lean.Meta.GetUnfoldableConst	1272 1340		
+Lean.Meta.HasAssignableMVar	1272		
+Lean.Meta.HasNotBit	1272	1350	
+Lean.Meta.HaveTelescope	1272 1353	666 1269 1865 1868	
+Lean.Meta.Hint	1755 1870	424	
+Lean.Meta.IndPredBelow	1342	311 628 1287 1337	
+Lean.Meta.Inductive	1272		
+Lean.Meta.InferType	825 1272	381	
+Lean.Meta.Injective	1272	628 1367 1461 1694 1699 1716	
+Lean.Meta.Instances	389 1282 1301	666 1281 1359 1763 1804 1907	
+Lean.Meta.IntInstTesters	1272		
+Lean.Meta.Iterator	1272		
+Lean.Meta.KAbstract	1208 1272		
+Lean.Meta.KExprMap	799 1208 1272		
+Lean.Meta.LazyDiscrTree	1283 1299	628	
+Lean.Meta.LetToHave	667 1276 1753 1807 1865 1869	381 666	
+Lean.Meta.LevelDefEq	1297 1314 1869		
+Lean.Meta.LitValues	1272	666	
+Lean.Meta.Match	1334 1335 1337 1338 1340		
+Lean.Meta.Match.AltTelescopes	1344	318 357 1269 1345 1350	
+Lean.Meta.Match.Basic	1281 1526	1269 1345 1349	
+Lean.Meta.Match.CaseArraySizes	1272 1526	1335 1745	
+Lean.Meta.Match.CaseValues	1272 1526	1745	
+Lean.Meta.Match.MVarRenaming	1897		
+Lean.Meta.Match.Match	1278 1311 1333 1336 1336 1342 1521	1315 1334 1335 1345 1347 1348	
+Lean.Meta.Match.MatchEqs	1337 1339	1332 1345 1347 1370 1505 1522 1699 1744	
+Lean.Meta.Match.MatchEqsExt	1333 1344	1304	
+Lean.Meta.Match.MatchPatternAttr	668		
+Lean.Meta.Match.MatcherApp	1342 1343		
+Lean.Meta.Match.MatcherApp.Basic	1344		
+Lean.Meta.Match.MatcherApp.Transform	1269 1332 1339 1342	1699 1743	
+Lean.Meta.Match.MatcherInfo	1272		
+Lean.Meta.Match.NamedPatterns	1272	1269 1757	
+Lean.Meta.Match.Rewrite	1741	1461 1699 1736	
+Lean.Meta.Match.SimpH	1272	1521	
+Lean.Meta.Match.SolveOverlap	1272	1521	
+Lean.Meta.Match.Value	1330		
+Lean.Meta.MatchUtil	1296 1896		
+Lean.Meta.MethodSpecs	1739	1734 1858	
+Lean.Meta.MkIffOfInductiveProp	1272	1053 1459 1504	
+Lean.Meta.MonadSimp	1206		
+Lean.Meta.NatInstTesters	1272		
+Lean.Meta.NatTable	1272	628 1320	
+Lean.Meta.Native	1272	794 929 1867	
+Lean.Meta.Offset	825 1272	1354 1901	
+Lean.Meta.Order	614 1269 1361		
+Lean.Meta.PPBinder	1272		
+Lean.Meta.PPGoal	1320		
+Lean.Meta.PProdN	1753	381 628	
+Lean.Meta.ProdN	1320	381 1297	
+Lean.Meta.RecExt	668		
+Lean.Meta.RecursorInfo	1272	381	
+Lean.Meta.Reduce	1310	381	
+Lean.Meta.ReduceEval	1357		
+Lean.Meta.SameCtorUtils	1272	1753	
+Lean.Meta.SizeOf	667 866 1269	1757	
+Lean.Meta.Sorry	842 1309 1320 1896		
+Lean.Meta.SplitSparseCasesOn	1272	1293 1294 1315 1504 1702 1704	
+Lean.Meta.StringLitProof	1269	424	
+Lean.Meta.Structure	667 1269	1753 1858	
+Lean.Meta.Sym	1374 1375 1376 1377 1378 1395 1396 1409 1410 1411 1412 1413 1414 1415 1416 1417 1418 1420 1421 1423 1424 1426 1427 1451 1452 1453		
+Lean.Meta.Sym.AbstractS	1451	628 1426	
+Lean.Meta.Sym.AlphaShareBuilder	1451		
+Lean.Meta.Sym.AlphaShareCommon	1203 1410	599 1804 1805	
+Lean.Meta.Sym.Apply	1423	381 1865	
+Lean.Meta.Sym.Arith	1379 1380 1381 1382 1383 1384 1385 1386 1387 1388 1389 1390 1391 1392 1393 1394		
+Lean.Meta.Sym.Arith.Classify	1383	588 1297 1395 1452	
+Lean.Meta.Sym.Arith.DenoteExpr	1382 1387		
+Lean.Meta.Sym.Arith.EvalNum	1393	1323 1354 1419	
+Lean.Meta.Sym.Arith.Functions	1385 1386	588	
+Lean.Meta.Sym.Arith.Insts	1381	588 1452	
+Lean.Meta.Sym.Arith.MonadCanon	1393		
+Lean.Meta.Sym.Arith.MonadRing	1384		
+Lean.Meta.Sym.Arith.MonadSemiring	1384		
+Lean.Meta.Sym.Arith.MonadVar	1393		
+Lean.Meta.Sym.Arith.Norm	1375 1379 1380 1391 1394 1395 1419 1428 1444 1452	575 594 595 858 1269 1392	
+Lean.Meta.Sym.Arith.Poly	591	309 311 314 665	
+Lean.Meta.Sym.Arith.Reify	1382 1387 1419		
+Lean.Meta.Sym.Arith.SafePoly	1389 1393 1451	1381	
+Lean.Meta.Sym.Arith.ToExpr	590 1861		
+Lean.Meta.Sym.Arith.Types	590 1451		
+Lean.Meta.Sym.Arith.VarRename	590 1691		
+Lean.Meta.Sym.Canon	1451	599 1269 1323 1330 1354 1381 1409 1410 1452 1454 1757	
+Lean.Meta.Sym.DSimp	1397 1398 1399 1400 1401 1402 1403 1404 1405 1406 1407 1408		
+Lean.Meta.Sym.DSimp.App	1398	628 1375 1406 1424	
+Lean.Meta.Sym.DSimp.DSimpM	1451	1410	
+Lean.Meta.Sym.DSimp.DSimproc	1406		
+Lean.Meta.Sym.DSimp.EvalGround	1398	1357 1419	
+Lean.Meta.Sym.DSimp.Forall	1398	1374 1414 1453	
+Lean.Meta.Sym.DSimp.Lambda	1398	1374 1414 1453	
+Lean.Meta.Sym.DSimp.Let	1398	1374 1414 1453	
+Lean.Meta.Sym.DSimp.Main	1398	1375 1397 1399 1401 1402 1403	
+Lean.Meta.Sym.DSimp.Reduce	1398	1425 1757	
+Lean.Meta.Sym.DSimp.Result	1398		
+Lean.Meta.Sym.DSimp.Rewrite	1398 1399 1405 1449	381 1266 1413 1414	
+Lean.Meta.Sym.DSimp.Variant	1398	1810	
+Lean.Meta.Sym.Eta	1272 1410	1753	
+Lean.Meta.Sym.ExprPtr	1206		
+Lean.Meta.Sym.Grind	1377 1434 1446 1689	1413 1415 1438 1453 1461 1655 1685	
+Lean.Meta.Sym.InferType	1451		
+Lean.Meta.Sym.InstantiateMVarsS	1451		
+Lean.Meta.Sym.InstantiateS	1451	544 1420	
+Lean.Meta.Sym.Intro	1451	1375 1414 1416 1695	
+Lean.Meta.Sym.IsClass	1451		
+Lean.Meta.Sym.LetToHave	1451	1375 1412 1426	
+Lean.Meta.Sym.LiftLet	1451	1375 1426	
+Lean.Meta.Sym.LitValues	392 1206		
+Lean.Meta.Sym.LooseBVarsS	1426		
+Lean.Meta.Sym.MaxFVar	1451		
+Lean.Meta.Sym.Offset	1419		
+Lean.Meta.Sym.Pattern	799 1451	255 311 1314 1374 1375 1409 1413 1414 1416 1421 1422 1424 1453 1454 2132	
+Lean.Meta.Sym.ProofInstInfo	1451	1409 1416 1453	
+Lean.Meta.Sym.Reduce	1451	1375 1414 1757 1804	
+Lean.Meta.Sym.ReplaceS	1375	628	
+Lean.Meta.Sym.Simp	1428 1429 1430 1431 1432 1433 1434 1435 1436 1437 1438 1439 1440 1441 1442 1443 1444 1445 1446 1447 1448 1449 1450		
+Lean.Meta.Sym.Simp.App	1446	628 1375 1412 1431 1741	
+Lean.Meta.Sym.Simp.Arith	1434 1446	575 1388 1419 1444	
+Lean.Meta.Sym.Simp.Attr	1449		
+Lean.Meta.Sym.Simp.CongrInfo	1451	628 1310	
+Lean.Meta.Sym.Simp.ControlFlow	1446	645 1269 1375 1412 1425 1428 1444 1453 1757	
+Lean.Meta.Sym.Simp.Debug	1434	1438 1445 1453	
+Lean.Meta.Sym.Simp.Discharger	1446	1269	
+Lean.Meta.Sym.Simp.DiscrTree	1303 1423	628 1409 1422	
+Lean.Meta.Sym.Simp.EvalGround	1446	645 1357 1371 1419	
+Lean.Meta.Sym.Simp.Forall	1446	1374 1375 1414 1444 1453	
+Lean.Meta.Sym.Simp.Goal	1446	1412 1752	
+Lean.Meta.Sym.Simp.Have	1440	628 666 1269 1316 1374 1412 1414 1426 1865	
+Lean.Meta.Sym.Simp.Lambda	1446		
+Lean.Meta.Sym.Simp.Main	1446	1375 1428 1437 1439 1447	
+Lean.Meta.Sym.Simp.Reduce	1446	1412 1425	
+Lean.Meta.Sym.Simp.RegisterCommand	427 506 1430 1450		
+Lean.Meta.Sym.Simp.Result	1412 1446		
+Lean.Meta.Sym.Simp.Rewrite	1428 1434 1447 1449	381 1266 1413 1414	
+Lean.Meta.Sym.Simp.SimpM	1423		
+Lean.Meta.Sym.Simp.Simproc	1444		
+Lean.Meta.Sym.Simp.Telescope	1446	1437 1439	
+Lean.Meta.Sym.Simp.Theorems	1299 1423	381 628 1207 1269 1435	
+Lean.Meta.Sym.Simp.Variant	1446	1810	
+Lean.Meta.Sym.SymM	1284 1376 1753	1269 1757	
+Lean.Meta.Sym.SynthInstance	1451	1454	
+Lean.Meta.Sym.Util	1375 1451 1753	1876	
+Lean.Meta.SynthInstance	48 1267 1276 1322	666 1865	
+Lean.Meta.Tactic	1456 1459 1460 1461 1462 1463 1503 1504 1506 1517 1518 1519 1520 1521 1522 1523 1525 1527 1530 1531 1692 1693 1695 1696 1698 1699 1700 1701 1702 1703 1704 1705 1706 1707 1742 1743 1744 1746 1747 1749 1750		
+Lean.Meta.Tactic.AC	1457		
+Lean.Meta.Tactic.AC.Main	1162 1699 1734	628	
+Lean.Meta.Tactic.Acyclic	1350	1734	
+Lean.Meta.Tactic.Apply	1752 1789	628 1269	
+Lean.Meta.Tactic.Assert	978 1526 1695 1703 1876	1269	
+Lean.Meta.Tactic.Assumption	1752		
+Lean.Meta.Tactic.AuxLemma	667 866		
+Lean.Meta.Tactic.BVDecide	1464 1465 1466 1467 1470 1471 1486 1494 1502		
+Lean.Meta.Tactic.BVDecide.Attr	1053 1449 1707 2345	913 1430	
+Lean.Meta.Tactic.BVDecide.Counterexample	1478 2218 2264	1501	
+Lean.Meta.Tactic.BVDecide.External	673 796 2345	2337	
+Lean.Meta.Tactic.BVDecide.LRAT	1468 1469		
+Lean.Meta.Tactic.BVDecide.LRAT.Cert	796 2327 2345	1466 1469 2337	
+Lean.Meta.Tactic.BVDecide.LRAT.Trim	2326	308 371 628 1998	
+Lean.Meta.Tactic.BVDecide.Main	1471 1488 1489	1453	
+Lean.Meta.Tactic.BVDecide.Normalize	1472 1473 1474 1475 1476 1477 1478 1479 1480 1481 1482 1483 1484 1485	1411 1415 1453 1619	
+Lean.Meta.Tactic.BVDecide.Normalize.AC	1475	1457	
+Lean.Meta.Tactic.BVDecide.Normalize.AndFlatten	1475 2340		
+Lean.Meta.Tactic.BVDecide.Normalize.ApplyControlFlow	1446 1707	2 628	
+Lean.Meta.Tactic.BVDecide.Normalize.Basic	1375 1398 1410 1446 1451 1464 1502 1619 1689 2345	1406 1412 1413	
+Lean.Meta.Tactic.BVDecide.Normalize.CollectHyps	1475	1112 1411 1412 1413 1415 1419 1453 1683 1689 1690	
+Lean.Meta.Tactic.BVDecide.Normalize.EmbeddedConstraint	1475 2340		
+Lean.Meta.Tactic.BVDecide.Normalize.Enums	1484	323 1445 1449 1453 1474 1479	
+Lean.Meta.Tactic.BVDecide.Normalize.IntToBitVec	1475	402 512 1413 1419 1445	
+Lean.Meta.Tactic.BVDecide.Normalize.Reduction	1475	1396 1449	
+Lean.Meta.Tactic.BVDecide.Normalize.Rewrite	1475	1396 1432 1436 1437 1445 1483	
+Lean.Meta.Tactic.BVDecide.Normalize.ShortCircuit	1475 2339	1445 1449	
+Lean.Meta.Tactic.BVDecide.Normalize.Simproc	1398 1446 1464 2338	82 628 1375 1419 1444	
+Lean.Meta.Tactic.BVDecide.Normalize.Structures	1446 1485	1445 1449 1453 1474 1525	
+Lean.Meta.Tactic.BVDecide.Normalize.TypeAnalysis	1446 1464 1475 2339	2 1413 1445 1449	
+Lean.Meta.Tactic.BVDecide.Prover	1487 1488 1489		
+Lean.Meta.Tactic.BVDecide.Prover.Basic	1465 1468 1494	1451 1453	
+Lean.Meta.Tactic.BVDecide.Prover.Bitblast	1487 1502	1356	
+Lean.Meta.Tactic.BVDecide.Prover.Cegar	1490 1491 1492 1493	1466 1488	
+Lean.Meta.Tactic.BVDecide.Prover.Cegar.Basic	673 1487 1502		
+Lean.Meta.Tactic.BVDecide.Prover.Cegar.BitVec	1490	1412 1466 1488	
+Lean.Meta.Tactic.BVDecide.Prover.Cegar.Function	1490	1412	
+Lean.Meta.Tactic.BVDecide.Prover.Cegar.Lemmas	1490	1471 1655	
+Lean.Meta.Tactic.BVDecide.Reflect	1495 1496 1497 1498 1499 1500 1501		
+Lean.Meta.Tactic.BVDecide.Reflect.Basic	1451 1475 1998 2264	858	
+Lean.Meta.Tactic.BVDecide.Reflect.ReifiedBVExpr	1495 2344	1330 1412 1413 1419	
+Lean.Meta.Tactic.BVDecide.Reflect.ReifiedBVLogical	1495	1498 2344	
+Lean.Meta.Tactic.BVDecide.Reflect.ReifiedBVPred	1495	1412 1496	
+Lean.Meta.Tactic.BVDecide.Reflect.ReifiedLemmas	1495	1269 1497 1498 2344	
+Lean.Meta.Tactic.BVDecide.Reflect.Reify	1495	1269 1412 1413 1419 1431 1496 1497 1498 1499 2344	
+Lean.Meta.Tactic.BVDecide.Reflect.SatAtBVLogical	1495	1412 1413 1497 1500 2344	
+Lean.Meta.Tactic.BVDecide.TacticContext	1464		
+Lean.Meta.Tactic.Backtrack	1324 1692	311 628	
+Lean.Meta.Tactic.Cases	1458 1693 1751	628 1290 1293	
+Lean.Meta.Tactic.CasesOnStuckLHS	1272	1504 1804	
+Lean.Meta.Tactic.Cbv	1510 1513 1516		
+Lean.Meta.Tactic.Cbv.BuiltinCbvSimprocs.Array		3 543 1412 1419 1446 1511 1516	
+Lean.Meta.Tactic.Cbv.BuiltinCbvSimprocs.Core		3 645 1446 1511	
+Lean.Meta.Tactic.Cbv.BuiltinCbvSimprocs.String		3 424 1419 1446 1511 1516	
+Lean.Meta.Tactic.Cbv.CbvEvalExt	846 975 1449 1810	1269 1462	
+Lean.Meta.Tactic.Cbv.CbvSimproc	699 1423 1428 1435 1444 1446 1810		
+Lean.Meta.Tactic.Cbv.ControlFlow	1446	3 645 792 1269 1375 1412 1414 1428 1432 1444 1445 1454 1510 1511 1514 1515 1757	
+Lean.Meta.Tactic.Cbv.Main	1446 1512 1514	1373 1460 1507 1508 1509 1510 1511 1515 1516 1699 1702	
+Lean.Meta.Tactic.Cbv.Opaque	1805 1810		
+Lean.Meta.Tactic.Cbv.TheoremsLookup	1449	1304 1339	
+Lean.Meta.Tactic.Cbv.Util	1446	1375 1412 1419	
+Lean.Meta.Tactic.Cleanup	1272	1281 1752	
+Lean.Meta.Tactic.Clear	1752	318 357	
+Lean.Meta.Tactic.Congr	1284 1460 1461 1699		
+Lean.Meta.Tactic.Constructor	1459		
+Lean.Meta.Tactic.Contradiction	1459 1461 1504	1315 1736	
+Lean.Meta.Tactic.Delta	1702	1753	
+Lean.Meta.Tactic.ElimInfo	1276	381	
+Lean.Meta.Tactic.ExposeNames	1752	666	
+Lean.Meta.Tactic.Ext	48 1299		
+Lean.Meta.Tactic.FVarSubst	799 1262 1897		
+Lean.Meta.Tactic.FunInd	1741	628 798 1015 1016 1027 1270 1343 1346 1529 1702	
+Lean.Meta.Tactic.FunIndCollect	1529 1752		
+Lean.Meta.Tactic.FunIndInfo	1272 1807		
+Lean.Meta.Tactic.Generalize	1325 1526 1695 1703	1269	
+Lean.Meta.Tactic.Grind	1532 1546 1547 1548 1617 1618 1621 1622 1623 1626 1627 1628 1630 1631 1632 1634 1635 1638 1641 1642 1646 1647 1651 1652 1653 1654 1655 1656 1657 1658 1659 1663 1671 1672 1674 1675 1676 1677 1678 1681 1682 1683 1687 1689 1690 1691		
+Lean.Meta.Tactic.Grind.AC	1533 1534 1535 1536 1537 1538 1539 1540 1541 1542 1543 1544 1545		
+Lean.Meta.Tactic.Grind.AC.Action	1546	1535	
+Lean.Meta.Tactic.Grind.AC.DenoteExpr	1543		
+Lean.Meta.Tactic.Grind.AC.Eq	1543	311 1534 1537 1539 1540	
+Lean.Meta.Tactic.Grind.AC.Internalize	1543	1534	
+Lean.Meta.Tactic.Grind.AC.Inv	1543	1540	
+Lean.Meta.Tactic.Grind.AC.PP	1689	628 1534	
+Lean.Meta.Tactic.Grind.AC.Proof	1543	318 357 858 1541 1545 1630 1675	
+Lean.Meta.Tactic.Grind.AC.Seq	344 545	311	
+Lean.Meta.Tactic.Grind.AC.ToExpr	545 1861		
+Lean.Meta.Tactic.Grind.AC.Types	545 1689 1998	1540	
+Lean.Meta.Tactic.Grind.AC.Util	1542 1561 1680	1683	
+Lean.Meta.Tactic.Grind.AC.Var	1690		
+Lean.Meta.Tactic.Grind.AC.VarRename	545 1691		
+Lean.Meta.Tactic.Grind.Action	1689		
+Lean.Meta.Tactic.Grind.Anchor	1689	628 1657	
+Lean.Meta.Tactic.Grind.Arith	1549 1566 1587 1610 1611 1613 1614 1615 1616		
+Lean.Meta.Tactic.Grind.Arith.CommRing	1550 1551 1552 1553 1554 1555 1556 1557 1558 1559 1560 1561 1562 1564 1565		
+Lean.Meta.Tactic.Grind.Arith.CommRing.Action	1546	1552	
+Lean.Meta.Tactic.Grind.Arith.CommRing.DenoteExpr	1380 1565		
+Lean.Meta.Tactic.Grind.Arith.CommRing.EqCnstr	1561	1551 1554 1559 1560 1563 1616 1630	
+Lean.Meta.Tactic.Grind.Arith.CommRing.Internalize	1561	1551 1560 1582 1616 1683	
+Lean.Meta.Tactic.Grind.Arith.CommRing.Inv	1562	1389	
+Lean.Meta.Tactic.Grind.Arith.CommRing.NonCommRingM	1562		
+Lean.Meta.Tactic.Grind.Arith.CommRing.NonCommSemiringM	1564		
+Lean.Meta.Tactic.Grind.Arith.CommRing.PP	1393 1689	628 1551	
+Lean.Meta.Tactic.Grind.Arith.CommRing.Power	1679	544 1354 1614	
+Lean.Meta.Tactic.Grind.Arith.CommRing.Proof	1555 1556 1561	318 357 858 1392 1394 1551 1630 1675	
+Lean.Meta.Tactic.Grind.Arith.CommRing.Reify	1390 1555 1556		
+Lean.Meta.Tactic.Grind.Arith.CommRing.RingId	1562	1379	
+Lean.Meta.Tactic.Grind.Arith.CommRing.RingM	1382 1387 1565 1687	1389	
+Lean.Meta.Tactic.Grind.Arith.CommRing.SafePoly	1389 1391 1562	311	
+Lean.Meta.Tactic.Grind.Arith.CommRing.SemiringM	1562	1551	
+Lean.Meta.Tactic.Grind.Arith.CommRing.Types	590 1393 1689	1389	
+Lean.Meta.Tactic.Grind.Arith.Cutsat	1567 1568 1569 1570 1571 1572 1573 1574 1575 1577 1579 1580 1581 1582 1583 1584		
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Action	1546	1579	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.CommRing	1561 1581	1551 1560 1563 1582 1583 1683	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.DvdCnstr	1581 1679	167 307 587 1354 1568 1575 1576 1577 1583 1683	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.EqCnstr	1581	167 628 1354 1381 1568 1569 1572 1575 1576 1577 1582 1583 1683	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Inv	1581	1582	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.LeCnstr	1582	167 1568 1575 1576 1577 1583 1709	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.MBTC	1582	1574 1612 1654	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Model	1581	1612	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Nat	1582	167 1354 1683	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Norm	1582	1323	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Proof	1581	167 318 357 1392 1394 1568 1575 1582 1584 1630 1675 1711	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.ReorderVars	1581	1569 1570 1571 1572	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Search	1580	1569 1577 1578 1582 1711	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.SearchM	1581	1582	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Types	166 1565 1616		
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Util	1581	1711	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.Var	1581	1323 1575	
+Lean.Meta.Tactic.Grind.Arith.Cutsat.VarRename	166 1691		
+Lean.Meta.Tactic.Grind.Arith.FieldNormNum	1272	551 1269 1330 1687 1901	
+Lean.Meta.Tactic.Grind.Arith.IsRelevant	1689	1582 1604 1616	
+Lean.Meta.Tactic.Grind.Arith.Linear	1588 1590 1591 1592 1593 1595 1596 1597 1598 1599 1600 1601 1602 1603 1604 1605 1606 1607 1608 1609		
+Lean.Meta.Tactic.Grind.Arith.Linear.Action	1546	1602	
+Lean.Meta.Tactic.Grind.Arith.Linear.Den	1594	1563	
+Lean.Meta.Tactic.Grind.Arith.Linear.DenoteExpr	1607	1551 1616 1683	
+Lean.Meta.Tactic.Grind.Arith.Linear.IneqCnstr	1594	1560 1589 1599 1601 1604	
+Lean.Meta.Tactic.Grind.Arith.Linear.Internalize	1597	572 1601 1604 1607 1608 1616	
+Lean.Meta.Tactic.Grind.Arith.Linear.Inv	1594	1607	
+Lean.Meta.Tactic.Grind.Arith.Linear.LinearM	1562 1606		
+Lean.Meta.Tactic.Grind.Arith.Linear.MBTC	1689	1594 1596 1612 1654	
+Lean.Meta.Tactic.Grind.Arith.Linear.Model	1606	572 1601 1612	
+Lean.Meta.Tactic.Grind.Arith.Linear.OfNatModule	1594	318 357 573 574 858 1605 1616 1630	
+Lean.Meta.Tactic.Grind.Arith.Linear.PP	1606	628 1596 1616	
+Lean.Meta.Tactic.Grind.Arith.Linear.Proof	1590 1597 1616	318 357 574 858 1392 1394 1605 1609 1630 1675	
+Lean.Meta.Tactic.Grind.Arith.Linear.PropagateEq	1594	1560 1589 1591 1599 1601	
+Lean.Meta.Tactic.Grind.Arith.Linear.Reify	1594	1608	
+Lean.Meta.Tactic.Grind.Arith.Linear.Search	1603	1591 1599	
+Lean.Meta.Tactic.Grind.Arith.Linear.SearchM	1594		
+Lean.Meta.Tactic.Grind.Arith.Linear.StructId	1689	572 1383 1561 1582 1608	
+Lean.Meta.Tactic.Grind.Arith.Linear.ToExpr	581 1861		
+Lean.Meta.Tactic.Grind.Arith.Linear.Types	581 591 1689		
+Lean.Meta.Tactic.Grind.Arith.Linear.Util	1594	163 1616	
+Lean.Meta.Tactic.Grind.Arith.Linear.Var	1594	1607	
+Lean.Meta.Tactic.Grind.Arith.Linear.VarRename	581 1691		
+Lean.Meta.Tactic.Grind.Arith.Main	1679	587 1572 1591	
+Lean.Meta.Tactic.Grind.Arith.Model	1574		
+Lean.Meta.Tactic.Grind.Arith.ModelUtil	1689	572 1616	
+Lean.Meta.Tactic.Grind.Arith.Propagate	1679	544 1555 1556 1561	
+Lean.Meta.Tactic.Grind.Arith.Simproc	589 640 640 1687 1731	593 1297 1330 1585 1901	
+Lean.Meta.Tactic.Grind.Arith.Types	31		
+Lean.Meta.Tactic.Grind.Arith.Util	589 1454		
+Lean.Meta.Tactic.Grind.Attr	1622 1639 1645 1648 1716	1207 1430	
+Lean.Meta.Tactic.Grind.BVDecide	1619		
+Lean.Meta.Tactic.Grind.BVDecide.Types	1398 1446 1689		
+Lean.Meta.Tactic.Grind.Beta	1689		
+Lean.Meta.Tactic.Grind.BitVec	1679	75 544 1330 1683 1861	
+Lean.Meta.Tactic.Grind.Cases	1504 1640		
+Lean.Meta.Tactic.Grind.CasesMatch	1752	1341 1504 1690	
+Lean.Meta.Tactic.Grind.CastLike	1206	572 592	
+Lean.Meta.Tactic.Grind.CheckResult	395		
+Lean.Meta.Tactic.Grind.CollectParams	1689		
+Lean.Meta.Tactic.Grind.Core	1689	628 1620 1628 1649 1651 1671 1683 1690	
+Lean.Meta.Tactic.Grind.Ctor	1689	1321 1683	
+Lean.Meta.Tactic.Grind.CtorIdx	1689	1290 1295	
+Lean.Meta.Tactic.Grind.Diseq	1689	568	
+Lean.Meta.Tactic.Grind.EMatch	1314 1689	599 628 1381 1623 1659 1680 1683 1687 1690 1866	
+Lean.Meta.Tactic.Grind.EMatchAction	1650	1631 1635 1636 1657 1889	
+Lean.Meta.Tactic.Grind.EMatchDiagnostics	1689	284	
+Lean.Meta.Tactic.Grind.EMatchTheorem	1640	1409 1453 1690 1749	
+Lean.Meta.Tactic.Grind.EMatchTheoremParam	1547		
+Lean.Meta.Tactic.Grind.EMatchTheoremPtr	1634		
+Lean.Meta.Tactic.Grind.EqResolution	1272	1269 1350 1876	
+Lean.Meta.Tactic.Grind.Ext	1689	1687	
+Lean.Meta.Tactic.Grind.ExtAttr	1525 1640		
+Lean.Meta.Tactic.Grind.Extension	1688		
+Lean.Meta.Tactic.Grind.Filter	1689		
+Lean.Meta.Tactic.Grind.Finish	1546	1632 1686	
+Lean.Meta.Tactic.Grind.ForallAnd	1272	575 1269 1320	
+Lean.Meta.Tactic.Grind.ForallProp	587 1679	568 575 640 1547 1637 1643 1649 1687	
+Lean.Meta.Tactic.Grind.Homo	1449	1269 1430	
+Lean.Meta.Tactic.Grind.Homomorphism	1446 1645 1689	554 1354 1419 1436 1445 1630	
+Lean.Meta.Tactic.Grind.Injection	1272	1269 1296 1518	
+Lean.Meta.Tactic.Grind.Injective	1634	149 381	
+Lean.Meta.Tactic.Grind.Internalize	1689	599 1586 1620 1634 1657 1658 1678 1683 1690 1867 1876	
+Lean.Meta.Tactic.Grind.Intro	568 1546	599 1459 1623 1627 1647 1656 1683 1690	
+Lean.Meta.Tactic.Grind.Inv	1689	599 1395 1690	
+Lean.Meta.Tactic.Grind.LawfulEqCmp	1689	1687 1690	
+Lean.Meta.Tactic.Grind.Lookahead	1689	1632 1686	
+Lean.Meta.Tactic.Grind.MBTC	1689	1624	
+Lean.Meta.Tactic.Grind.Main	1278 1393 1689 1690	1524 1627 1629 1631 1633 1644 1649 1650 1652 1656 1657 1662 1671 1673 1681 1684 1685 1732 1736 1789	
+Lean.Meta.Tactic.Grind.MarkAccessible	1703	381	
+Lean.Meta.Tactic.Grind.MarkNestedSubsingletons	1689	599 1453 1690	
+Lean.Meta.Tactic.Grind.MatchCond	1679	544 1521 1680	
+Lean.Meta.Tactic.Grind.MatchDiscrOnly	1740	599 640 1736	
+Lean.Meta.Tactic.Grind.NormSym	1396 1446 1449 1689	1299 1429 1432 1434 1436 1437 1441 1442 1445 1447 1453 1661 1683 1684 1690	
+Lean.Meta.Tactic.Grind.NormSymProcs	1446	2 568 575 599 1269 1296 1344 1375 1412 1414 1428 1444 1452 1643	
+Lean.Meta.Tactic.Grind.Normalizer	1660 1684	1441 1453 1734	
+Lean.Meta.Tactic.Grind.Order	1664 1665 1666 1668 1669 1670		
+Lean.Meta.Tactic.Grind.Order.Assert	1666	577 587 1667 1670 1679	
+Lean.Meta.Tactic.Grind.Order.Internalize	1666	167 572 577 1551 1559 1560 1563 1575 1664 1667 1668 1670	
+Lean.Meta.Tactic.Grind.Order.OrderM	1393 1669		
+Lean.Meta.Tactic.Grind.Order.Proof	1562 1666	577	
+Lean.Meta.Tactic.Grind.Order.StructId	1669	1379	
+Lean.Meta.Tactic.Grind.Order.Types	1689		
+Lean.Meta.Tactic.Grind.Order.Util	1666	1616	
+Lean.Meta.Tactic.Grind.PP	1393 1689	566 586 599 1538 1557 1574 1598 1624	
+Lean.Meta.Tactic.Grind.Parser	1767		
+Lean.Meta.Tactic.Grind.Proj	1689		
+Lean.Meta.Tactic.Grind.Proof	1689	568 599	
+Lean.Meta.Tactic.Grind.ProofUtil	1689		
+Lean.Meta.Tactic.Grind.Propagate	1679	544 1630 1638 1683	
+Lean.Meta.Tactic.Grind.PropagateChar	1679	587 1330	
+Lean.Meta.Tactic.Grind.PropagateInj	1689	566 587 1679 1683	
+Lean.Meta.Tactic.Grind.PropagatorAttr	1674	544	
+Lean.Meta.Tactic.Grind.ProveEq	1689	599 1683	
+Lean.Meta.Tactic.Grind.ReflCmp	1689	1687 1690	
+Lean.Meta.Tactic.Grind.RegisterCommand			
+Lean.Meta.Tactic.Grind.Simp	568 1689 1734	1404 1441 1453 1657 1659 1690	
+Lean.Meta.Tactic.Grind.SimpUtil	549 1740	2 575 1453 1614 1644 1659 1690 1721 1725 1734	
+Lean.Meta.Tactic.Grind.Solve	1689	1642	
+Lean.Meta.Tactic.Grind.Split	1546 1547	255 599 628 1623 1649 1650 1690	
+Lean.Meta.Tactic.Grind.SynthInstance	1452		
+Lean.Meta.Tactic.Grind.Theorems	387 1208 1272	381 1304	
+Lean.Meta.Tactic.Grind.Types	365 549 1395 1398 1446 1451 1617 1625	311 421 628 1268 1339 1902	
+Lean.Meta.Tactic.Grind.Util	549 1740	599 640 1453 1518 1858	
+Lean.Meta.Tactic.Grind.VarRename	62 150 2008		
+Lean.Meta.Tactic.IndependentOf	1282 1752		
+Lean.Meta.Tactic.Induction	1364 1454 1526 1695 1703	628 1757	
+Lean.Meta.Tactic.Injection	1745		
+Lean.Meta.Tactic.Intro	1752		
+Lean.Meta.Tactic.Lets	1328 1702		
+Lean.Meta.Tactic.LibrarySearch	1327 1655 1742 1879	599 628 660 1053	
+Lean.Meta.Tactic.NormCast	1280 1716		
+Lean.Meta.Tactic.Refl	1365 1459		
+Lean.Meta.Tactic.Rename	1752		
+Lean.Meta.Tactic.Repeat	1272	311 628	
+Lean.Meta.Tactic.Replace	978 1269 1350 1460		
+Lean.Meta.Tactic.Revert	1518		
+Lean.Meta.Tactic.Rewrite	1269 1273 1325 1350 1459		
+Lean.Meta.Tactic.Rewrites	1327 1699 1704 1742 1749 1879		
+Lean.Meta.Tactic.Rfl	1053 1699		
+Lean.Meta.Tactic.Simp	1708 1716 1717 1732 1734 1735 1736 1737 1738 1739 1740 1741		
+Lean.Meta.Tactic.Simp.Arith	1709 1712		
+Lean.Meta.Tactic.Simp.Arith.Int	1710 1711		
+Lean.Meta.Tactic.Simp.Arith.Int.Basic	166 858 1269 1323 1326 1904	1330	
+Lean.Meta.Tactic.Simp.Arith.Int.Simp	1710 1715		
+Lean.Meta.Tactic.Simp.Arith.Nat	1713 1714		
+Lean.Meta.Tactic.Simp.Arith.Nat.Basic	311 1326 1904	858 1354 1357	
+Lean.Meta.Tactic.Simp.Arith.Nat.Simp	1713 1715	1269	
+Lean.Meta.Tactic.Simp.Arith.Util	1272		
+Lean.Meta.Tactic.Simp.Attr	1740		
+Lean.Meta.Tactic.Simp.BuiltinSimprocs	1718 1719 1720 1721 1722 1723 1724 1725 1726 1727 1728 1729 1730		
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Array	1727		
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.BitVec	1724	81	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Char	1730		
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Core	640 1740	1296	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.CtorIdx	1740	640 1290 1296	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Fin	1727	628	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Int	1727	158 1901	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.List	1727		
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.MethodSpecs	1740	640 1351 1734	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Nat	640 1330 1357 1731	307 320 325 1901	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.SInt	1724	403	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.String	1720	424 1371	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.UInt	1727	513	
+Lean.Meta.Tactic.Simp.BuiltinSimprocs.Util	1740		
+Lean.Meta.Tactic.Simp.Diagnostics	1298 1741		
+Lean.Meta.Tactic.Simp.LoopProtection	1250 1741		
+Lean.Meta.Tactic.Simp.Main	1349 1353 1702 1732 1736 1868	1207 1316 1789	
+Lean.Meta.Tactic.Simp.RegisterCommand	1740		
+Lean.Meta.Tactic.Simp.Rewrite	1266 1273 1314 1339 1708 1716 1751	1757	
+Lean.Meta.Tactic.Simp.SimpAll	1734		
+Lean.Meta.Tactic.Simp.SimpCongrTheorems	1272 1869 1896		
+Lean.Meta.Tactic.Simp.SimpTheorems	147 868 1301 1462	1207 1269 1304 1757	
+Lean.Meta.Tactic.Simp.Simproc	699 1741		
+Lean.Meta.Tactic.Simp.Types	1269 1284 1304 1738 1739	311 1702	
+Lean.Meta.Tactic.SolveByElim	499 1197 1214 1503 1520 1701 1746		
+Lean.Meta.Tactic.Split	1342 1459 1530 1741	1734 1744	
+Lean.Meta.Tactic.SplitIf	1504 1736	1734	
+Lean.Meta.Tactic.Subst	1269 1350 1460		
+Lean.Meta.Tactic.Symm	1301 1365 1702	1269	
+Lean.Meta.Tactic.Try	1748		
+Lean.Meta.Tactic.Try.Collect	660 1528 1697		
+Lean.Meta.Tactic.TryThis	1917	1524 1813 1917	
+Lean.Meta.Tactic.Unfold	1522 1734	1757	
+Lean.Meta.Tactic.UnifyEq	1694	311	
+Lean.Meta.Tactic.Util	1360 1877	1269	
+Lean.Meta.Transform	387 1310	381	
+Lean.Meta.TransparencyMode	508 624		
+Lean.Meta.TryThis	828 1789		
+Lean.Meta.UnificationHint	1454		
+Lean.Meta.WHNF	1296 1313 1340 1344 1753 1858 1896 1901	381 424	
+Lean.Meta.WrapInstance	1269 1278 1296 1454	1207 1858	
+Lean.MetavarContext	638 1262 1884	405 505 628	
+Lean.Modifiers	1202		
+Lean.MonadEnv	670 793 967 1263	8	
+Lean.Namespace	1202		
+Lean.OriginalConstKind	1203	1202	
+Lean.Parser	1766 1767 1768 1771 1772 1775 1776 1777 1778		
+Lean.Parser.Attr	1770		
+Lean.Parser.Basic	1781		
+Lean.Parser.Command	1768	875 875 1768	
+Lean.Parser.Do	1778		
+Lean.Parser.Extension	1766 1810	671	
+Lean.Parser.Extra	1209 1801 1802		1766 1769 1781
+Lean.Parser.Level	1770		
+Lean.Parser.Module	1773	666 1770 1773	
+Lean.Parser.Module.Syntax	1767		
+Lean.Parser.StrInterpolation	1766		
+Lean.Parser.Syntax	1767		
+Lean.Parser.Tactic	1777 1778 2348		
+Lean.Parser.Tactic.Doc	1203	978 1207 1765 1769	
+Lean.Parser.Term	1779 1780 1801	872 875	
+Lean.Parser.Term.Basic	1765 1771 1780	1766	
+Lean.Parser.Term.Doc	1769		
+Lean.Parser.Types	863 871	480	
+Lean.ParserCompiler	1213 1366 1757 1769 1783	381	
+Lean.ParserCompiler.Attribute	699	1207	
+Lean.PostprocessTraces	1785 1786 1787 1788		
+Lean.PostprocessTraces.Basic	908 1305	796	
+Lean.PostprocessTraces.PostprocessTracesCommand	908 1785		
+Lean.PostprocessTraces.Postprocessors	1785	796	
+Lean.PostprocessTraces.StoredTraces	908 1785	796	
+Lean.PrettyPrinter	1772 1782 1793 1886 1902	1791	
+Lean.PrettyPrinter.Basic	1213		
+Lean.PrettyPrinter.Delaborator	1793 1794 1798 1799 1800		
+Lean.PrettyPrinter.Delaborator.Attributes	668		
+Lean.PrettyPrinter.Delaborator.Basic	506 1213 1800	978 1207	
+Lean.PrettyPrinter.Delaborator.Builtins	1280 1372 1793 1797 1801 1802	1767 1795	
+Lean.PrettyPrinter.Delaborator.DeclWithSig	1781	1767	
+Lean.PrettyPrinter.Delaborator.FieldNotation	1757 1792 1798	381	
+Lean.PrettyPrinter.Delaborator.Metavariable	1793		965
+Lean.PrettyPrinter.Delaborator.Options	851		
+Lean.PrettyPrinter.Delaborator.SubExpr	1859		
+Lean.PrettyPrinter.Delaborator.TopDownAnalyze	912 1454 1796 1799 1867 1873 1874 1898		
+Lean.PrettyPrinter.Formatter	1769 1774 1783 1790 1798	1207	
+Lean.PrettyPrinter.Parenthesizer	1769 1774 1783 1790 1798	1207	
+Lean.PrivateName	338 626		
+Lean.ProjFns	1202		
+Lean.ReducibilityAttrs	1810		
+Lean.Replay	667	796 1875	
+Lean.ReservedNameAction	8 796		
+Lean.ResolveName	1205 1263 1760 1762		
+Lean.Runtime	635		
+Lean.ScopedEnvExtension	668		
+Lean.Server	1813 1828 1840 1844 1850 1855		
+Lean.Server.AsyncList	1848		
+Lean.Server.CodeActions	1814 1815 1816		
+Lean.Server.CodeActions.Attr	1815	687	
+Lean.Server.CodeActions.Basic	1843		
+Lean.Server.CodeActions.Provider	903 904 1814 2030 2081		
+Lean.Server.CodeActions.UnknownIdentifier	1815 1820	1218	
+Lean.Server.Completion	1819 1998		
+Lean.Server.Completion.CompletionCollectors	803 1108 1822 1824 1842		
+Lean.Server.Completion.CompletionInfoSelection	1826		
+Lean.Server.Completion.CompletionItemCompression	840	628	
+Lean.Server.Completion.CompletionResolution	827 1239 1820		
+Lean.Server.Completion.CompletionUtils	1757	422 513	
+Lean.Server.Completion.EligibleHeaderDecls	667 840 1283 1804 2254	1239	
+Lean.Server.Completion.ImportCompletion	827 1772 1881	1772	
+Lean.Server.Completion.SyntheticCompletion	980 1823		
+Lean.Server.FileSource	827		
+Lean.Server.FileWorker	1216 1817 1825 1831 1833 1835 1836 2253	480	
+Lean.Server.FileWorker.ExampleHover	949		
+Lean.Server.FileWorker.InlayHints	1837 1843		
+Lean.Server.FileWorker.RequestHandling	1818 1821 1829 1830 1832 1834 1841 1911	1218	
+Lean.Server.FileWorker.SemanticHighlighting	1843	878	
+Lean.Server.FileWorker.SetupFile	1848 1854 1881		
+Lean.Server.FileWorker.SignatureHelp	285 827 980	1791	
+Lean.Server.FileWorker.Utils	1217 1812 1849 2254	87	
+Lean.Server.FileWorker.WidgetRequests	1831 1847	628 1794	
+Lean.Server.GoTo	838 1854 1865 1876	1772	
+Lean.Server.InfoUtils	980		
+Lean.Server.Logging	837	2349	
+Lean.Server.ProtocolOverview		1836 1917	
+Lean.Server.References	838 973 1854		
+Lean.Server.RequestCancellation	649 654 1848		
+Lean.Server.Requests	1827 1835 1842 2254		
+Lean.Server.Rpc	1845 1846 1847		
+Lean.Server.Rpc.Basic	541 818		
+Lean.Server.Rpc.Deriving	935		
+Lean.Server.Rpc.RequestHandling	1843		
+Lean.Server.ServerTask	651 659		
+Lean.Server.Snapshots	908 973 1913		
+Lean.Server.Test	1851 1852 1853		
+Lean.Server.Test.Cancel	908 908 1053 1053		
+Lean.Server.Test.Refs		635	
+Lean.Server.Test.Runner	1837 1908	1836	
+Lean.Server.Utils	656 834 835 836 980		
+Lean.Server.Watchdog	284 803 1823 1839 1841 1843 2253		
+Lean.Setup	820 1882		
+Lean.Shell		478 653 718 794 969 997 1828 1855 1923	
+Lean.Structure	387 666 1205 1804	381	
+Lean.SubExpr	147 1272		
+Lean.Syntax	150 338 405 429 802	381 505 628 647	
+Lean.ToExpr	393 1862		
+Lean.ToLevel	1206		
+Lean.Util	1865 1866 1867 1868 1869 1871 1872 1873 1874 1875 1876 1877 1878 1879 1884 1885 1886 1887 1888 1889 1890 1891 1895 1897 1898 1899 1900 1901 1902 1903 1904 1905 1906		
+Lean.Util.CollectAxioms	1761		
+Lean.Util.CollectFVars	1262		
+Lean.Util.CollectLevelMVars	1206		
+Lean.Util.CollectLevelParams	1206		
+Lean.Util.CollectLooseBVars	1206		
+Lean.Util.CollectMVars	1206		
+Lean.Util.Diff	70 368 387 408 421 666 2000	381 384 505 628	
+Lean.Util.FVarSubset	1865 1872		
+Lean.Util.FindExpr	1206		
+Lean.Util.FindLevelMVar	1206		
+Lean.Util.FindMVar	1206		
+Lean.Util.FoldConsts	864 1894		
+Lean.Util.ForEachExpr	1206 1884		
+Lean.Util.ForEachExprWhere	1206 1884		
+Lean.Util.HasConstCache	1206 2005		
+Lean.Util.Heartbeats	796		
+Lean.Util.InstantiateLevelParams	1897		
+Lean.Util.LakePath	651		
+Lean.Util.LeanOptions	818		
+Lean.Util.MonadBacktrack	8 10 338		
+Lean.Util.MonadCache	2000		
+Lean.Util.NumApps	1206 1894		
+Lean.Util.NumObjs	1206 1894		
+Lean.Util.OccursCheck	1759		
+Lean.Util.PPExt	979	147	
+Lean.Util.ParamMinimizer	371 666		
+Lean.Util.Path	423 651	8 259 337 477 492 505 506	
+Lean.Util.Profile	331 851		
+Lean.Util.Profiler	1906	381	
+Lean.Util.ProfilerServer	1892 2139	651 653	
+Lean.Util.PtrSet	150 2009		
+Lean.Util.RecDepth	851		
+Lean.Util.Recognizers	1203		
+Lean.Util.ReplaceExpr	1206 1894		
+Lean.Util.ReplaceLevel	1206		
+Lean.Util.Reprove	626 908	1205	
+Lean.Util.SCC	338 2000		
+Lean.Util.SafeExponentiation	796		
+Lean.Util.ShareCommon	638 855 2009		
+Lean.Util.Sorry	864 1872		
+Lean.Util.SortExprs	1206		
+Lean.Util.TestExtern	626 682 698 908 1305 1750	1205	
+Lean.Util.Trace	967 1263		
+Lean.Util.UnusedBinders	1206		
+Lean.Widget	1910 1912 1913 1914 1915 1917		
+Lean.Widget.Basic	975 980		
+Lean.Widget.Commands	626 1917	668	
+Lean.Widget.Diff	1914		
+Lean.Widget.InteractiveCode	1909 1915		
+Lean.Widget.InteractiveDiagnostic	70 1854 1914	1259	
+Lean.Widget.InteractiveGoal	836 1912		
+Lean.Widget.TaggedText	1845	46 477	
+Lean.Widget.Types	1845		
+Lean.Widget.UserWidget	966 1847	1218	
+Std.Async	1919 1920 1921 1922 1923 1924 1925 1926 1927 1928 1929		
+Std.Async.Basic	654 666		
+Std.Async.ContextAsync	1928 2206 2251		
+Std.Async.DNS	149 1919 2206 2349		
+Std.Async.IO	1924		
+Std.Async.Process	1998 2210 2349	350	
+Std.Async.Select	367 1919	50 87 628	
+Std.Async.Signal	1924 2209 2349		
+Std.Async.System	1998 2210 2349		
+Std.Async.TCP	1924 2211 2349		
+Std.Async.Timer	1924 2212 2349		
+Std.Async.UDP	1924 2213 2349		
+Std.Data	1931 1932 1950 1952 1953 1971 1980 1983 1986 1989 1992 1995 1998 2006 2007 2008 2015 2016 2020 2085 2088 2094 2103 2109		
+Std.Data.ByteSlice	85 384 410 417	628	
+Std.Data.DHashMap	1933 1934 1935 1946 1947 1948		
+Std.Data.DHashMap.AdditionalOperations	1943 1945		
+Std.Data.DHashMap.Basic	1949		1949
+Std.Data.DHashMap.DecidableEquiv	1944		
+Std.Data.DHashMap.Internal.AssocList.Basic	627		
+Std.Data.DHashMap.Internal.AssocList.Iterator	189 1936	314	
+Std.Data.DHashMap.Internal.AssocList.Lemmas	1936 2018	2 39	1936
+Std.Data.DHashMap.Internal.Defs	50 322 1941 1951 2019	249 324 628	
+Std.Data.DHashMap.Internal.HashesTo	238 1939 2018		
+Std.Data.DHashMap.Internal.Index	510	2 513	
+Std.Data.DHashMap.Internal.Model	71 1934 1938 1940	39 513	1939
+Std.Data.DHashMap.Internal.Raw	1934		1934
+Std.Data.DHashMap.Internal.RawLemmas	1945	1934	1934 1939 1949 1951 2018
+Std.Data.DHashMap.Internal.WF	1942	39 274 292	1936 1939 1949 1951 2018
+Std.Data.DHashMap.Iterator	179 1934 1937 2075	178	
+Std.Data.DHashMap.IteratorLemmas	1946 2020	206 1948 1952	1934 1939 1946 1949
+Std.Data.DHashMap.Lemmas	1933 1944 2189	2 248 249 278 364	1933 1934
+Std.Data.DHashMap.Raw	238 1939		1939
+Std.Data.DHashMap.RawDecidableEquiv	1944		
+Std.Data.DHashMap.RawDef	36 1936		
+Std.Data.DHashMap.RawLemmas	1943 1944	2 248 249 278 364	1949
+Std.Data.DTreeMap	1954 1955 1956 1969 1970 1979		
+Std.Data.DTreeMap.AdditionalOperations	1967 1973		
+Std.Data.DTreeMap.Basic	1966		
+Std.Data.DTreeMap.DecidableEquiv	1971		
+Std.Data.DTreeMap.Internal.Balanced	33 1960	628 637	
+Std.Data.DTreeMap.Internal.Balancing	346 1957	2 314 325 628	
+Std.Data.DTreeMap.Internal.Cell	2018	248	
+Std.Data.DTreeMap.Internal.Def	397		
+Std.Data.DTreeMap.Internal.Lemmas	61 1967 2000 2000	248 278 364 628	
+Std.Data.DTreeMap.Internal.Model	1959 1966	311 628	
+Std.Data.DTreeMap.Internal.Operations	243 1958 1965	311 314 628 665	
+Std.Data.DTreeMap.Internal.Ordered	1960 2017	278 291	
+Std.Data.DTreeMap.Internal.Queries	1 301 337 1957 1964	311 314 628 637 665	
+Std.Data.DTreeMap.Internal.WF.Defs	1963		
+Std.Data.DTreeMap.Internal.WF.Lemmas	1962	249 311 342 496	2018
+Std.Data.DTreeMap.Internal.Zipper	178 405 1961 2072	209 222 225 278 291 292 411	
+Std.Data.DTreeMap.Iterator	1975		
+Std.Data.DTreeMap.Lemmas	61 1954 2189	278 364 1961	
+Std.Data.DTreeMap.Raw	1972 1973 1974 1975 1976 1977 1978		
+Std.Data.DTreeMap.Raw.AdditionalOperations	1954		
+Std.Data.DTreeMap.Raw.Basic	1955		
+Std.Data.DTreeMap.Raw.DecidableEquiv	1961 1973		
+Std.Data.DTreeMap.Raw.Iterator	1968 1973	209	
+Std.Data.DTreeMap.Raw.Lemmas	61 1972	248 278 364 1961	
+Std.Data.DTreeMap.Raw.Slice	1968 1973		
+Std.Data.DTreeMap.Raw.WF	1972		
+Std.Data.DTreeMap.Slice	1977		
+Std.Data.ExtDHashMap	1981 1982		
+Std.Data.ExtDHashMap.Basic	1948		1948
+Std.Data.ExtDHashMap.Lemmas	1981		1934 1939 1949 1981
+Std.Data.ExtDTreeMap	1984 1985		
+Std.Data.ExtDTreeMap.Basic	1970		
+Std.Data.ExtDTreeMap.Lemmas	1984 2189	278	
+Std.Data.ExtHashMap	1987 1988		
+Std.Data.ExtHashMap.Basic	1981		
+Std.Data.ExtHashMap.Lemmas	1982 1987		1981
+Std.Data.ExtHashSet	1990 1991		
+Std.Data.ExtHashSet.Basic	1987		
+Std.Data.ExtHashSet.Lemmas	1988 1990		
+Std.Data.ExtTreeMap	1993 1994		
+Std.Data.ExtTreeMap.Basic	1984		
+Std.Data.ExtTreeMap.Lemmas	1985 1993 2189	278	
+Std.Data.ExtTreeSet	1996 1997		
+Std.Data.ExtTreeSet.Basic	1993		
+Std.Data.ExtTreeSet.Lemmas	1994 1996 2189		
+Std.Data.HashMap	1999 2000 2001 2002 2003 2004		
+Std.Data.HashMap.AdditionalOperations	1933 2000 2005		
+Std.Data.HashMap.Basic	249 1934		
+Std.Data.HashMap.DecidableEquiv	1935 2000		
+Std.Data.HashMap.Iterator	1946 2000 2005	178	
+Std.Data.HashMap.IteratorLemmas	2002	206 1947 2004 2007	1934 2002
+Std.Data.HashMap.Lemmas	1948 1999 2189	278	1934
+Std.Data.HashMap.Raw	1949		
+Std.Data.HashMap.RawDecidableEquiv	1950 2005		
+Std.Data.HashMap.RawLemmas	1952 2005	278	1949
+Std.Data.HashSet	2009 2010 2011 2012 2013		
+Std.Data.HashSet.Basic	2000		
+Std.Data.HashSet.DecidableEquiv	2001 2009		
+Std.Data.HashSet.Iterator	2002 2009 2014	178	
+Std.Data.HashSet.IteratorLemmas	2011	1947 2016	1934 2003 2011
+Std.Data.HashSet.Lemmas	2004 2009 2189		
+Std.Data.HashSet.Raw	2005		
+Std.Data.HashSet.RawDecidableEquiv	2006 2014		
+Std.Data.HashSet.RawLemmas	2007 2014		
+Std.Data.Internal.Cut	361	637	
+Std.Data.Internal.List.Associative	83 279 335 358 2019	2 245 246 248 256 278 291 364 628	2019
+Std.Data.Internal.List.Defs	1 627		
+Std.Data.Iterators	202 2021 2033 2037 2074		
+Std.Data.Iterators.Combinators	2022 2023 2024 2030 2031 2032		
+Std.Data.Iterators.Combinators.Drop	2025		
+Std.Data.Iterators.Combinators.DropWhile	2026		
+Std.Data.Iterators.Combinators.Monadic	2025 2026 2027 2028 2029		
+Std.Data.Iterators.Combinators.Monadic.Drop	192		
+Std.Data.Iterators.Combinators.Monadic.DropWhile	195 196 232 314		
+Std.Data.Iterators.Combinators.Monadic.StepSize	194 195 196		
+Std.Data.Iterators.Combinators.Monadic.TakeWhile	195 196 232 314		
+Std.Data.Iterators.Combinators.Monadic.Zip	192 341		
+Std.Data.Iterators.Combinators.StepSize	2027		
+Std.Data.Iterators.Combinators.TakeWhile	2028		
+Std.Data.Iterators.Combinators.Zip	2029		
+Std.Data.Iterators.Consumers	2034 2036		
+Std.Data.Iterators.Consumers.Monadic	2035		
+Std.Data.Iterators.Consumers.Monadic.Set	196 1990 1996 2009 2105	196	
+Std.Data.Iterators.Consumers.Set	201 2035		
+Std.Data.Iterators.Lemmas	2038 2057 2061 2062		
+Std.Data.Iterators.Lemmas.Combinators	2039 2040 2041 2047 2048		
+Std.Data.Iterators.Lemmas.Combinators.Drop	218 2022 2042	50 205 221 222 274 341	
+Std.Data.Iterators.Lemmas.Combinators.DropWhile	220 2023 2043	83 205 292	
+Std.Data.Iterators.Lemmas.Combinators.Monadic	2042 2043 2044 2045 2046		
+Std.Data.Iterators.Lemmas.Combinators.Monadic.Drop	224 2025		
+Std.Data.Iterators.Lemmas.Combinators.Monadic.DropWhile	224 2026	83	
+Std.Data.Iterators.Lemmas.Combinators.Monadic.FilterMap	214 2060		
+Std.Data.Iterators.Lemmas.Combinators.Monadic.TakeWhile	2028 2052		
+Std.Data.Iterators.Lemmas.Combinators.Monadic.Zip	224 2029		
+Std.Data.Iterators.Lemmas.Combinators.TakeWhile	2031 2045 2049	292 293 341 628	
+Std.Data.Iterators.Lemmas.Combinators.Zip	218 2032 2046	205 221 222 293 295	
+Std.Data.Iterators.Lemmas.Consumers	220 2050 2051 2052 2056		
+Std.Data.Iterators.Lemmas.Consumers.Collect	222 2053		
+Std.Data.Iterators.Lemmas.Consumers.Loop	223 2050 2054		
+Std.Data.Iterators.Lemmas.Consumers.Monadic	2053 2054 2055		
+Std.Data.Iterators.Lemmas.Consumers.Monadic.Collect	225 2060	227	
+Std.Data.Iterators.Lemmas.Consumers.Monadic.Loop	226 2053	227	
+Std.Data.Iterators.Lemmas.Consumers.Monadic.Set	195 2035	226 1991 1997	2035
+Std.Data.Iterators.Lemmas.Consumers.Set	191 2036	222 223 2013 2055 2108	2036
+Std.Data.Iterators.Lemmas.Equivalence	2058 2059 2060		
+Std.Data.Iterators.Lemmas.Equivalence.Basic	174 613 2059		
+Std.Data.Iterators.Lemmas.Equivalence.HetT	4 203 232		
+Std.Data.Iterators.Lemmas.Equivalence.StepCongr	2058		
+Std.Data.Iterators.Lemmas.Monadic	227		
+Std.Data.Iterators.Lemmas.Producers	2063 2064 2065 2070 2071 2072 2073		
+Std.Data.Iterators.Lemmas.Producers.Array	234 2050 2066 2075	292 2051	
+Std.Data.Iterators.Lemmas.Producers.Empty	220 2067 2076		
+Std.Data.Iterators.Lemmas.Producers.Monadic	2066 2067 2068 2069		
+Std.Data.Iterators.Lemmas.Producers.Monadic.Array	50 2052 2068 2078	274 292 628	
+Std.Data.Iterators.Lemmas.Producers.Monadic.Empty	224 2079		
+Std.Data.Iterators.Lemmas.Producers.Monadic.List	231 2058		
+Std.Data.Iterators.Lemmas.Producers.Monadic.Vector	50 2052 2066 2068 2080	274 292 529 628	
+Std.Data.Iterators.Lemmas.Producers.Range	192 2081	223 382	
+Std.Data.Iterators.Lemmas.Producers.Repeat	218 2082	221 222 341	
+Std.Data.Iterators.Lemmas.Producers.Slice	412 2083	411	2083
+Std.Data.Iterators.Lemmas.Producers.Vector	2063 2080 2084	292 529 2050 2051 2069	
+Std.Data.Iterators.Producers	2075 2076 2077 2081 2082 2083 2084		
+Std.Data.Iterators.Producers.Array	2078		
+Std.Data.Iterators.Producers.Empty	2079		
+Std.Data.Iterators.Producers.Monadic	2078 2079 2080		
+Std.Data.Iterators.Producers.Monadic.Array	189	628	
+Std.Data.Iterators.Producers.Monadic.Empty	192		
+Std.Data.Iterators.Producers.Monadic.Vector	520 2078		
+Std.Data.Iterators.Producers.Range	381		
+Std.Data.Iterators.Producers.Repeat	193		
+Std.Data.Iterators.Producers.Slice	418		
+Std.Data.Iterators.Producers.Vector	520 2075		
+Std.Data.String	2086 2087		
+Std.Data.String.ToInt	487 488 492 504	172 468 469 2087	487 488
+Std.Data.String.ToNat	329 487 488	291 444 2346	487 488
+Std.Data.TreeMap	2089 2090 2091 2092 2093 2102		
+Std.Data.TreeMap.AdditionalOperations	1954 2090 2096		
+Std.Data.TreeMap.Basic	1955		
+Std.Data.TreeMap.DecidableEquiv	1956 2090		
+Std.Data.TreeMap.Iterator	1969 2090	209	
+Std.Data.TreeMap.Lemmas	61 2089 2189	278 1970	
+Std.Data.TreeMap.Raw	2095 2096 2097 2098 2099 2100 2101		
+Std.Data.TreeMap.Raw.AdditionalOperations	1972 2090 2096		
+Std.Data.TreeMap.Raw.Basic	1973		
+Std.Data.TreeMap.Raw.DecidableEquiv	1956 2096		
+Std.Data.TreeMap.Raw.Iterator	1975 2096	209	
+Std.Data.TreeMap.Raw.Lemmas	61 2095	248 249 278 364 1976	
+Std.Data.TreeMap.Raw.Slice	1977 2096		
+Std.Data.TreeMap.Raw.WF	1978 2095		
+Std.Data.TreeMap.Slice	2090 2100		
+Std.Data.TreeSet	2104 2105 2106 2107 2108 2116		
+Std.Data.TreeSet.AdditionalOperations	2089 2110		
+Std.Data.TreeSet.Basic	2090		
+Std.Data.TreeSet.DecidableEquiv	2091 2105		
+Std.Data.TreeSet.Iterator	1970 2092 2105	209	
+Std.Data.TreeSet.Lemmas	61 2104 2189	1970 2093	
+Std.Data.TreeSet.Raw	2110 2111 2112 2113 2114 2115		
+Std.Data.TreeSet.Raw.Basic	2096 2105		
+Std.Data.TreeSet.Raw.DecidableEquiv	2097 2110		
+Std.Data.TreeSet.Raw.Iterator	1976 2098 2110	209	
+Std.Data.TreeSet.Raw.Lemmas	61 242 353 354 2110	1976 2099	
+Std.Data.TreeSet.Raw.Slice	2100 2110		
+Std.Data.TreeSet.Raw.WF	2101 2104		
+Std.Data.TreeSet.Slice	2114		
+Std.Do	2118 2122 2123 2124 2131 2134		
+Std.Do.Internal	2119		
+Std.Do.Internal.Ensures	2120 2121		
+Std.Do.Internal.Ensures.Def	31		
+Std.Do.Internal.Ensures.Lemmas	19 2120	637	
+Std.Do.PostCond	2124		
+Std.Do.PredTrans	13 2122		
+Std.Do.SPred	2125 2126 2127 2129 2130		
+Std.Do.SPred.DerivedLaws	2 2126	4 658	
+Std.Do.SPred.Laws	2127		
+Std.Do.SPred.Notation	2128 2128		
+Std.Do.SPred.Notation.Basic	2129		
+Std.Do.SPred.SPred	542 627 2130		
+Std.Do.SPred.SVal	31 275	547 639	
+Std.Do.Triple	2132 2133		
+Std.Do.Triple.Basic	2134		
+Std.Do.Triple.SpecLemmas	209 368 381 406 426 433 618 666 2132	204 271 274 280 292 317 371 412 444 474 493 628	
+Std.Do.WP	2135 2136 2137 2138		
+Std.Do.WP.Basic	2123		
+Std.Do.WP.Monad	2135		2135
+Std.Do.WP.SimpLemmas	2136		
+Std.Do.WP.Sound	18 2119 2136		
+Std.Http	2181 2185	2139	
+Std.Http.Data	2141 2149 2151 2155 2156 2157 2158 2159 2164		
+Std.Http.Data.Body	2142 2143 2144 2145 2146 2147 2148		
+Std.Http.Data.Body.Any	2143 2147		
+Std.Http.Data.Body.Basic	1918 1920 2146 2149 2151		
+Std.Http.Data.Body.Empty	2142 2156 2157		
+Std.Http.Data.Body.Full	85 2142 2156 2157 2247		
+Std.Http.Data.Body.Length	395		
+Std.Http.Data.Body.Replayable	2143		
+Std.Http.Data.Body.Stream	85 1918 2142 2143 2149 2156 2157 2247		
+Std.Http.Data.Chunk	2151 2165 2171		
+Std.Http.Data.Extensions	421 541 2088	423	
+Std.Http.Data.Headers	2152 2153 2154		
+Std.Http.Data.Headers.Basic	2153 2154 2159 2203	487	
+Std.Http.Data.Headers.Name	502 2165	430 487	
+Std.Http.Data.Headers.Value	502 2165		
+Std.Http.Data.Method	502 2165		
+Std.Http.Data.Request	2150 2151 2155 2159 2164		
+Std.Http.Data.Response	2150 2151 2158 2164		
+Std.Http.Data.Status	2165		
+Std.Http.Data.URI	2160 2163		
+Std.Http.Data.URI.Basic	477 487 2162 2165 2214	502	
+Std.Http.Data.URI.Config	297		
+Std.Http.Data.URI.Encoding	421 2166	50 403 510 513 544 666	
+Std.Http.Data.URI.Parser	421 2160 2161 2202 2204	487 666	
+Std.Http.Data.Version	421	502	
+Std.Http.Internal	2166 2166 2167 2168 2169 2170 2171		
+Std.Http.Internal.Char	91 152 421 544		
+Std.Http.Internal.ChunkedBuffer	85 421	50 502	
+Std.Http.Internal.Encode	2164 2167		
+Std.Http.Internal.IndexMultiMap	167 544 1998		
+Std.Http.Internal.LowerCase	424 479	167 447 513 544	
+Std.Http.Internal.String	492 2166	424 544	
+Std.Http.Protocol.H1	34 2140 2165 2173 2175 2176 2177 2178 2179 2180 2349		
+Std.Http.Protocol.H1.Config	2140 2165		
+Std.Http.Protocol.H1.Error	2140 2165 2173 2176 2177 2349		
+Std.Http.Protocol.H1.Event	2140 2165 2173 2174 2176 2177 2349		
+Std.Http.Protocol.H1.Message	2140	34	
+Std.Http.Protocol.H1.Parser	2140 2173 2202 2204		
+Std.Http.Protocol.H1.Reader	2140 2165 2173 2174 2176 2177 2349		
+Std.Http.Protocol.H1.Redirect	2156 2158 2159		
+Std.Http.Protocol.H1.Writer	2140 2165 2173 2174 2176 2177 2349		
+Std.Http.Server	1918 1927 2182 2183 2184 2252 2257		
+Std.Http.Server.Config	2172 2349		
+Std.Http.Server.Connection	1920 1927 2172 2182 2184 2186		
+Std.Http.Server.Handler	1918 1920 2140		
+Std.Http.Test.Helpers	1918 1928 2181	435	
+Std.Http.Transport	2172		
+Std.Internal	1918 2139 2188 2202 2206		
+Std.Internal.ForIn	2189 2190		
+Std.Internal.ForIn.Basic	12 36 241 243	39 50 259	
+Std.Internal.ForIn.Lemmas	36 223 226 243 369 382 412 2189	39 50 241 259 280 307 370 628	
+Std.Internal.Order.Automation	2193 2194		
+Std.Internal.Order.Basic	613	4	
+Std.Internal.Order.FrameClosure	2197 2198 2199		
+Std.Internal.Order.Heyting	2 2197 2199	4	
+Std.Internal.Order.Instances	2196		
+Std.Internal.Order.Lemmas	2 2192	4 658	
+Std.Internal.Order.OfProp	2 2196	4	
+Std.Internal.Order.PredTrans	2192		
+Std.Internal.Order.PreservesSup	2200		2200
+Std.Internal.Order.Product	2 2201	4 658	
+Std.Internal.Order.Prop	2 2196	4	
+Std.Internal.Parsec	2203 2204 2205		
+Std.Internal.Parsec.Basic	505 627	36	
+Std.Internal.Parsec.ByteArray	421 1931 2203	628	
+Std.Internal.Parsec.String	488 493 2203	477	
+Std.Internal.UV	2207 2208 2209 2210 2211 2212 2213		
+Std.Internal.UV.DNS	397 654 2214		
+Std.Internal.UV.Loop	654		
+Std.Internal.UV.Signal	397 654 2214		
+Std.Internal.UV.System	397 654 2214		
+Std.Internal.UV.TCP	397 654 2214		
+Std.Internal.UV.Timer	654		
+Std.Internal.UV.UDP	654 2214		
+Std.Net	2215		
+Std.Net.Addr	520 651		
+Std.Sat	2217 2235		
+Std.Sat.AIG	2218 2219 2220 2221 2222 2223 2224 2225 2226 2227 2228 2229 2233 2234		
+Std.Sat.AIG.Basic	150 426 505 520 2008	628	
+Std.Sat.AIG.CNF	2227 2235	2 628	
+Std.Sat.AIG.Cached	2227	628	
+Std.Sat.AIG.CachedGates	2223		
+Std.Sat.AIG.CachedGatesLemmas	2221	628	
+Std.Sat.AIG.CachedLemmas	2220	318 357	
+Std.Sat.AIG.If	2226	628	
+Std.Sat.AIG.LawfulOperator	2218	628	
+Std.Sat.AIG.LawfulVecOperator	2228	628	
+Std.Sat.AIG.Lemmas	2225	628	
+Std.Sat.AIG.RefVec	529 2222	2 628	
+Std.Sat.AIG.RefVecOperator	2230 2231 2232		
+Std.Sat.AIG.RefVecOperator.Fold	2226	628	
+Std.Sat.AIG.RefVecOperator.Map	2226	628	
+Std.Sat.AIG.RefVecOperator.Zip	2226	628	
+Std.Sat.AIG.Relabel	2227	2 628	
+Std.Sat.AIG.RelabelNat	2233	2 628	
+Std.Sat.CNF	2236 2237 2238 2239 2240 2241 2242 2243 2244 2246		
+Std.Sat.CNF.Basic	50 2239	2 39 88 271 280 291 292 628	
+Std.Sat.CNF.Dimacs	2243		
+Std.Sat.CNF.Entails	2244		
+Std.Sat.CNF.Literal	150 502		
+Std.Sat.CNF.Negation	2236 2238 2244 2246	54	
+Std.Sat.CNF.Redundancy	2240	2	
+Std.Sat.CNF.Relabel	2236 2244	271	
+Std.Sat.CNF.RelabelFin	56 318 2242	249 256 341 628 658	
+Std.Sat.CNF.Sat	2236	2	
+Std.Sat.CNF.SpecLemmas	2133 2236		
+Std.Sat.CNF.Unit	2236 2238 2242 2244	2	
+Std.Sync	2248 2249 2250 2251 2252 2253 2254 2255 2256 2257 2258 2259		
+Std.Sync.Barrier	2254		
+Std.Sync.Basic	651		
+Std.Sync.Broadcast	365 517 1922 1930 2254		
+Std.Sync.CancellationContext	350 2252		
+Std.Sync.CancellationToken	365 505 1924 1930 2254		
+Std.Sync.Channel	365 1922 2254	337 520 628	
+Std.Sync.Mutex	666 2249		
+Std.Sync.Notify	365 1924 2254		
+Std.Sync.RecursiveMutex	2249		
+Std.Sync.Semaphore	365 654 2254		
+Std.Sync.SharedMutex	2249		
+Std.Sync.StreamMap	365 1922 1930		
+Std.Tactic	2261 2346		
+Std.Tactic.BVDecide	645 2262 2325 2338 2344 2344 2345		
+Std.Tactic.BVDecide.Bitblast	2263 2322 2324		
+Std.Tactic.BVDecide.Bitblast.BVExpr	2264 2265		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Basic	150 366 505 2323	81 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit	2266 2294		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl	2292		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Carry	2270	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Const	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Expr	2271 2272 2273 2275 2277 2280 2281 2282 2283 2285 2289 2293	311 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Add	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Append	2226 2264	318 357	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Clz	2224 2268	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Cpop	2224 2268 2271 2275 2286 2290	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Eq	2229		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Extract	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.GetLsbD	2228		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Mul	2268 2270 2284	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Neg	2268 2270 2279		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Not	2229 2264		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Replicate	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Reverse	2226 2264	318 357	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.RotateLeft	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.RotateRight	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.ShiftLeft	2224 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.ShiftRight	2224 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Sub	2278		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Udiv	2224 2274 2286 2288 2290	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Ult	2267 2279		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.Umod	2287		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Operations.ZeroExtend	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Pred	2269 2276	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Substructure	2291	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Impl.Var	2226 2264	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas	2266 2320		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Basic	2218 2264		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Carry	2267 2299	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Const	2268 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Expr	2269 2300 2301 2302 2304 2306 2309 2310 2311 2312 2314 2318 2321	2 311 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Add	77 2270 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Append	2271 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Clz	2272 2297	81 170 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Cpop	2273 2295 2297 2300 2303 2304 2315 2319	78 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Eq	2274 2295	78	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Extract	2275 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.GetLsbD	2276 2295	78 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Mul	2277 2297 2299 2313	78 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Neg	2278 2297 2299 2308		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Not	2279 2295		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Replicate	2280 2295	2 317 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Reverse	2281 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.RotateLeft	2282 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.RotateRight	2283 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.ShiftLeft	77 2284 2295	78 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.ShiftRight	77 2285 2295	78 628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Sub	2286 2307		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Udiv	2287 2303 2305 2315 2317 2319 2339	2 311	2287
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Ult	2288 2296 2308		
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.Umod	2289 2316		2287
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Operations.ZeroExtend	2290 2295	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Pred	2291 2298	628	
+Std.Tactic.BVDecide.Bitblast.BVExpr.Circuit.Lemmas.Var	2293 2295	78 81 628	
+Std.Tactic.BVDecide.Bitblast.BoolExpr	2323		
+Std.Tactic.BVDecide.Bitblast.BoolExpr.Basic	150 421		
+Std.Tactic.BVDecide.Bitblast.EfficientEval	2264	651 2000 2269	
+Std.Tactic.BVDecide.LRAT	2326 2327 2328 2337		
+Std.Tactic.BVDecide.LRAT.Actions	2235		
+Std.Tactic.BVDecide.LRAT.Checker	2332		
+Std.Tactic.BVDecide.LRAT.Internal	2329 2330 2331 2332 2333 2334 2335 2336		
+Std.Tactic.BVDecide.LRAT.Internal.Add	2331		
+Std.Tactic.BVDecide.LRAT.Internal.Assignment	150 1998 2238 2240 2241 2246	2245 2346	
+Std.Tactic.BVDecide.LRAT.Internal.Basic	2236 2238	628	
+Std.Tactic.BVDecide.LRAT.Internal.Checker	2326	628 2329 2333 2334 2335 2336	
+Std.Tactic.BVDecide.LRAT.Internal.Delete	2331	2	
+Std.Tactic.BVDecide.LRAT.Internal.Empty	2336		
+Std.Tactic.BVDecide.LRAT.Internal.Rat	2329 2336	2008 2346	
+Std.Tactic.BVDecide.LRAT.Internal.Rup	2330 2331	2 628 2245 2346	
+Std.Tactic.BVDecide.LRAT.Parser	651 2202 2326		
+Std.Tactic.BVDecide.Normalize	2339 2340 2341 2342 2343		
+Std.Tactic.BVDecide.Normalize.BitVec	33 77 397 2340 2341	2 628	
+Std.Tactic.BVDecide.Normalize.Bool	79 81 82	73	
+Std.Tactic.BVDecide.Normalize.Canonicalize	78 81 82 2345	636	
+Std.Tactic.BVDecide.Normalize.Equal	81 82		
+Std.Tactic.BVDecide.Normalize.Prop	639		
+Std.Tactic.BVDecide.Reflect	2219 2234 2262 2327 2337		
+Std.Tactic.BVDecide.Syntax	597 624 640	299	
+Std.Tactic.Do	2347 2348		
+Std.Tactic.Do.ProofMode	2129		
+Std.Tactic.Do.Syntax	46 567 2117 2410		
+Std.Time	2350 2360 2364 2365 2372 2374 2384 2385		
+Std.Time.Date	2351 2352		
+Std.Time.Date.Basic	2353 2359		
+Std.Time.Date.PlainDate	2351		2355 2358
+Std.Time.Date.Unit.Basic	2356 2357 2358		
+Std.Time.Date.Unit.Day	2374		
+Std.Time.Date.Unit.Month	2354	107	
+Std.Time.Date.Unit.Week	2354		
+Std.Time.Date.Unit.Weekday	2354		
+Std.Time.Date.Unit.Year	2355		
+Std.Time.Date.ValidDate	2355	83	2355
+Std.Time.DateTime	2361 2393		
+Std.Time.DateTime.PlainDateTime	2363		
+Std.Time.DateTime.Timestamp	651 2363 2364		
+Std.Time.DateTime.WallTime	651 2364		
+Std.Time.Duration	421 477 2350		
+Std.Time.Format	2366 2373		2366
+Std.Time.Format.Basic	2367 2368 2384	487 492	
+Std.Time.Format.DateFormat	524 2357		
+Std.Time.Format.Modifier	2384	487	
+Std.Time.Internal	2370 2371		
+Std.Time.Internal.Bounded	161 171 361 628	542	
+Std.Time.Internal.UnitVal	361 393		
+Std.Time.Notation	2365 2365		
+Std.Time.Notation.Spec	2366 2366		
+Std.Time.Time	2375 2376 2377		
+Std.Time.Time.Basic	2378		
+Std.Time.Time.HourMarker	2375		
+Std.Time.Time.PlainTime	2375		
+Std.Time.Time.Unit.Basic	2379 2380		
+Std.Time.Time.Unit.Hour	2381		
+Std.Time.Time.Unit.Millisecond	2382		
+Std.Time.Time.Unit.Minute	2383		
+Std.Time.Time.Unit.Nanosecond	2369		
+Std.Time.Time.Unit.Second	2382		
+Std.Time.Zoned	2360 2385 2393		
+Std.Time.Zoned.Database	2360 2386 2388 2390	653	
+Std.Time.Zoned.Database.Basic	2389 2393	2387	
+Std.Time.Zoned.Database.PosixTz	2202 2393		
+Std.Time.Zoned.Database.TZdb	2386	492	
+Std.Time.Zoned.Database.TzIf	381 2202	87 171	
+Std.Time.Zoned.Database.Windows	397 2386	666	
+Std.Time.Zoned.RecurringRule	2350 2355 2356 2357 2392		
+Std.Time.Zoned.TimeZone	2362 2374		
+Std.Time.Zoned.ZoneRules	2362 2363 2391 2392		
+Std.WP	2396 2397 2398 2400 2401 2402 2403 2410 2411		
+Std.WP.Assertion	613 2191 2194 2197 2199		
+Std.WP.Basic	2198 2395		
+Std.WP.Conjunctive	2195 2396		
+Std.WP.EPostSlot	2395 2399		
+Std.WP.EStack	2395		
+Std.WP.Frame	2193 2396 2397		
+Std.WP.Gadget.Assert	2191 2194 2414		
+Std.WP.Gadget.ForIn	0 2188 2415		
+Std.WP.Monad	2404 2405 2406 2407 2408 2409		
+Std.WP.Monad.Basic	2396		
+Std.WP.Monad.Conjunctive	2397 2407		
+Std.WP.Monad.Frame	2400 2404		
+Std.WP.Monad.Instances	2399 2404		
+Std.WP.Monad.Lemmas	2407		
+Std.WP.Monad.Sound	18 335 2407		
+Std.WP.Tactic	567 627		
+Std.WP.Triple	2412 2413 2414 2415		
+Std.WP.Triple.Basic	2396 2399		
+Std.WP.Triple.Conjunctive	2397 2412		
+Std.WP.Triple.Monad	2404 2412		
+Std.WP.Triple.SpecLemmas	0 209 368 381 406 426 433 2133 2188 2403 2414	204 271 274 280 292 317 371 412 444 474 493 628	

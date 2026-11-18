@@ -1,0 +1,20 @@
+title: "A Merge Is a Schedule: What Parallel Agents Must Redo"
+idea: merge-without-rechecking   # the file in ideas/ that the paper grew from
+builds-on: [audit-surfaces, what-an-agent-loop-costs, a-crash-is-a-lost-reply]   # other papers in this repository that it cites
+keywords: [merging, snapshot isolation, serializability, incremental checking, replay, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the calculus, the proofs, the scripts, the measurement, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorem 4.2 on 4,000 random tasks, Theorem 4.3 and Corollaries 4.5 and
+      4.6 on 3,000 queues, Corollary 4.8 on 1,000 queues, Proposition 4.7 for rings of two to
+      four tasks, the refutation of 5 weakened steps of the replay, the closed form and the
+      samples of Section 5, the counts of Section 6 from the committed import graph, and every
+      number quoted in the text
+    by: make -C artifact check      # needs python3
+  - what: >-
+      The import graph of Lean 4.36.0 that Section 6 measures (2,416 modules), extracted from
+      the sources of the toolchain
+    by: make -C artifact graph      # needs a Lean toolchain; rewrites artifact/lean-imports.txt

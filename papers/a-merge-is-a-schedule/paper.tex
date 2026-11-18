@@ -1,0 +1,914 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\ite}[3]{\kw{if}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\iter}[4]{\kw{iter}\;#1\;\kw{from}\;#2\;\kw{as}\;#3.\,#4}
+\newcommand{\rd}[1]{\kw{read}\;#1}
+\newcommand{\wrt}[2]{\kw{write}\;#1\;#2}
+\newcommand{\mdl}[1]{\kw{model}\;#1}
+\newcommand{\chk}[1]{\kw{check}\;#1}
+\newcommand{\scan}{\kw{scan}}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\evto}{\Downarrow}
+\newcommand{\fp}[1]{\mathrm{fp}(#1)}
+\newcommand{\dom}{\mathrm{dom}\,}
+\newcommand{\upd}{\oplus}
+
+% A display for programs. It measures its content and warns when the content is wider than the line.
+\newsavebox{\progbox}
+\newenvironment{prog}
+  {\begin{lrbox}{\progbox}$\displaystyle\begin{array}{@{}l@{\qquad}l@{}}}
+  {\end{array}$\end{lrbox}%
+   \ifdim\wd\progbox>\linewidth
+     \PackageWarning{paper}{Overfull program display by \the\dimexpr\wd\progbox-\linewidth\relax}%
+   \fi
+   \[\usebox{\progbox}\]\ignorespacesafterend}
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{A Merge Is a Schedule: What Parallel Agents Must Redo}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script implements the calculus and tests the theorems on random tasks; a second script reads
+the import graph of a library. At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+Agents now work in fleets. Each takes a copy of a repository, works for an hour, and proposes
+a change, and version control merges the changes that touch different lines. Whether the
+merged state is one that any of the agents would have produced, or would have accepted, is
+another matter: each of them read files and ran tests on a state that the others have changed
+in the meantime. We treat the work of an agent as a transaction on a snapshot. Its journal
+records what it read, what it asked the model, what it checked, and what it wrote, and every
+answer carries a footprint, the keys of the repository on which it depends. To merge is then
+to replay each journal on the state that the earlier ones leave. A request whose footprint no
+earlier task has changed keeps its answer. Another one is made again and compared. The model
+is not asked, until an answer differs; from there the task goes on live. We prove that the
+result is the state of running the tasks one after the other, with the answers that the model
+gave; that tasks which have not read each other's writes merge with no work at all, in an
+order that the footprints determine; that with a cycle of such reads someone has to resume,
+and that the union of the writes can then be a state that no order produces; and that a check
+travels with its footprint, so that only the checks whose footprints were changed are run
+again. A script tests the theorems on random tasks: in \exQueues{} queues, \exSavedPercent{}
+percent of the model's answers are kept and \exRepeatedPercent{} percent of the reads and
+checks are made again. For a fleet with random footprints, a queue in the order of arrival
+makes a number of tasks resume that grows with the square of the fleet, and an order along
+the footprints makes it grow about \exFleetRatio{} times slower. In Lean's own library a change of a
+proof makes \exConePrivateMean{} other modules be checked again on average, and a change of a
+statement \exConePublicMean{}.
+\end{abstract}
+
+\keywords{merging, snapshot isolation, serializability, incremental checking, replay, agents}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+A coding agent that works alone is slow, so people run many. Each agent gets a copy of the
+repository, a worktree or a container, and a task. It reads files, asks its model, edits, and
+runs the tests until they pass. Then it proposes its change. Version control merges the
+changes of several agents if they do not touch the same lines.
+
+That a merge has no conflict in this sense says little. Suppose one agent renames a function
+and updates every caller that it finds, while another adds a new caller. The two changes
+touch different lines, each agent saw its tests pass, and the merged program does not
+compile. Studies of real histories find such merges regularly: accepted by version control,
+then failing to build or failing tests~\citep{brun2011}. The usual remedy is to run all tests
+again on the merged state, and, if they fail, to send one of the agents back to work on top
+of the other's change. For a fleet both steps are expensive. The tests of a large repository
+take long, and an agent that starts again pays for all its model calls a second time.
+
+How much of this is needed? An agent's work is a function of what it read. If nothing that
+it read has changed, the work is still what the agent would do now, and the tests that it ran
+would give the same verdicts. So the questions are what an agent read, and what the others
+wrote. Databases have asked these questions for decades. An agent on a copy of the repository
+is a transaction under snapshot isolation~\citep{berenson1995}, and the merge of several is
+correct in the sense that matters if it is \emph{serializable}: the same as running the tasks
+one after the other in some order~\citep{papadimitriou1979}.
+
+This paper works the correspondence out for agents, where two things are special. An agent's
+reads are known exactly, because an agent that is run durably keeps a journal of every
+request~\citep{tpp8}. And its steps differ in cost by orders of magnitude: a read costs
+nothing, a test costs seconds, a call of the model costs money. So we do not ask only whether
+a task has to be done again. We ask which of its steps do.
+
+\paragraph{Replay.} A task runs on a base state and leaves a journal. Each entry is a request
+with its answer, and each answer of the repository carries a \emph{footprint}, the keys of
+the base state on which it depends. To move the task to another state, we replay the journal
+there. An answer whose footprint lies outside the keys that have changed is kept. Another is
+obtained again and compared. A question to the model is answered from the journal. If an
+answer differs, the task \emph{resumes}: from this request on it runs live. We prove
+(Theorem~\ref{thm:replay}) that the result is a run of the task on the new state, in which
+the model gave the recorded answers up to the point of resumption. Rebasing a task costs the
+requests that are made again, and the model calls after the first answer that differs.
+
+\paragraph{The queue.} A merge queue replays the journals one after the other, each on the
+state that the earlier ones leave. The final state is that of the tasks run one after the
+other in the order of the queue (Theorem~\ref{thm:schedule}): a merge is a schedule. The
+order matters for the cost and not for the correctness. Draw an edge from task $i$ to task
+$j$ if $i$ read a key that $j$ changed. If the graph has no cycle, an order along its edges
+replays every journal without making a single request (Corollary~\ref{cor:free}), and the
+merged state is the union of the writes. In general the tasks that resume can be confined to
+a feedback vertex set (Corollary~\ref{cor:feedback}). With a cycle the union of the writes
+may be a state that no order produces, and it may break a check that every order keeps
+(Proposition~\ref{prop:cycle}).
+
+\paragraph{Checks.} A test is a request like any other: its answer has a footprint, the keys
+that the test read. It is kept across a merge if no other task changed its footprint
+(Corollary~\ref{cor:checks}). This is the sense in which changes can be merged without
+rechecking, and it is the notion of a verifying trace in build systems~\citep{mokhov2018},
+applied to merges.
+
+\paragraph{Fleets and libraries.} Two sections put numbers on this. Section~\ref{sec:fleet}
+takes a fleet of $k$ tasks with random footprints. In the order of arrival the expected
+number of tasks that resume is about $p k^2 / 2$, where $p$ is the probability that one task
+read what another wrote. In an order along the edges it is about $p_2 k^2 / 2$, where $p_2$
+is the probability that two tasks read each other's writes; in our example $p$ is
+\exFleetP{} percent and $p_2$ is \exFleetRatio{} times smaller. Section~\ref{sec:library} measures
+footprints in a real library, the \exModules{} modules of Lean's own sources. If a check
+reads everything that its module imports, a change of one module makes \exConeFileMean{}
+modules be checked again on average. With the scopes of Lean's module
+system~\citep{leanmodules}, a change of a statement makes \exConePublicMean{} modules be
+checked again, and a change that stays inside proofs \exConePrivateMean{}.
+
+\paragraph{Tests.} The proofs are on paper. An artifact implements tasks, replay, and the
+queue, compares every queue with the tasks run one after the other, and breaks the replay in
+\exSteps{} ways to show that each of its steps is needed (Section~\ref{sec:tests}).
+
+\section{Two Tasks, One Repository}
+\label{sec:overview}
+
+\subsection{Each Keeps the Check, Both Break It}
+\label{sec:skew}
+
+A repository holds two switches, $a$ and $b$, both on. A check requires that at least one
+switch is on. Two agents get the same instruction: turn your switch off if the other one is
+on.
+\begin{prog}
+\text{task 1:}\quad \letin{x}{\rd{b}}{\ite{x = 1}{\wrt{a}{0}}{0}}\\
+\text{task 2:}\quad \letin{x}{\rd{a}}{\ite{x = 1}{\wrt{b}{0}}{0}}
+\end{prog}
+Each task runs on its own copy. Task 1 reads $b$, finds it on, and turns $a$ off. Task 2
+reads $a$, finds it on, and turns $b$ off. Each runs the check on its copy, and the check
+passes. The two changes touch different keys, so version control merges them, and in the
+merged state both switches are off.
+
+No order of the two tasks ends there. If task 1 runs first, task 2 finds $a$ off and does
+nothing, and the other way round. In databases this is called write
+skew~\citep{berenson1995}. The renamed function of the introduction is the same pattern,
+with the set of callers in the place of a switch.
+
+The journals show what went wrong. The journal of task 1 is
+$\rd{b} = 1 \cdot \wrt{a}{0}$, and that of task 2 is $\rd{a} = 1 \cdot \wrt{b}{0}$. Task 1
+read what task 2 wrote, and task 2 read what task 1 wrote. A queue that replays the journals
+merges task 1 first; nothing has changed yet, so the journal stands. Then it replays task 2
+on the state in which $a$ is off. The first entry of the journal is a read of $a$, and $a$
+has changed, so the read is made again. It now gives $0$, the recorded answer was $1$, and
+the task resumes from there: it takes the other branch and writes nothing. The final state
+has $a$ off and $b$ on. It is the state of running task 1 and then task 2, and the check
+holds.
+
+\subsection{One-Way Reads Are Free}
+
+Not every stale read forces work. Give the two agents other tasks. Task 1 copies a
+switch, and task 2 turns that switch off without looking at anything:
+\begin{prog}
+\text{task 1:}\quad \letin{x}{\rd{b}}{\wrt{c}{x}}\\
+\text{task 2:}\quad \wrt{b}{0}
+\end{prog}
+Task 1 has read a key that task 2 changes, and task 2 has read nothing. If the queue takes
+task 2 first, the replay of task 1 finds that $b$ has changed, reads $0$ where the journal
+says $1$, and resumes; it writes $0$ to $c$. If the queue takes task 1 first, the journal of
+task 1 stands, because nothing has changed yet, and then the journal of task 2 stands,
+because it has no reads. No request is made.
+
+Both orders are schedules, and they end in different states: $c$ is $0$ after the first and
+$1$ after the second. Neither is wrong. The second is the one that the work of the agents
+already describes, and it costs nothing. So a task that has read what another wrote goes
+\emph{before} it. This is the rule of the paper in its smallest form: only a cycle of such
+reads forces work.
+
+\subsection{A Check Is a Read}
+
+An agent that ran the tests has an entry $\chk{c} = 1$ in its journal. The test read some
+keys while it ran, and they are the footprint of the entry. Here is the journal of a task
+that reads $a$, asks the model what to write, writes $b$, and runs a test that reads $b$ and
+$d$:
+\[
+\rd{a} = 1\;[a] \;\cdot\; \mdl{1} = 3 \;\cdot\; \wrt{b}{3} \;\cdot\; \chk{c} = 1\;[d].
+\]
+The footprint of the read is $a$. The footprint of the test is $d$ only: the test also read
+$b$, but the task wrote $b$ itself, and the replay will write it again. Suppose another task,
+merged earlier, has changed $d$ and nothing else. The replay keeps the read, since $a$ has
+not changed. It keeps the answer of the model without asking, and it repeats the write. The
+test is run again, because $d$ has changed. If it passes again, the journal stands, and all
+that the merge has cost is one test. If it fails, the task resumes at this point, with a
+failing test in front of it and the model's answer still in hand, which is where an agent
+wants to be. Had the other task changed $a$, the read would have been compared first, and a
+different value would have sent the task back to its first request.
+
+A test whose footprint is the whole repository is run again after every merge. A linter
+that looks at every file is of this kind, and so is a proof checker that consults a global
+table. Section~\ref{sec:library} looks at how large the footprints of checks are in a real
+library of proofs.
+
+\section{The Calculus}
+\label{sec:calculus}
+
+\subsection{Tasks and Checks}
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}l@{\quad}r@{\;}l@{}}
+\text{terms} & t ::= & x \mid n \mid t + t \\
+\text{tests} & b ::= & t = t \mid t \le t \\
+\text{expressions} & e ::= & t \mid \letin{x}{e}{e} \mid \ite{b}{e}{e} \mid \iter{n}{t}{x}{e} \\
+ & \mid & \rd{t} \mid \wrt{t}{t} \mid \mdl{t} \mid \chk{c} \mid \scan \\[1ex]
+\text{entries} & & \rd{k} = v\;[F] \mid \wrt{k}{v} \mid \mdl{n} = r \mid \chk{c} = v\;[F] \mid \scan = v\;[F]
+\end{array}
+\]
+\Description{The grammar of terms, tests, expressions, and journal entries.}
+\caption{Syntax. Numbers $n$, $v$, $r$ are values; $k$ ranges over the keys of the
+repository, $c$ over the names of checks, and $F$ over sets of keys.}
+\label{fig:syntax}
+\end{figure}
+
+A \emph{state} $\sigma$ of the repository gives a value to each of finitely many
+\emph{keys}. A key stands for a file, or for a smaller unit such as a declaration.
+Figure~\ref{fig:syntax} gives the expressions. A \emph{task} is a closed expression. It
+computes with numbers, and it makes five kinds of requests: $\rd{t}$ returns the value of the
+key that $t$ denotes; $\wrt{t}{t'}$ sets a key; $\mdl{t}$ asks the model, which may answer
+with any number; $\chk{c}$ runs the check $c$ and returns its value; and $\scan$ returns a
+value that depends on all keys, their sum. Which key a task reads may depend on what it has
+read before and on what the model said, so the reads of a task are not known in advance.
+
+A \emph{check} is a closed expression without $\kw{write}$, $\kw{model}$ and $\kw{check}$. It
+is a deterministic function of the state, such as a test, a compiler run, or a proof checker.
+A repository has a fixed family of checks, named $c$. The request $\scan$ models what looks
+at everything: a directory listing, a global registry.
+
+Loops are bounded, as in the companion calculi~\citep{tpp8}, so every task ends.
+
+\subsection{Runs and Journals}
+\label{sec:runs}
+
+A task runs on a \emph{base} state $\sigma$ and keeps its writes to itself, in an
+\emph{overlay} $\omega$, a partial state. What the task sees is its \emph{view}
+$\sigma \upd \omega$, the base with the overlay on top. The judgment
+\[
+\sigma; \omega \vdash e \evto v; \omega'; J
+\]
+says that $e$, started with the overlay $\omega$, has the value $v$, ends with the overlay
+$\omega'$, and leaves the journal $J$, a sequence of entries. The rules for terms, $\kw{let}$,
+conditionals, and loops are the usual ones; they pass the overlay along and join the
+journals. Figure~\ref{fig:runs} has the rules for the requests. A read looks at the view. If
+the key comes from the base, the entry names it; if the task has written the key itself, the
+entry depends on no key of the base. A write changes the overlay and nothing else. The
+model may answer anything. A check evaluates its expression $q_c$ on the view, by a judgment
+$\sigma; \omega \vdash q \Rightarrow v; F$ that has the same rules for reads and scans and
+collects the keys that were read from the base. A scan depends on every key that the task
+has not written.
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Read]{v = (\sigma \upd \omega)(k) \\ F = \{k\} \setminus \dom \omega}
+  {\sigma; \omega \vdash \rd{k} \evto v; \omega; \rd{k} = v\;[F]}
+\and
+\inferrule*[right=Write]{ }{\sigma; \omega \vdash \wrt{k}{n} \evto n; \omega[k \mapsto n]; \wrt{k}{n}}
+\and
+\inferrule*[right=Model]{ }{\sigma; \omega \vdash \mdl{n} \evto r; \omega; \mdl{n} = r}
+\and
+\inferrule*[right=Check]{\sigma; \omega \vdash q_c \Rightarrow v; F}
+  {\sigma; \omega \vdash \chk{c} \evto v; \omega; \chk{c} = v\;[F]}
+\and
+\inferrule*[right=Scan]{v = \textstyle\sum_k (\sigma \upd \omega)(k) \\ F = \{k \mid k \notin \dom \omega\}}
+  {\sigma; \omega \vdash \scan \evto v; \omega; \scan = v\;[F]}
+\and
+\inferrule*[right=Let]{\sigma; \omega \vdash e_1 \evto v_1; \omega_1; J_1 \\ \sigma; \omega_1 \vdash e_2[v_1/x] \evto v_2; \omega_2; J_2}
+  {\sigma; \omega \vdash \letin{x}{e_1}{e_2} \evto v_2; \omega_2; J_1 J_2}
+\end{mathpar}
+\Description{Six rules of a big-step semantics with an overlay and a journal.}
+\caption{Runs. The terms of a request have been evaluated: $k$ is a key and $n$ a number. In
+\textsc{Model}, $r$ is any number.}
+\label{fig:runs}
+\end{figure}
+
+The set $F$ is the \emph{footprint} of an answer. It is found while the answer is computed, so
+it is exact for this state: a check that tests a key and then reads one of two others has
+the two keys that it read, not three. The footprint $\fp{J}$ of a journal is the union of
+the footprints of its entries. A \emph{run} of a task $e$ on $\sigma$ is a derivation of
+$\sigma; \emptyset \vdash e \evto v; \omega; J$. A run is determined by the base state and
+the answers of the model.
+
+\subsection{Replay}
+\label{sec:replay}
+
+\begin{table}[t]
+\caption{Replay of a journal on a state $\sigma$, given a set $\Delta$ that contains every
+key on which $\sigma$ differs from the base of the journal. The task is evaluated as in a
+run; this is what each request does while the replay has not resumed.}
+\label{tab:replay}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & The entry of the journal & What the replay does \\
+\midrule
+1 & $\rd{k} = v\;[F]$, $\chk{c} = v\;[F]$ or $\scan = v\;[F]$, & keeps the entry; the answer is $v$ \\
+  & with $F \cap \Delta = \emptyset$ & \\
+2 & the same with $F \cap \Delta \ne \emptyset$ & makes the request on the view, with answer $v'$ and \\
+  & & footprint $F'$, and writes the entry with $v'$ and $F'$; \\
+  & & if $v' \ne v$, the replay \emph{resumes} \\
+3 & $\mdl{n} = r$ & keeps the entry; the answer is $r$ \\
+4 & $\wrt{k}{v}$ & keeps the entry and sets $k$ in the overlay \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Let $J$ be the journal of a run of $e$ on a state $\sigma_0$, and let $\sigma$ be another
+state. A \emph{replay} of $J$ on $\sigma$ evaluates $e$ again, on the base $\sigma$, with the
+journal at hand. It is given a set $\Delta$ of keys that contains every key on which
+$\sigma$ and $\sigma_0$ differ. Table~\ref{tab:replay} says what each request does. The
+request finds its own entry in the journal, at the position that the replay has reached. An
+answer of the repository is kept if its footprint misses $\Delta$ (row 1). Otherwise the
+request is made again, on the view of the replay, and the new answer and footprint replace
+the old (row 2). A question to the model is not asked; the recorded answer is used (row 3).
+If an answer in row 2 differs from the recorded one, the replay \emph{resumes}: the rest of
+the journal is dropped, and from the next request on the evaluation is a run, with new
+questions to the model. The replay returns a value, an overlay, and a new journal.
+
+Replay costs the requests of row 2 and, after a resumption, the rest of the task. It never
+costs a model call before the resumption.
+
+\subsection{The Queue}
+
+Let tasks $e_1, \ldots, e_m$ have runs on the same base $\sigma_0$, with overlays $\omega_i$
+and journals $J_i$. A \emph{queue} takes the tasks in some order, which we write as
+$1, \ldots, m$. It keeps a state, at first $s_0 = \sigma_0$. For each task in turn it replays
+$J_i$ on $s_{i-1}$, with $\Delta$ the set of keys on which $s_{i-1}$ differs from $\sigma_0$,
+and obtains a value, an overlay $\omega_i'$, and a journal $J_i'$. Then it sets
+$s_i = s_{i-1} \upd \omega_i'$. The \emph{merged state} is $s_m$.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{A Replay Is a Run}
+
+\begin{lemma}[Footprints]
+\label{lem:footprint}
+Let a read, a check, or a scan have the answer $v$ and the footprint $F$ on the view
+$\sigma \upd \omega$. If $\sigma'$ agrees with $\sigma$ on $F$, the request has the answer
+$v$ and the footprint $F$ on $\sigma' \upd \omega$.
+\end{lemma}
+
+\begin{proof}
+For a read and a scan this is the definition of $F$. For a check, by induction on the
+evaluation of its expression: the evaluation consults the base only where it reads a key that
+is not in $\omega$, and each of these keys is in $F$. So the evaluation on $\sigma'$ takes
+the same steps and reads the same keys.
+\end{proof}
+
+\begin{theorem}[A replay is a run]
+\label{thm:replay}
+Let $J_0$ be the journal of a run of $e$ on $\sigma_0$ with the value $v_0$ and the overlay
+$\omega_0$. Let $\sigma$ be a state, and let $\Delta$ contain every key on which $\sigma$
+differs from $\sigma_0$. Let the replay of $J_0$ on $\sigma$ with $\Delta$ return $v$,
+$\omega$, and $J$. Then:
+\begin{enumerate}
+\item $J$ is the journal of a run of $e$ on $\sigma$ with the value $v$ and the overlay
+  $\omega$. In this run the model gives the answers of $J_0$ up to the point at which the
+  replay resumes.
+\item If the replay does not resume, then $v = v_0$ and $\omega = \omega_0$, the journal $J$
+  is $J_0$ up to footprints, and the model is not asked.
+\item If $\fp{J_0} \cap \Delta = \emptyset$, the replay makes no request at all, and
+  $J = J_0$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+We show that, as long as the replay has not resumed, it has the environment and the overlay
+that the run on $\sigma_0$ had at the same request, and the entries that it has written are
+those of a run on $\sigma$, equal to the entries of $J_0$ up to footprints. This holds at
+the start. Since the environments are equal, the next request of the replay is the next
+request of $J_0$, with the same key or the same question.
+
+\emph{Row 1.} The recorded answer $v$ with the footprint $F$ was computed on
+$\sigma_0 \upd \omega$. The state $\sigma$ agrees with $\sigma_0$ outside $\Delta$, hence on
+$F$. By Lemma~\ref{lem:footprint}, the answer on $\sigma \upd \omega$ is $v$ with the
+footprint $F$, so the entry is the one that a run on $\sigma$ writes.
+
+\emph{Row 2.} The entry is what a run on $\sigma$ writes, since the request was made on the
+view. If the answer is the recorded one, the environments stay equal. If not, the replay
+resumes, and everything after this entry is a run by definition.
+
+\emph{Row 3.} A run may get any answer from the model, in particular $r$.
+
+\emph{Row 4.} The key and the value are computed from the environment, which is the same.
+
+This proves (1), and (2) is the case in which the invariant holds to the end. For (3), every
+entry falls under row 1, 3 or 4.
+\end{proof}
+
+Part (1) is what makes replay more than an optimisation. The run that it constructs is one
+that could have happened on $\sigma$: an agent that had started on the new state and had
+received the same answers from its model would have left this journal. Up to the point of
+resumption the model would have been asked the same questions, so there is no reason for it
+to have answered differently.
+
+\subsection{A Merge Is a Schedule}
+
+\begin{theorem}[A merge is a schedule]
+\label{thm:schedule}
+Let a queue take tasks $e_1, \ldots, e_m$ that ran on $\sigma_0$, and let it produce the
+states $s_0, \ldots, s_m$ and, for each task, the value $v_i'$, the overlay $\omega_i'$ and
+the journal $J_i'$. Then for every $i$, $J_i'$ is the journal of a run of $e_i$ on $s_{i-1}$
+with the value $v_i'$ and the overlay $\omega_i'$, and $s_i = s_{i-1} \upd \omega_i'$. So
+the merged state $s_m$ is the state after the tasks have run one after the other in the
+order of the queue, each on the state that the one before left. In these runs the model
+gives each task the answers that it gave on $\sigma_0$, up to the point at which the task
+resumes.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:replay}(1) for each task, with $\sigma = s_{i-1}$.
+\end{proof}
+
+The theorem holds for every order. The order decides what the queue costs.
+
+\begin{definition}[Stale reads]
+\label{def:graph}
+For runs on $\sigma_0$, task $j$ \emph{changes} a key $k$ if $\omega_j(k)$ is defined and
+differs from $\sigma_0(k)$. The \emph{graph of stale reads} has the tasks as its vertices and
+an edge from $i$ to $j$ if $i \ne j$ and $\fp{J_i}$ contains a key that $j$ changes.
+\end{definition}
+
+\begin{corollary}[Merging for free]
+\label{cor:free}
+If the graph of stale reads has no cycle, take the tasks in an order in which every edge goes
+from an earlier task to a later one. Then the queue makes no request, every journal is kept,
+and the merged state is $\sigma_0 \upd \omega_1 \upd \cdots \upd \omega_m$.
+\end{corollary}
+
+\begin{proof}
+By induction along the order. Before task $i$, the journals of the earlier tasks have been
+kept, so $s_{i-1}$ differs from $\sigma_0$ only on keys that earlier tasks change. No edge
+goes from $i$ to an earlier task, so $\fp{J_i}$ contains none of these keys, and
+Theorem~\ref{thm:replay}(3) applies.
+\end{proof}
+
+A task that read what another wrote goes first. This is the order of a serialization
+graph~\citep{fekete2005}: the reader saw the old value, so in an equivalent sequence it comes
+before the writer. Two tasks may write the same key and still merge for free, if neither
+read it; the later one wins, as it would in a sequence.
+
+\begin{corollary}[Who resumes]
+\label{cor:feedback}
+Let $S$ be a set of tasks such that the graph of stale reads without $S$ has no cycle. Take
+the other tasks first, in an order along the edges, and then the tasks of $S$. Then only
+tasks of $S$ make a request or resume. For two tasks, at most one resumes, and none unless
+each has read a key that the other changes.
+\end{corollary}
+
+\begin{proof}
+The tasks outside $S$ merge as in Corollary~\ref{cor:free}.
+\end{proof}
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}l@{}}
+\textbf{merge}(\sigma_0;\ e_1, \ldots, e_m \text{ with journals } J_i \text{ and overlays } \omega_i)\\
+\quad G := \text{the graph of stale reads of } J_1, \ldots, J_m \text{ and } \omega_1, \ldots, \omega_m\\
+\quad S := \text{a set of tasks such that $G$ without $S$ has no cycle}\\
+\quad \textit{order} := \text{the tasks outside $S$ along the edges of $G$, then the tasks of $S$}\\
+\quad s := \sigma_0\\
+\quad \textbf{for } i \textbf{ in } \textit{order}\textbf{:}\\
+\qquad \Delta := \text{the keys on which $s$ differs from $\sigma_0$}\\
+\qquad (v_i', \omega_i', J_i') := \text{the replay of $J_i$ on $s$ with $\Delta$, for the task $e_i$}\\
+\qquad s := s \upd \omega_i'\\
+\quad \textbf{return } s
+\end{array}
+\]
+\Description{Pseudocode of a merge queue that orders the tasks by the graph of stale reads
+and replays their journals.}
+\caption{A queue that chooses its order. By Theorem~\ref{thm:schedule} the result is that of
+the tasks run in this order, whatever the set $S$; by Corollary~\ref{cor:feedback} only tasks
+of $S$ cost anything.}
+\label{fig:queue}
+\end{figure}
+
+Figure~\ref{fig:queue} puts the two corollaries together. A smallest set $S$ is a minimum
+feedback vertex set, which is hard to find in general~\citep{karp1972} and easy for the few
+tasks that share a cycle in practice. The
+corollary gives an upper bound: a task of $S$ whose footprint has changed need not resume,
+since its requests may still give the recorded answers.
+
+Cycles cannot be argued away.
+
+\begin{proposition}[Cycles are real]
+\label{prop:cycle}
+For every $n \ge 2$ there are $n$ tasks and a check such that the graph of stale reads is a
+cycle through all of them, every order of the tasks ends in a state in which the check
+holds, and the union of their writes is a state that no order produces and in which the
+check fails.
+\end{proposition}
+
+\begin{proof}
+Take keys $0, \ldots, n - 1$, all $1$, and let task $i$ set key $i$ to $0$ if key
+$i + 1 \bmod n$ is $1$. The check holds if some key is $1$. On the base every task writes,
+so the union is all $0$. Now take any order, and suppose that it ends with all keys at $0$.
+Key $i$ is set only by task $i$, so every task wrote. The last task wrote only if the key of
+its neighbour was still $1$; but the neighbour ran earlier and had written. So some key is
+$1$ at the end.
+\end{proof}
+
+\subsection{Checks Travel with Their Footprints}
+
+\begin{corollary}[Checks]
+\label{cor:checks}
+Let the journal $J_m'$ of the last task of a queue end with entries
+$\chk{c_1} = v_1, \ldots, \chk{c_n} = v_n$. Then $v_1, \ldots, v_n$ are the values of these
+checks in the merged state. If the task did not resume, the queue ran, of these checks, only
+those whose recorded footprints contain a key that an earlier task changed.
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:schedule}, $J_m'$ is the journal of a run on $s_{m-1}$. No write follows
+the checks, so they were evaluated on the final view of the task, which is the merged state.
+The second claim is row 1 of Table~\ref{tab:replay}.
+\end{proof}
+
+If every task ends with the test suite of the repository, the suite holds after every merge,
+and what a merge costs in tests is what the footprints say. A verdict is good for every
+state that agrees with the state on which it was obtained on the keys that the test read.
+Build systems call such a record a verifying trace~\citep{mokhov2018}. The corollary says
+that a verifying trace is as good across a merge as it is across a rebuild.
+
+\section{Fleets}
+\label{sec:fleet}
+
+How many agents can work on one repository at once? The theorems turn the question into one
+about a random graph.
+
+\subsection{A Model}
+
+Let the repository have $n$ keys. Let each of $k$ tasks read $r$ keys, chosen uniformly at
+random, and change $w$ of the keys that it read. The tasks run at the same time on the same
+base and are then merged. The probability that a given task read a key that another given
+task changed is
+\[
+p = 1 - \binom{n - r}{w} \Big/ \binom{n}{w} \approx \frac{r w}{n}.
+\]
+A task is \emph{affected} in a queue if an earlier task changed a key that it read. We count
+affected tasks as tasks that resume. This is the worst case; an affected task whose
+answers stand costs less.
+
+\paragraph{The order of arrival.} If the queue takes the tasks as they come, the task in
+position $i$ is affected with probability $1 - (1 - p)^{i - 1}$, since the writes of
+different tasks are independent. The expected number of affected tasks is
+\[
+A(k) = k - \frac{1 - (1 - p)^k}{p} \approx \frac{p\,k^2}{2} \quad \text{while $p k$ is small.}
+\]
+
+\paragraph{An order along the edges.} By Corollary~\ref{cor:feedback} a queue can confine
+the affected tasks to a feedback vertex set of the graph of stale reads. While $p k$ is
+below one, the cycles of the graph are almost all of length two: pairs of tasks that read
+each other's writes. Such a pair has probability $p_2 \approx w^2 / n + p^2$. The first term
+is the chance that the two changed a common key, which each of them also read. So the
+expected number is about $p_2\,k^2 / 2$. When $p k$ exceeds one, a random directed graph
+with this density has a strongly connected component that contains a constant fraction of
+its vertices~\citep{karp1990}, and no order helps much.
+
+\subsection{Numbers}
+
+\begin{table}[t]
+\caption{A fleet of $k$ tasks on $10{,}000$ keys; each task reads $50$ keys and changes $5$
+of them, so that $p$ is \exFleetP{} percent. The expected number of affected tasks in the
+order of arrival is the closed form $A(k)$. For an order along the edges it is the mean of
+$300$ samples, with the feedback set found greedily, so it is an upper bound. The last
+column is the share of samples whose graph has a cycle.}
+\label{tab:fleet}
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$k$ & $p\,k$ & order of arrival & order along the edges & with a cycle \\
+\midrule
+10 & \exFleetKpa & \exFleetArrivea & \exFleetBesta & \exFleetCyclica\% \\
+20 & \exFleetKpb & \exFleetArriveb & \exFleetBestb & \exFleetCyclicb\% \\
+40 & \exFleetKpc & \exFleetArrivec & \exFleetBestc & \exFleetCyclicc\% \\
+80 & \exFleetKpd & \exFleetArrived & \exFleetBestd & \exFleetCyclicd\% \\
+160 & \exFleetKpe & \exFleetArrivee & \exFleetBeste & \exFleetCyclice\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:fleet} shows a repository of $10{,}000$ keys in which a task reads $50$ and
+changes $5$. With $40$ tasks at once, $p k$ is about one. In the order of arrival
+\exFleetArrivec{} of the $40$ tasks are affected. In an order along the edges it is
+\exFleetBestc{}. Here $p_2$ is \exFleetMutual{} percent in a sample of $200{,}000$ pairs, so $p$ is \exFleetRatio{}
+times as large, and most of $p_2$ is the term
+$w^2 / n$: the pairs that cannot be ordered are mostly pairs that edited the same key. With
+$160$ tasks the graph is one large tangle, and a third of the fleet is affected in the best
+order that we find.
+
+\paragraph{The size of a fleet.} Suppose an affected task costs a fraction $\rho$ of a
+task, and the affected tasks are done again one after the other. A batch of $k$ tasks then
+takes time $1 + \rho\,q\,k^2 / 2$ instead of $1$, where $q$ is $p$ or $p_2$, and the number
+of tasks finished per unit of time is largest at
+\[
+k^\ast = \sqrt{\frac{2}{\rho\,q}}.
+\]
+At this size the fleet runs at half its nominal speed. For $\rho = 1 / 2$ and the numbers
+above, $k^\ast$ is \exFleetSizeArrive{} in the order of arrival and \exFleetSizeEdges{} along
+the edges. The square root
+says that a fleet does not scale by adding agents: four times the agents need a repository
+with a sixteenth of the overlap. Replay lowers $\rho$, and the order lowers $q$.
+
+\subsection{A Registry That Everyone Reads}
+
+The model is crude. Real tasks do not read uniformly: some keys are read by everyone. A
+lock file, a table of routes, a list of exports, a changelog are of this kind, and so is any
+file that a tool reads on every run. Add one such key to the model. Every task reads it, and
+a task changes it with probability $h$.
+
+Two effects follow. The tasks that change the registry have all read it, so each pair of
+them forms a cycle, and of $m$ such tasks $m - 1$ are affected in every order. And a task
+that does not change the registry has still read it, so it must go before every task that
+does. If one of those has read any of its writes, the two form a cycle that would have been
+an edge without the registry. With $h = 0.1$ and the numbers of Table~\ref{tab:fleet}, the
+affected tasks in an order along the edges rise from \exFleetBesta{} to \exFleetHota{} for
+ten tasks, from \exFleetBestb{} to \exFleetHotb{} for twenty, and from \exFleetBestc{} to
+\exFleetHotc{} for forty. One key that everyone reads and a few write costs more than all
+the other overlap together.
+
+The remedy is in the choice of keys. If each entry of the registry is a key of its own, a
+task that adds an entry changes a key that nobody has read, and a task that looks up an
+entry reads one key. What remains expensive is a request that reads the registry as a
+whole, which is $\scan$. The same holds for a directory: creating a file is cheap, and
+listing the directory reads everything in it.
+
+The next section looks at footprints in a real repository.
+
+\section{A Library of Proofs}
+\label{sec:library}
+
+A library for a proof assistant is a repository whose checks are exact: a module either
+elaborates and passes the kernel or it does not. The key question for a merge is what the
+check of a module reads. We measured this on Lean's own sources, version 4.36: the
+\exModules{} modules under \texttt{Init}, \texttt{Std} and \texttt{Lean}.
+
+\subsection{Three Footprints}
+
+A Lean module has a \emph{public scope}, which its importers see, and a \emph{private scope}:
+the bodies of proofs, of definitions that are not exposed, and whatever is declared
+private~\citep{leanmodules}. An import brings in the public scope of the imported module. A
+\texttt{public import} passes it on to further importers, and an \texttt{import all} brings
+in the private scope as well. The library has \exImportsPublic{} public imports,
+\exImportsPlain{} plain ones, and \exImportsAll{} imports of a private scope. We compare
+three accounts of what the check of a module $M$ reads.
+\begin{itemize}
+\item \emph{By files.} Everything that $M$ imports, directly or through other modules. This
+  is the footprint without a module system, where any change of a file makes all its
+  importers be built again.
+\item \emph{Public scopes.} The public scopes that $M$ sees: those of its imports, of what
+  they import publicly, and so on, and the same for the imports of modules whose private
+  scope $M$ sees.
+\item \emph{Private scopes.} The private scopes that $M$ sees: those of the modules that it
+  reaches through \texttt{import all}.
+\end{itemize}
+For a change of a module $B$, the checks that must be made again are those of the modules
+whose footprint contains $B$: the footprint by files for any change of the file, the public
+scopes for a change of the public scope of $B$, and the private scopes for a change that
+stays in its private scope, such as a new proof of an old statement. The count for a public change is a lower bound. A module
+that is checked again may come out with a different public scope, and then its importers
+follow; a build system finds that out as it goes.
+
+\subsection{Numbers}
+
+\begin{table}[t]
+\caption{The number of other modules whose check must be made again after a change of one
+module of Lean's library, over all \exModules{} modules, and the share of ordered pairs of
+modules in which the first must be checked again after a change of the second.}
+\label{tab:cones}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+What changed & mean & median & largest & share of pairs \\
+\midrule
+the file & \exConeFileMean & \exConeFileMedian & \exConeFileMax & \exConeFileP\% \\
+the public scope (at least) & \exConePublicMean & \exConePublicMedian & \exConePublicMax & \exConePublicP\% \\
+the private scope only & \exConePrivateMean & \exConePrivateMedian & \exConePrivateMax & \exConePrivateP\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:cones} shows the result. By files, a change of a module makes
+\exConeFileMean{} modules be checked again on average, a fifth of the library, and for the
+modules at the bottom nearly all of it: \exConeFileHalf{} modules are imported, directly
+or not, by at least half of the library. For a change of a public scope the mean is
+\exConePublicMean{}, and \exConePublicHalf{} modules are seen by half of the library. For a
+change that stays in a private scope the mean is \exConePrivateMean{} and the largest count
+is \exConePrivateMax{}; for \exConePrivateNone{} percent of the modules no other module
+sees the private scope at all.
+
+So two agents that both change only proofs in this library almost never invalidate each
+other's checks, and by Corollary~\ref{cor:checks} their work merges with nothing checked
+again, apart from the few modules that reach into private scopes. Two agents of whom one
+changes a statement are in the other regime: hundreds of checks are made again. Whether any
+agent has to resume is then decided by what those checks say. An earlier paper in this
+series measured the same boundary from the side of a human reader, who must read statements
+and may skip proofs~\citep{tpp1}. The reader and the merge queue profit from the same fact:
+a proof is read by nobody.
+
+\subsection{What Does Not Stay Local}
+
+The measurement is about modules. Inside the elaboration of a module there are reads that no
+scope bounds, and they behave like $\scan$. Resolving a type class instance consults every
+instance in scope. A simplifier call consults every lemma that is marked for it. Notations
+and coercions are looked up in tables to which any imported module may have added. A new
+instance in an imported module can change what a term elaborates to, even if no declaration
+that the term mentions has changed. Our counts treat the public scope of a module as one
+key, which is the cautious choice: any change of it counts. A finer account, with
+declarations as keys, would have to treat these tables as keys that everybody reads.
+
+The kernel is better placed than the elaborator. A proof term that has been elaborated
+mentions the constants that it uses, and its check reads their statements, and their bodies
+where it unfolds them. In a system with global universe constraints the kernel also reads a
+table that every declaration may extend; Lean's universe polymorphism has no such table. This
+is the pattern of the whole section: what is looked up by name is local, and what is looked
+up by search is not.
+
+\section{Testing the Claims}
+\label{sec:tests}
+
+The artifact is one Python script without dependencies, and a second one that extracts the
+import graph and needs a Lean toolchain; the graph is committed, so
+\texttt{make -C artifact check} needs only Python. All numbers are those of one fixed seed.
+
+\paragraph{Tasks.} A repository has six keys with values below four, and three checks. Tasks
+and checks are random expressions of the calculus, of nesting depth six and three. A model
+is a random stream of numbers.
+
+\paragraph{Theorem~\ref{thm:replay}.} For each of \exRebases{} tasks the script runs the
+task, gives each key of the base a new random value with probability $0.3$, and replays the
+journal on the new state. It then runs the task live on the new state, with a model that gives the answers
+of the new journal, and checks that the live run has the same journal, with the same
+footprints, the same overlay, and the same value. It also checks parts (2) and (3). Of the
+replays, \exRebaseResumed{} resume. In those, \exResumedKeptPercent{} percent of the
+model's answers lie before the point of resumption and are kept.
+
+\paragraph{Theorem~\ref{thm:schedule}.} For each of \exQueues{} sets of two to four tasks
+the script runs the tasks on one base, merges them in a random order, and compares the
+queue with the tasks run one after the other, live, with the model answers of the new
+journals: every journal, every overlay, and the final state. Of the \exQueueTasks{}
+replays, \exUntouched{} make no request, \exCompared{} make requests again and find the old
+answers, and \exResumed{} resume. The queues keep \exQueueSaved{} answers of the model and
+ask for \exQueueCalls{}, so \exSavedPercent{} percent of the calls are saved against running
+every task again. Of \exEntries{} recorded reads, checks and scans, \exRepeated{} are made
+again, which is \exRepeatedPercent{} percent.
+
+\paragraph{The corollaries.} In \exFree{} of the sets the graph of stale reads has no cycle.
+The script merges them in an order along the edges and checks that no request is made and
+that the merged state is the union of the writes (Corollary~\ref{cor:free}). In the other
+\exCyclic{} it computes a smallest feedback vertex set by search and checks that only its
+tasks make requests (Corollary~\ref{cor:feedback}). For Corollary~\ref{cor:checks} it runs
+$1{,}000$ queues of tasks that end with the three checks and compares the verdicts in the
+last journal with the checks evaluated on the merged state. For Proposition~\ref{prop:cycle}
+it builds the rings of two, three and four tasks and tries every order.
+
+\begin{table}[t]
+\caption{Five queues with one weakened step. Each ends, for some set of tasks, in a state
+that is not the state of the tasks run one after the other. The last column is the number of
+random sets that were tried until the first such set.}
+\label{tab:broken}
+\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+Step & What the weakened queue does & Tried \\
+\midrule
+row 2, reads & keeps the answer of a read whose key has changed & \exStepSkipRead \\
+row 2, checks & keeps the verdict of a check whose footprint has changed & \exStepSkipCheck \\
+footprints & gives $\scan$ an empty footprint & \exStepScanLocal \\
+$\Delta$ & takes the writes that the earlier tasks made on the base & \exStepStaleDelta \\
+$\Delta$ & takes the writes of the task just before & \exStepLastDelta \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Every step is needed.} Table~\ref{tab:broken} weakens the replay in five ways.
+For each the script finds a set of tasks for which the weakened queue ends in a state that
+differs from the tasks run one after the other. The fourth row is the least obvious. A queue
+that computes $\Delta$ from the writes that the earlier tasks made on the base forgets that
+a task which resumed may have written other keys.
+
+\paragraph{Fleets and the library.} The script checks the closed form $A(k)$ against the
+samples of Table~\ref{tab:fleet} and computes Table~\ref{tab:cones} from the committed
+graph.
+
+\paragraph{What the tests do not show.} The tasks are small and the repository has six keys.
+The fleet is a model with uniform footprints. The numbers of Section~\ref{sec:library} rest
+on our reading of what a check reads, by modules, and on the import lines of the sources; we
+did not build the library and watch which modules were built again.
+
+\section{Limits}
+\label{sec:limits}
+
+\paragraph{The journal must be complete.} The theorems assume that everything that a task
+learns about the repository goes through requests that are journaled. An agent that reads a
+file through a side door has a footprint that the journal does not know. The companion
+paper on journals gives the discipline that excludes this~\citep{tpp8}.
+
+\paragraph{Keys.} A key is the unit of change and of footprint. With files as keys, two
+edits of different functions in one file are a conflict. Smaller keys give smaller
+footprints and need a way to tell which declaration a tool read.
+
+\paragraph{The model's answers.} Replay reuses the answers of the model before the point of
+resumption. This is justified in the sense of Theorem~\ref{thm:replay}: the questions were
+the same. It is not justified for a model that looks at the repository on its own, outside
+the requests of the task.
+
+\paragraph{Intent.} A merged state that is the outcome of a schedule is correct in the
+sense that each task did, on the state it found, what it would have done there. Whether two
+tasks make sense together is another question. Two agents can each add a feature that works
+and that the user would not want side by side. Only checks express such requirements, and
+only if someone wrote them.
+
+\paragraph{Creation and deletion.} The calculus has a fixed set of keys. A task that lists a
+directory reads the set of names, and a task that creates a file changes it. This fits the
+model if the set of names is treated as a key that every listing reads, which makes listings
+expensive, as $\scan$ is.
+
+\paragraph{Proofs.} The proofs are on paper, and the artifact tests them and does not prove
+them.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Isolation and serializability.} That a history of transactions is correct if it
+is equivalent to a serial one is due to \citet{papadimitriou1979}. Snapshot isolation and
+its anomaly, write skew, were described by \citet{berenson1995}; \citet{fekete2005}
+characterised when snapshot isolation is serializable by cycles in a graph of dependencies,
+and \citet{cahill2008} turned the characterisation into a run-time mechanism. Our graph of
+stale reads is this graph for tasks that commit together, and Corollary~\ref{cor:free} is
+the serializable case. Optimistic concurrency control~\citep{kung1981} lets transactions run
+without locks and validates their reads before they commit; a transaction that fails
+validation starts again. Software transactional memory does the same with a log of
+reads~\citep{harris2005}. What we add is the journal: a task that fails validation does not
+start again. It resumes at the first answer that differs, and keeps the expensive answers
+before it.
+
+\paragraph{Invariants under merging.} \citet{bailis2014} ask when concurrent operations can
+be merged without coordination such that the invariants of an application are preserved, and
+answer with a confluence condition on invariants. Corollary~\ref{cor:checks} is a dynamic
+form of such a condition: an invariant that was checked survives a merge if the merge stays
+outside the footprint of its check. Replicated data types merge without coordination by
+making operations commute~\citep{shapiro2011}; the edits of agents do not commute in
+general, and the footprints say for which pairs it does not matter.
+
+\paragraph{Build systems and incremental computation.} A build system skips a task whose
+inputs have not changed, and the systems with dynamic dependencies record what a task read
+while it ran~\citep{mokhov2018}. Self-adjusting computation records the reads of a whole
+program and, after a change of its input, runs again the parts that read what
+changed~\citep{acar2002}. Replay is change propagation for a program with an oracle in it:
+the parts before the first affected read are kept with their answers of the oracle, and the
+rest is run again because the oracle may now be asked something else.
+
+\paragraph{Version control.} Theories of patches explain when two edits commute and what a
+merge is as a universal construction~\citep{mimram2013,angiuli2014}. They work on the text of
+the edits. That a merge can be clean as text and wrong as a program is documented for real
+projects~\citep{brun2011}. Our contribution is on the side of the reads, which version
+control does not see.
+
+\paragraph{Agents and libraries.} The journal and its replay come from durable execution,
+where they serve recovery from crashes~\citep{tpp8}; here the same journal serves merging.
+What a call of the model costs, and so what a resumption wastes, is the subject
+of~\citet{tpp6}. That statements are what others read and proofs are not is the measurement
+of~\citet{tpp1}, taken there for human readers and here for checks.
+
+\section{Conclusion}
+
+A fleet of agents on one repository is a set of transactions that commit together, and the
+journals of the agents say exactly what each transaction read. With them, merging stops
+being an act of faith followed by a full run of the tests. A queue can tell which tasks
+merge for nothing, which need a few tests run again, and which must go back to work, and for
+the last kind it can put them back at the request where their world changed. How large a
+fleet can be is then a question about how much the tasks of the fleet read of what the
+others write, and for a library of proofs with scopes the answer is that those who write
+proofs hardly read each other at all.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
