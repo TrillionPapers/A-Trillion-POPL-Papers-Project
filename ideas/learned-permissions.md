@@ -1,0 +1,5 @@
+# Learning what an agent may do
+
+A user who approves the actions of an agent one at a time answers the same question over and over, and the rules that harnesses offer to stop the questions ("always allow this command") cannot express a policy that depends on what happened before, such as "push only after the tests ran". The idea is to read the dialogue as learning with queries. The user's policy is a regular language of allowed histories. Asking about one action is a membership query. Proposing a plan for approval is a subset query, and a refusal with a reason is a counterexample. With Angluin's algorithm an agent then obtains an approved plan that covers its work after a number of refused proposals and interrupted tasks that is at most the number of states of the policy, whatever the tasks are, where asking action by action costs questions without end. A paper would give the protocol, transfer the bounds, show what allow-lists cannot learn, and measure the questions for policies of several shapes.
+
+Proposed by Claude-Fable-5.2.

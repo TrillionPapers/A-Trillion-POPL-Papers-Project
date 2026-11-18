@@ -1,0 +1,71 @@
+1000 random policies with 6887 states in all, 150 tasks each, 29231 of the tasks refused: every agent performs the allowed tasks and no other, every approved plan is within the policy, and the counterexamples and questions are within the bounds
+  search: 3617 counterexamples, 107723 questions (at most 296 for one policy), 22687 of them for refused tasks; 1000 final plans are the policy itself
+  plain: 2175 counterexamples, 144700 questions (at most 440 for one policy), 22422 of them for refused tasks; 1000 final plans are the policy itself
+  search-closing: 3628 counterexamples, 85023 questions (at most 284 for one policy), 161 of them for refused tasks; 1000 final plans are the policy itself
+  plain-closing: 2181 counterexamples, 120987 questions (at most 416 for one policy), 159 of them for refused tasks; 1000 final plans are the policy itself
+dialogue: edit? yes
+dialogue: test? yes
+dialogue: commit? no
+dialogue: push? no
+dialogue: edit test commit push? yes
+dialogue: test commit push? yes
+dialogue: edit commit push? no
+dialogue: test edit? yes
+dialogue: test edit commit push? no
+dialogue: test test? yes
+dialogue: test test commit push? yes
+dialogue: test commit commit push? yes
+dialogue: test push? no
+dialogue: edit push? no
+dialogue: test edit push? no
+dialogue: test test push? no
+dialogue: test commit edit? yes
+dialogue: test commit edit commit push? no
+dialogue: test commit edit push? no
+dialogue: test commit test? yes
+dialogue: test commit test commit push? yes
+dialogue: test commit test push? yes
+dialogue: test commit commit commit push? yes
+dialogue: test commit push commit push? yes
+dialogue: test commit push push? yes
+dialogue: a plan with 3 states? yes
+dialogue: 25 questions and one proposal, which is the policy and is approved; the plain learner asks 34
+the table of the example: 4 access words, 17 rows, 51 cells with 43 different words, 24 of them asked about
+anything: 1 states; questions: always 1864, remembered 1034, lists 4 (always for 4 actions); learner: 4 questions, 1 proposals, 0 rejected, 0 tasks outside the plan
+everything but push: 2 states; questions: always 1987, remembered 964, lists 3 (always for 3 actions); learner: 4 questions, 1 proposals, 0 rejected, 0 tasks outside the plan
+test before commit: 4 states; questions: always 1961, remembered 775, lists 444 (always for 2 actions); learner: 22 questions, 2 proposals, 0 rejected, 2 tasks outside the plan
+three pushes: 5 states; questions: always 1902, remembered 1064, lists 421 (always for 3 actions); learner: 42 questions, 2 proposals, 1 rejected, 0 tasks outside the plan
+one release: 4 states; questions: always 894, remembered 127, lists 894 (always for 0 actions); learner: 14 questions, 3 proposals, 2 rejected, 0 tasks outside the plan
+test before commit, 100 tasks: always 650, remembered 336, lists 128, plain learner 74, learner 24
+test before commit, 1000 tasks: always 6481, remembered 1983, lists 1338, plain learner 74, learner 24
+test before commit, 10000 tasks: always 64905, remembered 10680, lists 13402, plain learner 74, learner 24
+the lists have asked more than the learner ever asks after 25 tasks
+test before commit, 1000 tasks, 0 refused: always 6602, remembered 1991, lists 1309, learner 28 (0 for refused tasks), learner with closing 24
+test before commit, 1000 tasks, 109 refused: always 6524, remembered 2013, lists 1347, learner 108 (83 for refused tasks), learner with closing 24
+test before commit, 1000 tasks, 234 refused: always 6474, remembered 2000, lists 1432, learner 188 (164 for refused tasks), learner with closing 24
+test before commit, 1000 tasks, 505 refused: always 6137, remembered 1825, lists 1378, learner 350 (325 for refused tasks), learner with closing 25
+the tasks edit^k commit for k = 1..100 after the first task: 100 questions without closing, 0 with it
+test before commit, 200 tasks of 12 actions: plain learner 88 questions, with search 25
+test before commit, 200 tasks of 50 actions: plain learner 342 questions, with search 26
+test before commit, 200 tasks of 200 actions: plain learner 1404 questions, with search 26
+test before commit, 200 tasks of 800 actions: plain learner 5615 questions, with search 28
+test before commit with 0 more actions that change nothing, 300 tasks: lists 394, learner 26, learner that first asks which actions matter 30
+test before commit with 4 more actions that change nothing, 300 tasks: lists 398, learner 67, learner that first asks which actions matter 34
+test before commit with 12 more actions that change nothing, 300 tasks: lists 406, learner 136, learner that first asks which actions matter 42
+test before commit with 28 more actions that change nothing, 300 tasks: lists 422, learner 286, learner that first asks which actions matter 58
+a forbidden block of 2 letters: 3 states, learned exactly with 5 questions and 2 proposals, 1 rejected; 4 blocks of that length
+a forbidden block of 3 letters: 4 states, learned exactly with 11 questions and 2 proposals, 1 rejected; 8 blocks of that length
+a forbidden block of 4 letters: 5 states, learned exactly with 17 questions and 2 proposals, 1 rejected; 16 blocks of that length
+a forbidden block of 5 letters: 6 states, learned exactly with 22 questions and 2 proposals, 1 rejected; 32 blocks of that length
+a forbidden block of 6 letters: 7 states, learned exactly with 30 questions and 2 proposals, 1 rejected; 64 blocks of that length
+a forbidden block of 7 letters: 8 states, learned exactly with 37 questions and 2 proposals, 1 rejected; 128 blocks of that length
+a forbidden block of 8 letters: 9 states, learned exactly with 41 questions and 2 proposals, 1 rejected; 256 blocks of that length
+every one of the 508 blocks of two to eight letters, both learners: one rejected proposal, and the second proposal is the policy
+6 deliberate mistakes, each noticed:
+  careless-user: a refused task is performed, or an allowed one declined
+  optimist: a counterexample that teaches nothing
+  deaf: the learner does not settle
+  forgetful: more questions
+  hasty: a closed plan is not the policy
+  timid: a refused task is performed, or an allowed one declined
+13 sentences of the paper checked: all-noticed, alphabet, blocks, bounds, cells, closing, exact, example, growth, lengths, refusals-cost, refused, shapes

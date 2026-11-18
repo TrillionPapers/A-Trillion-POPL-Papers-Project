@@ -1,0 +1,17 @@
+title: "A Refusal Is a Counterexample: Learning What an Agent May Do"
+idea: learned-permissions        # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource, an-injection-is-a-choice, a-number-is-a-claim, a-plan-is-a-language, a-report-is-a-residue]   # other papers in this repository that it cites
+keywords: [automata learning, queries, counterexamples, permissions, human oversight, regular languages, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the protocol, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 4.3, 4.4, 4.5 and 4.8 on a thousand random policies with
+      150 tasks each, for the learner with and without the search and with and without the
+      closing question; the argument of Proposition 4.7 for every question that an agent put
+      about a refused task; Proposition 5.3 for every block of two to eight letters; six
+      planted mistakes, each noticed; the rows of Tables 1 and 4 to 9 and of Figure 2; every
+      number quoted in the text and every sentence marked as a claim
+    by: make -C artifact check      # needs python3

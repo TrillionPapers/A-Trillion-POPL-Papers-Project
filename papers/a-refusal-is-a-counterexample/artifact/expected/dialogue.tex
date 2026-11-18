@@ -1,0 +1,14 @@
+% written by learn.py; do not edit
+may I do $\nm{edit}$? & yes & may I do $\nm{edit}\ \nm{push}$? & no \\
+may I do $\nm{test}$? & yes & may I do $\nm{test}\ \nm{edit}\ \nm{push}$? & no \\
+may I do $\nm{commit}$? & no & may I do $\nm{test}\ \nm{test}\ \nm{push}$? & no \\
+may I do $\nm{push}$? & no & may I do $\nm{test}\ \nm{commit}\ \nm{edit}$? & yes \\
+may I do $\nm{edit}\ \nm{test}\ \nm{commit}\ \nm{push}$? & yes & may I do $\nm{test}\ \nm{commit}\ \nm{edit}\ \nm{commit}\ \nm{push}$? & no \\
+may I do $\nm{test}\ \nm{commit}\ \nm{push}$? & yes & may I do $\nm{test}\ \nm{commit}\ \nm{edit}\ \nm{push}$? & no \\
+may I do $\nm{edit}\ \nm{commit}\ \nm{push}$? & no & may I do $\nm{test}\ \nm{commit}\ \nm{test}$? & yes \\
+may I do $\nm{test}\ \nm{edit}$? & yes & may I do $\nm{test}\ \nm{commit}\ \nm{test}\ \nm{commit}\ \nm{push}$? & yes \\
+may I do $\nm{test}\ \nm{edit}\ \nm{commit}\ \nm{push}$? & no & may I do $\nm{test}\ \nm{commit}\ \nm{test}\ \nm{push}$? & yes \\
+may I do $\nm{test}\ \nm{test}$? & yes & may I do $\nm{test}\ \nm{commit}\ \nm{commit}\ \nm{commit}\ \nm{push}$? & yes \\
+may I do $\nm{test}\ \nm{test}\ \nm{commit}\ \nm{push}$? & yes & may I do $\nm{test}\ \nm{commit}\ \nm{push}\ \nm{commit}\ \nm{push}$? & yes \\
+may I do $\nm{test}\ \nm{commit}\ \nm{commit}\ \nm{push}$? & yes & may I do $\nm{test}\ \nm{commit}\ \nm{push}\ \nm{push}$? & yes \\
+may I do $\nm{test}\ \nm{push}$? & no & may I work by the plan of Figure~\ref{fig:plan}? & yes \\
