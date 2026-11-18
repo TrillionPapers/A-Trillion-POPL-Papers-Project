@@ -4,7 +4,7 @@
 The file has five parts.
 
 1. Programs, oracles, and checkers over the values 0..3.
-2. The grades of Figure 2: for a program, the set of right results, a bound on the probability
+2. The grades of Figure 1: for a program, the set of right results, a bound on the probability
    of a wrong result, a bound on the probability of a failure, and a bound on the expected
    number of calls.
 3. The game: the exact supremum of each of these three quantities over all environments that

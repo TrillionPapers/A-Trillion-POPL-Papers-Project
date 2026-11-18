@@ -3,11 +3,9 @@ idea: oracle-reliability-types   # the file in ideas/ that the paper grew from
 builds-on: [audit-surfaces, what-an-agent-loop-costs, an-injection-is-a-choice]   # other papers in this repository that it cites
 keywords: [probabilistic programs, refinement types, graded types, oracles, language models, checkers]
 changes: >-
-  Rewritten to the standard that the repository now sets. New: checkers with rates of false
-  acceptance and false rejection, majority votes with a domination lemma for adaptive oracles,
-  a bound on the expected number of calls, sharper rules for sequences and fallbacks, the
-  exact worst case as the value of a game with a measurement of how tight the grades are, the
-  law that retries amplify an imperfect checker, and an artifact that tests every claim.
+  Corrects a reference in a comment of the script, which named the figure of the typing rules
+  by a number that the paper does not have. Found by the audit of "A Number Is a Claim"
+  (tpp:10). The text of the paper is that of version 3.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
