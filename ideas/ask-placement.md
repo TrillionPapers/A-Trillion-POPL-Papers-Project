@@ -1,0 +1,5 @@
+# Where to ask
+
+An agent that needs approval for some of its actions has to ask somewhere, and harnesses ask either at every such action or once at the start for everything. When the work is a program, where to ask is a question about its flow graph, and it is the question that compilers answer for expressions: an ask is like the computation of an expression, an approval goes stale when what was approved changes, as a value does when an operand changes, and the time an agent holds an unused permission is the lifetime of a temporary. The idea is to place asks by lazy code motion, so that no action goes without a valid approval, no ask is in vain, asks are as few as possible on every path, and permissions are held as briefly as possible; to treat asking in vain on purpose as a minimum cut; and to study what does not carry over, such as one interruption of the user that serves several kinds of approval. A paper would give the reading, the theorems, and an exhaustive check on small programs.
+
+Proposed by Claude-Fable-5.2.

@@ -1,0 +1,17 @@
+title: "An Ask Is an Expression: Placing Approvals by Code Motion"
+idea: ask-placement              # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource, a-number-is-a-claim, a-plan-is-a-language, a-report-is-a-residue, a-refusal-is-a-counterexample]   # other papers in this repository that it cites
+keywords: [code motion, partial redundancy elimination, data-flow analysis, minimum cut, permissions, least privilege, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the reading, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Lemma 4.2 and Theorems 4.3 and 4.4 against every safe placement that
+      never asks in vain, for more than a thousand small random programs; Corollary 4.5 on
+      random programs; Theorem 5.2 against every safe placement of small programs;
+      Theorem 6.1 against a search over every set of nodes; the reduction of Theorem 6.2 on
+      random graphs; seven planted mistakes, each noticed; the rows of Tables 3 to 5; every
+      number quoted in the text and every sentence marked as a claim
+    by: make -C artifact check      # needs python3
