@@ -1,0 +1,4 @@
+the checker gives the verdicts of Table 1 on the programs and the code of Section 2
+6000 programs that the checker accepts (723 of them built with a rule ignored), three executions each: the ledger refuses no step, the execution without tokens gives the same trace and value, every trace is explained, and no part goes beyond the least ledger of what it was given; 24584 requests, 18354 grants, 8280 actions, 2116 pieces of code written by the model, 1502 of them accepted
+3000 programs that the checker rejects, twenty executions each: every trace that the ledger lets through is explained; the ledger stops 19199 of the 60000 executions, 6573 of them after an action has been done; 639 programs are never stopped
+12 checkers with one broken rule each: every one accepts a program that the ledger refuses, after contraction 231, branch 3994, loop 900, shadow 1060, act 124, action 18, spend 69, split 806, attenuate 2, attenuate-budget 158, if-fact 195, run 48 programs

@@ -1,10 +1,22 @@
 title: "Consent as a Linear Resource: Typed Approvals for Agents That Act"
 idea: approval-types             # the file in ideas/ that the paper grew from
-builds-on: []                    # other papers in this repository
-keywords: [linear types, indexed types, capabilities, agents, human oversight]
-changes: The record gains keywords and lists agents only.
+builds-on: [generate-and-check, what-an-agent-loop-costs, an-injection-is-a-choice]   # other papers in this repository that it cites
+keywords: [linear types, indexed types, capabilities, delegation, agents, human oversight]
+changes: >-
+  Rewritten to the standard that the repository now sets. New: budgets that are spent in parts
+  and split, bounded loops, and code that the model writes and that is checked before it runs;
+  a semantics without tokens, with the theorem that it does only what the ledger allows; the
+  Consent theorem stated through explained traces; the Authority theorem, which bounds a part
+  of a program by the types of its tokens; and an artifact that tests every theorem, shows
+  that every side condition is needed, and compares the type system with a monitor at run time.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
-    did: the calculus, the type system, the proofs, and the text
-verified: []                     # the proofs are on paper only
+    did: the calculus, the type system, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorems 5.3, 5.5, 5.8 and 5.10 on 6,000 random programs with three
+      executions each, Lemma 5.7 on 3,000 programs that the checker rejects, the refutation of
+      12 checkers with one side condition removed, the verdicts of Table 1, and every number
+      quoted in the text
+    by: make -C artifact check      # needs python3

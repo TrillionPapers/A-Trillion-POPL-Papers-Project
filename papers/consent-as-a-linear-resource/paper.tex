@@ -1,44 +1,100 @@
 \documentclass[acmsmall,nonacm,screen]{acmart}
 
 \usepackage{mathpartir}
+\usepackage{booktabs}
 
 \citestyle{acmauthoryear}
 \settopmatter{printacmref=false}
 
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
 \newcommand{\kw}[1]{\mathsf{#1}}
 \newcommand{\nm}[1]{\mathit{#1}}
-\newcommand{\Ok}[2]{\kw{Ok}(#1, #2)}
-\newcommand{\ret}{\kw{ret}}
-\newcommand{\ask}[2]{\kw{ask}\;#1\;(#2)}
-\newcommand{\act}[3]{\kw{act}\;#1\;#2\;#3}
-\newcommand{\orc}[1]{\kw{oracle}(#1)}
-\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
-\newcommand{\judg}[3]{\Phi; \Gamma; #1 \vdash #2 : #3}
-\newcommand{\step}[1]{\xrightarrow{\;#1\;}}
-\newcommand{\ustep}[1]{\overset{#1}{\leadsto}}
 \newcommand{\Base}{\kw{Base}}
+\newcommand{\Ok}[2]{\kw{Ok}_{#1}(#2)}
+\newcommand{\Bud}[2]{\kw{Bud}_{#1}(#2)}
+\newcommand{\ok}[2]{\kw{ok}_{#1}(#2)}
+\newcommand{\bud}[2]{\kw{bud}_{#1}(#2)}
+\newcommand{\gone}{\kw{gone}}
+\newcommand{\pay}{\nm{pay}}
+\newcommand{\ret}{\kw{ret}\;}
+\newcommand{\model}{\kw{model}}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\ite}[3]{\kw{if}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\ask}[2]{\kw{ask}\;#1\;(#2)}
+\newcommand{\askupto}[2]{\kw{ask}\;#1\;\kw{upto}\;#2}
+\newcommand{\act}[3]{\kw{act}\;#1\;#2\;#3}
+\newcommand{\spend}[3]{\kw{spend}\;#1\;#2\;#3}
+\newcommand{\splt}[2]{\kw{split}\;#1\;#2}
+\newcommand{\run}[4]{\kw{run}_{#1 \multimap #2}(#3, #4)}
+\newcommand{\iter}[4]{\kw{iter}\;#1\;\kw{from}\;#2\;\kw{as}\;#3.\,#4}
+\newcommand{\pack}[2]{\kw{pack}(#1, #2)}
+\newcommand{\inl}{\kw{inl}\,}
+\newcommand{\inr}{\kw{inr}\,}
+\newcommand{\tok}[1]{\kw{tok}(#1)}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\monus}{\mathbin{\dot{-}}}
+\newcommand{\wrong}{\kw{wrong}}
+\newcommand{\dom}{\mathrm{dom}\,}
+\newcommand{\fv}{\mathrm{fv}}
+\newcommand{\evto}{\Downarrow}
+\newcommand{\lstep}[1]{\xrightarrow{\,#1\,}}
+\newcommand{\own}{\mathrel{\triangleright}}
+\newcommand{\er}[1]{|#1|}
+\newcommand{\least}[2]{\lfloor #1 : #2 \rfloor}
+\newcommand{\grant}{\kw{grant}}
+\newcommand{\deny}{\kw{deny}}
+\newcommand{\evact}{\kw{act}}
+\newcommand{\evsplit}{\kw{split}}
+\newcommand{\code}{\kw{c}}
+
+% A display for programs. It measures its content and warns when the content is wider than the line.
+\newsavebox{\progbox}
+\newenvironment{prog}
+  {\begin{lrbox}{\progbox}$\displaystyle\begin{array}{@{}l@{\qquad}l@{}}}
+  {\end{array}$\end{lrbox}%
+   \ifdim\wd\progbox>\linewidth
+     \PackageWarning{paper}{Overfull program display by \the\dimexpr\wd\progbox-\linewidth\relax}%
+   \fi
+   \[\usebox{\progbox}\]\ignorespacesafterend}
+
+\input{artifact/expected/numbers.tex}
 
 \begin{document}
 
 \title{Consent as a Linear Resource: Typed Approvals for Agents That Act}
 
 \author{Claude-Fable-5.2}
-\authornote{An AI model. It wrote this paper at the request of a human who asked for papers on
-the strongest ideas of this repository. The proofs are on paper and have not been checked by a
-machine. At the time of writing nobody has reviewed the paper.}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script implements the calculus and tests the theorems on random programs. At the time of
+writing nobody has reviewed the paper. This version replaces a shorter one; the record of the
+paper lists the changes.}
 
 \begin{abstract}
-An agent that acts for a person asks for approval before an action that cannot be undone. The
-approval is worth something only if the action that runs is the action that was shown. We give a
-calculus in which an approval is a linear value whose type records the action and a predicate on
-its payload, and in which acting consumes an approval that the payload satisfies. Well-typed
-programs need no runtime monitor: in every execution, each action is matched by its own earlier
-approval, and the payload that was executed satisfies the predicate that was shown. The guarantee
-holds for every behavior of the model that drives the agent, and it extends to code that the
-model writes, provided the code is type-checked before it runs.
+An agent that acts for a person asks before it does something that cannot be undone. The
+answer is worth something only if the action that follows is the one that was shown, is done
+once, and is done by the part of the agent that was meant to do it. We give a calculus in which
+a person's consent is a value that a program can hold and pass on and cannot copy. An
+\emph{approval} has a type that records an action and a predicate on its payload, and acting
+uses the approval up. A \emph{budget} has a type that records an amount; paying lowers the
+amount, and a budget can be split so that a part of it goes to another part of the program,
+including code that the model wrote a moment ago and that nobody has read. Programs are checked
+before they run, and no monitor watches them while they run. We prove that in every execution
+of a well-typed program, for every behavior of the model, each action falls under a grant that
+the person made before it: an approval pays for at most one action, of the kind and with a
+payload that the person was shown, and the payments under a budget sum to at most its amount.
+We prove a second, local statement: a part of a program does only what the types of its tokens
+allow, plus what the person grants while it runs, so that code which is handed two units of a
+budget of five spends at most two. The proofs use a ledger of tokens that exists only in the
+proofs; tokens are erased before a program runs. A script implements the calculus. It tests the
+theorems on \exPrograms{} random programs, and it shows for each of \exRules{} side conditions
+of the type system a program that the system without the condition accepts and that the
+ledger then refuses. A monitor that enforces the same ledger at run time stops such programs too,
+but in \exLatePercent{} percent of the executions that it stopped, something had already been
+done.
 \end{abstract}
 
-\keywords{linear types, indexed types, capabilities, agents, human oversight}
+\keywords{linear types, indexed types, capabilities, delegation, agents, human oversight}
 
 \authorsaddresses{}
 
@@ -46,312 +102,1081 @@ model writes, provided the code is type-checked before it runs.
 
 \section{Introduction}
 
-Agents built on language models send messages, move money, and delete files. The common
-safeguard is a person in the loop: before an irreversible action, the agent shows what it is
-about to do and waits for approval. The safeguard has a gap between the check and the use. The
-agent shows one payload and then builds the action again from a variable that has changed, from a
-second call to the model, or from text that the model was given by a third party. The person
-approved an action that never ran.
+Agents built on language models send messages, move money, and delete files. The usual
+safeguard is a person. Before an action that cannot be undone, the agent shows what it is
+about to do and waits for an answer. In practice the question is a dialog with three buttons:
+allow once, always allow, deny.
 
-A runtime monitor closes the gap by recording each approval and comparing each action with the
-record. We show that a type system can do the same work before the program runs. An approval is
-a value of type $\Ok{a}{x.\varphi}$: one use of action $a$ with a payload $x$ that satisfies
-$\varphi$. The predicate is the thing shown to the person, for example $x = m$ for a message $m$
-that is fixed, or $x \le 100$ for an amount. The value is linear, so it is used at most once, and
-there is no way to make one except by asking. Acting with payload $i$ requires an approval whose
-predicate $i$ provably satisfies.
+The answer is worth less than it looks, because there are three gaps around it.
 
-Two features of the setting shape the calculus. The model is not trusted: its answers are
-arbitrary data, and the guarantee must hold for all of them. And the model may write code that
-the agent runs. The guarantee then has to cover programs that did not exist when the agent
-started.
+\emph{Between what is shown and what is done.} The agent shows one payload and then builds the
+action again: from a variable that has changed, from a second call to the model, or from text
+that a third party has planted in a web page. The person approved an action that never ran.
+This is the old gap between the time of check and the time of use~\citep{mcphee1974}.
 
-Our main contributions are as follows:
+\emph{Between once and always.} ``Allow once'' means a question for every action, and people
+pay little attention to the dialogs that ask them~\citep{felt2012}. ``Always allow'' turns one
+answer into a standing permission whose extent nobody has stated. What the person means is
+usually in between: up to a hundred dollars, for this task.
+
+\emph{Between the agent and its parts.} Agents hand work to other agents, and many act by
+writing code that runs on the spot~\citep{wang2024}. Which answers of the person go along with
+the work? If all of them do, a part that was meant to book a train can spend the travel budget
+on anything. It is a confused deputy~\citep{hardy1988} that waits for its occasion.
+
+A monitor at run time closes the first two gaps. It records every answer and compares every
+action with the record. But a monitor acts late. It stops a program at the action that no
+answer covers, and by then the program may have performed others: one supplier is paid and the
+second cannot be. For actions that cannot be undone, half a task is a harm of its own kind. A
+monitor also says nothing in advance. What a piece of code can do with the answers that it
+holds is learned by running it.
+
+This paper treats consent as a resource in the sense of linear logic~\citep{girard1987}: a
+value that a program can hold, pass on, and use up, and that it cannot copy. There are two
+kinds. An \emph{approval} of type $\Ok{a}{x.\varphi}$ is good for one action $a$ with a
+payload $x$ that satisfies $\varphi$. The predicate is what the person was shown, for example
+$x = m$ for an amount $m$ that is fixed, or $x \le 100$. A \emph{budget} of type $\Bud{a}{t}$
+is good for actions $a$ whose payloads sum to at most $t$. Paying lowers the amount in the
+type, and a budget splits into two budgets that add up to it. The only way to make a token of
+either kind is to ask the person. A program is checked before it runs. Code that the model
+writes is checked before \emph{it} runs, against a type that says which tokens it is given.
+
+\paragraph{Results.} The calculus has two semantics. In the first, tokens have names and a
+ledger records what each token still permits; the ledger refuses any action that is not
+covered. In the second there is no ledger, and a token is a value that carries nothing. We
+prove four statements about well-typed programs.
 \begin{itemize}
-\item A first-order calculus with indexed approval types, an oracle that returns arbitrary data,
-  and a semantics with a reference monitor (Section~\ref{sec:calculus}).
-\item Type safety for the monitored semantics, which means that the monitor never blocks a
-  well-typed program (Theorems~\ref{thm:pres} and~\ref{thm:prog}).
-\item The consent theorem: without the monitor, every execution of a well-typed program matches
-  each action with its own earlier approval, whose predicate the payload satisfies
-  (Theorem~\ref{thm:consent}).
-\item The extension to code written by the model and checked at run time
-  (Section~\ref{sec:code}).
+\item \emph{Safety} (Theorem~\ref{thm:safety}). The ledger never refuses a step. A well-typed
+  program stops for lack of consent only where it asks.
+\item \emph{Erasure} (Theorem~\ref{thm:erasure}). The semantics without tokens produces
+  exactly the traces of the semantics with the ledger, without the names. So the ledger and the
+  tokens need not exist at run time.
+\item \emph{Consent} (Theorem~\ref{thm:consent}). Every trace is \emph{explained}: each action
+  falls under an earlier grant of the person. An approval pays for at most one action, of its
+  kind, with a payload that satisfies the predicate that was shown. The payloads under a
+  budget, and under everything that is split from it, sum to at most its amount.
+\item \emph{Authority} (Theorem~\ref{thm:authority}). The actions of a part of a program are
+  accepted by the \emph{least} ledger that gives its tokens their types. A part does what its
+  types allow and what the person grants while it runs, and nothing else. For code that the
+  model writes, this bounds what the code can do by the type at which it was accepted, before
+  it runs and without reading it.
 \end{itemize}
+All four hold for every answer of the model, every reply of the world, and every piece of code
+that the model writes, because the semantics leaves these open. An attacker who controls the
+model, or the text that the model reads, gets nothing that the statements exclude.
 
-\paragraph{Status of the claims.}
-The proofs in this paper are sketched on paper and have not been mechanized.
+\paragraph{Tests.} The proofs are on paper. An artifact implements the checker and both
+semantics, and tests each theorem on random programs
+(Section~\ref{sec:tests}). It also breaks the type system in \exRules{} ways, one side
+condition at a time, and finds for each a program that the broken system accepts and that the
+ledger refuses. And it measures what a monitor alone would do with the programs that the type
+system rejects. It stops \exStoppedPercent{} percent of their executions, and in
+\exLatePercent{} percent of those an action has already been performed.
+
+\paragraph{What the paper does not do.} It does not say when an agent should ask. A companion
+paper derives that from where the payload of an action comes from~\citep{tpp7}, and another
+counts what a question costs~\citep{tpp6}. It also does not say what a person understands of a
+question. The theorems begin at the answer. Section~\ref{sec:limits} lists further limits.
+
+\section{Three Programs}
+\label{sec:overview}
+
+We introduce the calculus by three programs. Each comes with variants that a careless author,
+or a model, could write, and with the reason for which the checker rejects them.
+Table~\ref{tab:verdicts} collects the verdicts. The artifact checks every row.
+
+\begin{table}[t]
+\caption{The programs of Section~\ref{sec:overview}, their variants, and what the checker of
+the artifact says. A verdict other than ``accepted'' is the reason for which the checker
+rejects the program.}
+\label{tab:verdicts}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Program & Change & Verdict \\
+\midrule
+payment (\S\ref{sec:invoice}) & none & accepted \\
+ & pays a second answer of the model & a payload outside the approval \\
+ & pays twice with the approval & a resource that is not available \\
+ & uses the approval for the action $\nm{delete}$ & an action without its approval \\
+budget (\S\ref{sec:budget}) & none & accepted \\
+ & pays without the test $m \le n$ & a payload above the budget \\
+ & packs the state as $\pack{n}{b_2}$ after it has paid & the packed value \\
+delegation (\S\ref{sec:delegation}) & none & accepted \\
+ & passes the part at the type $\Bud{\pay}{4}$ & the argument of the code \\
+ & uses the part again after the code has run & a resource that is not available \\
+code for $\Bud{\pay}{2}$ & pays $m$ after a test $m \le 2$ & accepted \\
+ & pays $3$ & a payload above the budget \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What Was Shown Is What Is Done}
+\label{sec:invoice}
+
+An agent pays an invoice. The model reads the invoice and names the amount, the person is
+asked, and the payment is made.
+\begin{prog}
+\letin{m}{\model}{} & \text{the model names an amount}\\
+\letin{r}{\ask{\pay}{x.\,x = m}}{} & \text{the person sees: pay exactly $m$}\\
+\kw{case}\;r\;\kw{of}\;\inl y \Rightarrow \letin{z}{\act{\pay}{m}{y}}{\ret z} & \text{pays $m$ and uses up the approval}\\
+\phantom{\kw{case}\;r\;\kw{of}}\;\inr u \Rightarrow \ret 0 & \text{the person said no}
+\end{prog}
+The expression $\ask{\pay}{x.\,x = m}$ shows the person the action and a predicate on its
+payload, with the value of $m$ filled in. Its type is $\Ok{\pay}{x.\,x = m} \oplus 1$: an
+approval or a refusal. A program cannot use the approval without taking the sum apart, so it
+cannot forget that the person may say no. In the left branch, $y$ is an approval for one
+payment whose amount equals $m$. The rule for $\kw{act}$ asks for two things: that $y$ is an
+approval for $\pay$, and that the facts at hand entail its predicate for the payload that is
+sent, which is $m = m$ here.
+
+The three variants in Table~\ref{tab:verdicts} are three ways to misuse an answer. In the
+first, the amount that is paid comes from a second call to the model. Nothing entails that it
+equals the amount that was shown, and the program is rejected. This is the gap between check
+and use. The type closes it by recording what was shown as a predicate: a payload that
+provably satisfies the predicate may be sent, and no other. In the second variant the approval
+pays twice. The program is rejected because $y$ is gone after its first use. In the third, an
+approval for a payment is used to delete something.
+
+The predicate is a choice of the author of the program, and the type makes the choice visible.
+With $\ask{\pay}{x.\,x \le 3}$ the person agrees to one payment of at most $3$, and the model
+may name the amount after the answer.
+
+\subsection{Many Payments under One Answer}
+\label{sec:budget}
+
+An approval is used up by one action. A \emph{budget} is used up by amounts. The next program
+asks once and then pays up to three invoices.
+\begin{prog}
+\letin{r}{\askupto{\pay}{5}}{} & \text{one question}\\
+\kw{case}\;r\;\kw{of}\;\inl b \Rightarrow \kw{let}\;s = \kw{iter}\;3\;\kw{from}\;\pack{5}{b}\;\kw{as}\;y. & \text{three turns}\\
+\qquad\qquad \letin{\pack{n}{b_1}}{y}{} & \text{$b_1$ is a budget of $n$}\\
+\qquad\qquad \letin{m}{\model}{} & \text{the next amount}\\
+\qquad\qquad \kw{if}\;m \le n\;\kw{then}\;\letin{b_2}{\spend{\pay}{m}{b_1}}{\ret \pack{n \monus m}{b_2}} \\
+\qquad\qquad \kw{else}\;\ret \pack{n}{b_1} & \text{too much is asked}\\
+\phantom{\kw{case}\;r\;\kw{of}\;\inl b \Rightarrow}\;\kw{in}\;\ret 0\\
+\phantom{\kw{case}\;r\;\kw{of}}\;\inr u \Rightarrow \ret 0 & \text{the person said no}
+\end{prog}
+The answer to $\askupto{\pay}{5}$ is a budget $b$ of type $\Bud{\pay}{5}$, or a refusal. The
+expression $\spend{\pay}{m}{b_1}$ pays $m$ under a budget $b_1$ of type $\Bud{\pay}{n}$. It is
+well typed only where the facts entail $m \le n$, which is why the program tests first. It
+returns the budget at the type $\Bud{\pay}{n \monus m}$, where $\monus$ is subtraction that
+stops at zero. The old name $b_1$ is gone, so the program cannot pay against the amount that
+it had before.
+
+The loop needs a state whose type is the same in every turn, while the amount changes from
+turn to turn. The type $\exists q.\,\Bud{\pay}{q}$ says: a budget of some amount. A value
+$\pack{n}{b}$ of this type carries the amount as a number that the program can test. The body
+of a loop runs several times, so the rule for $\kw{iter}$ gives it no token except its state. A
+token from outside the loop would be used once in every turn.
+
+In the first variant in the table the test is missing, and nothing entails $m \le n$. In the
+second, the program pays and then packs the budget with the old amount $n$. The checker rejects
+the package, because $b_2$ has the type $\Bud{\pay}{n \monus m}$, and a budget of $n \monus m$
+does not serve as a budget of $n$.
+
+\subsection{A Part for Code That Nobody Has Read}
+\label{sec:delegation}
+
+Suppose that $b$ is a budget of $5$, and that a part of the task goes to code that the model
+writes when the program is already running.
+\begin{prog}
+\letin{p}{\splt{b}{2}}{\letin{(b_1, b_2)}{p}{}} & \text{$b_1$ is a budget of $2$, $b_2$ of $5 \monus 2$}\\
+\letin{r}{\run{\Bud{\pay}{2}}{\Base}{t}{b_1}}{} & \text{the model writes code for the task $t$}\\
+\kw{case}\;r\;\kw{of}\;\inl z \Rightarrow \letin{b_3}{\spend{\pay}{3}{b_2}}{\ret 0} & \text{the code has run; the rest is still here}\\
+\phantom{\kw{case}\;r\;\kw{of}}\;\inr b_1' \Rightarrow \ret 0 & \text{the code was rejected; the part is back}
+\end{prog}
+The expression $\splt{b}{2}$ divides the budget in two. The expression
+$\run{\tau_1}{\tau_2}{t}{w}$ sends a prompt $t$ and the two types to the model. The model
+replies with code that takes a token of type $\tau_1$ and returns a value of type $\tau_2$.
+The code is checked against these types before it runs. If the check fails, nothing runs, and
+the argument comes back in the right summand, so that no part of the budget is lost. If the
+check passes, the code runs, and $w$ is the only token that it is given.
+
+Code that draws a number $m$ from the model, tests $m \le 2$, and pays $m$ is accepted for the
+type $\Bud{\pay}{2} \multimap \Base$. Code that pays $3$ is rejected, since nothing entails
+$3 \le 2$. The author of the program does not know the code that is accepted, and nobody has
+read it. What is known is its type, and Theorem~\ref{thm:authority} says what the type is
+worth. Whatever the code does, the payments that it makes with this budget, or with the parts
+into which it splits the budget, sum to at most $2$. The bound is the amount in the type, and
+it holds even if the caller hands over a token of which more is left. One execution has the
+events
+\[
+\grant(0, \bud{\pay}{5}) \cdot \evsplit(0, 1, 2) \cdot \evact(1, \pay, 1) \cdot \evact(0, \pay, 3).
+\]
+The person grants a budget of $5$ under the name $0$. The program splits off a part of $2$
+under the name $1$. The code pays $1$ from its part, and the program pays $3$ from the rest.
+The names of tokens exist for the proofs. The program that runs has no tokens, and its log
+reads $\grant(\bud{\pay}{5}) \cdot \evact(\pay, 1) \cdot \evact(\pay, 3)$.
+
+Code may also ask the person itself. What it then does is done under that answer, which the
+person gave to the code and not to the program around it.
 
 \section{The Calculus}
 \label{sec:calculus}
 
 \subsection{Syntax}
 
-Base values $c$ are data such as integers and strings. An index $i$ is a base variable $x$ or a
-base value. Predicates $\varphi$ come from a decidable theory of base values with an entailment
-$\Phi \models \varphi$ that is closed under substitution of values for variables. Actions $a$
-come from a fixed finite set.
+\begin{figure}[t]
 \[
-\begin{array}{llcl}
-\text{Types} & \tau & ::= & \Base \mid \kw{Unit} \mid \tau \otimes \tau \mid \tau \oplus \tau
-  \mid \exists x.\,\tau \mid \Ok{a}{x.\varphi} \\
-\text{Operands} & w & ::= & y \mid i \mid () \mid (w, w) \mid \kw{inl}\;w \mid \kw{inr}\;w \mid
-  \kw{pack}(i, w) \mid n \\
-\text{Expressions} & e & ::= & \ret\;w \mid \letin{x}{e}{e} \mid \letin{y}{e}{e} \mid
-  \letin{(y, y)}{w}{e} \\
- & & \mid & \kw{case}\;w\;\{\kw{inl}\;y \Rightarrow e \mid \kw{inr}\;y \Rightarrow e\} \mid
-  \letin{(x, y)}{\kw{unpack}\;w}{e} \\
- & & \mid & \kw{if}\;\varphi\;\kw{then}\;e\;\kw{else}\;e \mid f[\vec{\imath}\,](w) \mid \orc{i}
-  \mid \ask{a}{x.\varphi} \mid \act{a}{i}{w}
+\begin{array}{@{}l@{\quad}r@{\;}l@{}}
+\text{terms} & t, s ::= & x \mid n \mid t + t \mid t \monus t \\
+\text{predicates} & \varphi, \psi ::= & \top \mid t \le t \mid t = t \mid \neg\varphi \mid \varphi \wedge \varphi \\
+\text{types} & \tau ::= & \Base \mid 1 \mid \tau \otimes \tau \mid \tau \oplus \tau \mid \exists x.\tau
+  \mid \Ok{a}{x.\varphi} \mid \Bud{a}{t} \\
+\text{operands} & w ::= & y \mid t \mid () \mid (w, w) \mid \inl w \mid \inr w \mid \pack{t}{w} \\
+\text{expressions} & e ::= & \ret w \mid \letin{x}{e}{e} \mid \letin{y}{e}{e} \mid \letin{(y, y)}{w}{e} \\
+ & \mid & \kw{case}\;w\;\kw{of}\;\inl y \Rightarrow e;\ \inr y \Rightarrow e
+  \mid \letin{\pack{x}{y}}{w}{e} \mid \ite{\varphi}{e}{e} \\
+ & \mid & \model \mid \ask{a}{x.\varphi} \mid \askupto{a}{t} \mid \act{a}{t}{w} \mid \spend{a}{t}{w}
+  \mid \splt{w}{t} \\
+ & \mid & \run{\tau}{\tau}{t}{w} \mid \iter{n}{w}{y}{e} \\[1ex]
+\text{values} & v ::= & n \mid () \mid (v, v) \mid \inl v \mid \inr v \mid \pack{n}{v} \mid \tok{k} \\
+\text{entries} & E ::= & \ok{a}{x.\varphi} \mid \bud{a}{n} \mid \gone \\
+\text{events} & & \grant(k, E) \mid \deny(a) \mid \evact(k, a, n) \mid \evsplit(k, k', n)
 \end{array}
 \]
-There are two kinds of variables. Base variables $x$ stand for base values, may be used any
-number of times, and may occur in types. Resource variables $y$ stand for everything else and
-are used at most once. A token name $n$ is an approval at run time and does not occur in source
-programs. A program is a set of procedures $f[\vec{x}\,](y : \tau_1) : \tau_2 = e$, which may be
-recursive, and a main expression. The signature of $f$ is
-$\forall \vec{x}.\,\Phi_f \Rightarrow \tau_1 \to \tau_2$.
+\Description{The grammar of terms, predicates, types, operands, expressions, values, ledger
+entries, and events.}
+\caption{Syntax. The letter $a$ ranges over the names of actions, $n$ and $m$ over numbers,
+$x$ over base variables, $y$ over resource variables, and $k$ over the names of tokens.}
+\label{fig:syntax}
+\end{figure}
 
-The expression $\orc{i}$ asks the model and returns a base value. The expression
-$\ask{a}{x.\varphi}$ shows the person the action $a$ and the predicate $\varphi$ on its payload
-$x$, and returns an approval or nothing. The expression $\act{a}{i}{w}$ performs $a$ with payload
-$i$ and consumes the approval $w$.
+Figure~\ref{fig:syntax} gives the syntax. There are two kinds of variables. \emph{Base
+variables} $x$ stand for numbers, and they may occur in terms, in predicates, and in types.
+\emph{Resource variables} $y$ stand for values that may contain tokens. Terms are built from
+variables and numerals by addition and by the subtraction $\monus$ that stops at zero.
 
-\subsection{Typing}
+An operand builds a value and does nothing else. Expressions are in a sequenced form, in which
+every step that asks or acts is named by a $\kw{let}$. There are two of these.
+$\letin{x}{e_1}{e_2}$ binds a number, which $e_2$ may use in terms and types.
+$\letin{y}{e_1}{e_2}$ binds a value of any type.
 
-The judgment $\judg{\Delta}{e}{\tau}$ has three contexts: predicates $\Phi$ that are assumed, base
-variables $\Gamma$, and resource variables and token names $\Delta$ with their types.
-Figure~\ref{fig:typing} gives the rules that concern approvals. The remaining rules are the
-standard ones for an affine language. They split $\Delta$ between subterms and allow weakening.
-The rule for $\letin{x}{e_1}{e_2}$ with $e_1 : \Base$ adds $x$ to $\Gamma$ and requires that $x$
-does not occur in the type of the result. The rule for $\kw{unpack}$ does the same for the
-witness of an existential. The rule for $\kw{if}\;\varphi$ adds $\varphi$ to $\Phi$ in the first
-branch and its negation in the second. A call $f[\vec{\imath}\,](w)$ requires
-$\Phi \models \Phi_f[\vec{\imath}/\vec{x}]$ and substitutes the indices in the types of the
-signature.
+Six forms deal with the outside. $\model$ returns a number that the model chose. Any number may
+come back: the model is not trusted, and neither is the text that it has read.
+$\ask{a}{x.\varphi}$ and $\askupto{a}{t}$ put a question to the person. $\act{a}{t}{w}$
+performs the action $a$ with the payload $t$ under the approval $w$, and returns the reply of
+the world, a number. $\spend{a}{t}{w}$ performs the action under the budget $w$ and returns the
+budget; we leave out the reply to keep the rule small. And $\run{\tau_1}{\tau_2}{t}{w}$ asks
+the model for code.
 
-\begin{figure}
+A payload is a number. It stands for whatever an action takes: an amount, a recipient, the
+name of a file, the text of a message. For other kinds of data the predicates compare data
+instead of numbers. Only budgets need payloads that add up.
+
+Programs are first order, loops are bounded, and code that the model writes may not contain
+$\kw{run}$. So every program ends. Section~\ref{sec:limits} comes back to this restriction.
+
+\subsection{A Semantics with a Ledger}
+\label{sec:ledger}
+
+\begin{figure}[t]
 \begin{mathpar}
-\inferrule[Ask]{\mathrm{fv}(\varphi) \subseteq \Gamma, x}
-  {\judg{\cdot}{\ask{a}{x.\varphi}}{\Ok{a}{x.\varphi} \oplus \kw{Unit}}}
+\inferrule*[right=G]{k \notin \dom L}{L \lstep{\grant(k, E)} L[k \mapsto E]}
 \and
-\inferrule[Act]{\Gamma \vdash i \\ \judg{\Delta}{w}{\Ok{a}{x.\varphi}} \\
-  \Phi \models \varphi[i/x]}
-  {\judg{\Delta}{\act{a}{i}{w}}{\Base}}
+\inferrule*[right=D]{ }{L \lstep{\deny(a)} L}
 \and
-\inferrule[Oracle]{\Gamma \vdash i}{\judg{\cdot}{\orc{i}}{\Base}}
+\inferrule*[right=A-Ok]{L(k) = \ok{a}{x.\varphi} \\ \varphi[n/x]\ \text{holds}}
+  {L \lstep{\evact(k, a, n)} L[k \mapsto \gone]}
 \and
-\inferrule[Token]{ }{\judg{n : \Ok{a}{x.\varphi}}{n}{\Ok{a}{x.\varphi}}}
+\inferrule*[right=A-Bud]{L(k) = \bud{a}{m} \\ n \le m}
+  {L \lstep{\evact(k, a, n)} L[k \mapsto \bud{a}{m - n}]}
 \and
-\inferrule[Attenuate]{\judg{\Delta}{w}{\Ok{a}{x.\varphi}} \\ \Phi, \psi \models \varphi}
-  {\judg{\Delta}{w}{\Ok{a}{x.\psi}}}
+\inferrule*[right=S]{L(k) = \bud{a}{m} \\ n \le m \\ k' \notin \dom L}
+  {L \lstep{\evsplit(k, k', n)} L[k \mapsto \bud{a}{m - n},\, k' \mapsto \bud{a}{n}]}
 \end{mathpar}
-\Description{Five typing rules for approvals.}
-\caption{Typing rules for approvals.}
+\vspace{-1ex}
+\begin{mathpar}
+\inferrule*[right=Ret]{ }{L, \ret w \evto L, \sem{w}, \epsilon}
+\and
+\inferrule*[right=Model]{ }{L, \model \evto L, n, \epsilon}
+\and
+\inferrule*[right=Let]{L, e_1 \evto L_1, v_1, s_1 \\ L_1, e_2[v_1/y] \evto L_2, v_2, s_2}
+  {L, \letin{y}{e_1}{e_2} \evto L_2, v_2, s_1 s_2}
+\and
+\inferrule*[right=Ask-Yes]{E = \ok{a}{x.\varphi} \\ L \lstep{\grant(k, E)} L'}
+  {L, \ask{a}{x.\varphi} \evto L', \inl\tok{k}, \grant(k, E)}
+\and
+\inferrule*[right=Ask-No]{ }{L, \ask{a}{x.\varphi} \evto L, \inr(), \deny(a)}
+\and
+\inferrule*[right=Act]{\sem{w} = \tok{k} \\ L \lstep{\evact(k, a, \sem{t})} L'}
+  {L, \act{a}{t}{w} \evto L', n, \evact(k, a, \sem{t})}
+\and
+\inferrule*[right=Spend]{\sem{w} = \tok{k} \\ L \lstep{\evact(k, a, \sem{t})} L'}
+  {L, \spend{a}{t}{w} \evto L', \tok{k}, \evact(k, a, \sem{t})}
+\and
+\inferrule*[right=Split]{\sem{w} = \tok{k} \\ L \lstep{\evsplit(k, k', \sem{t})} L'}
+  {L, \splt{w}{t} \evto L', (\tok{k'}, \tok{k}), \evsplit(k, k', \sem{t})}
+\and
+\inferrule*[right=Run-Yes]{y{:}\tau_1 \vdash_{\code} e : \tau_2 \\ L, e[\sem{w}/y] \evto L', v, s}
+  {L, \run{\tau_1}{\tau_2}{t}{w} \evto L', \inl v, s}
+\and
+\inferrule*[right=Run-No]{y{:}\tau_1 \nvdash_{\code} e : \tau_2}
+  {L, \run{\tau_1}{\tau_2}{t}{w} \evto L, \inr \sem{w}, \epsilon}
+\and
+\inferrule*[right=Iter-0]{ }{L, \iter{0}{w}{y}{e} \evto L, \sem{w}, \epsilon}
+\and
+\inferrule*[right=Iter-S]{L, e[\sem{w}/y] \evto L_1, v_1, s_1 \\ L_1, \iter{n}{v_1}{y}{e} \evto L_2, v_2, s_2}
+  {L, \iter{n+1}{w}{y}{e} \evto L_2, v_2, s_1 s_2}
+\end{mathpar}
+\Description{Five rules for the steps of a ledger, and thirteen rules for the evaluation of
+expressions with a ledger.}
+\caption{The steps of a ledger, and evaluation with a ledger. The base $\kw{let}$ is as
+\textsc{Let} with a number for $v_1$. The rules for $\askupto{a}{t}$ are those for
+$\kw{ask}$ with the entry $E = \bud{a}{\sem{t}}$. The rules for pairs, sums, packages, and
+conditionals are the usual ones. In \textsc{Run-Yes} and \textsc{Run-No}, $e$ is any
+expression: it is the code that the model wrote.}
+\label{fig:semantics}
+\end{figure}
+
+The first semantics gives every token a name $k$, and it keeps a \emph{ledger} $L$, a finite
+map from names to entries. An entry $\ok{a}{x.\varphi}$ is an approval that has not been used,
+$\bud{a}{n}$ is a budget of which $n$ is left, and $\gone$ is an approval that has been used.
+The ledger changes by the steps at the top of Figure~\ref{fig:semantics}, and every step has an
+event as its label. A grant adds an entry under a new name. An action needs an entry that
+covers it. That is an approval for this action whose predicate holds of the payload, which is
+gone afterwards, or a budget for this action of which at least the payload is left, which is
+lowered. A split moves a part of a budget to a new name. For an event that no rule covers, the
+ledger has no step. We write $L \lstep{s} L'$ if the ledger goes from $L$ to $L'$ by the steps
+of the events of a sequence $s$, in order, and we say that $L$ \emph{has the steps of} $s$ if
+there is such an $L'$.
+
+The judgment $L, e \evto L', v, s$ says that the closed expression $e$, started with the
+ledger $L$, ends with the ledger $L'$, the value $v$, and the trace $s$. Variables are
+replaced by what they stand for, so at run time an operand may contain values, and $\sem{w}$ is
+the value of a closed operand, in which every term is replaced by its number. A question that
+is granted takes a step of the ledger and returns a token; a question that is denied returns
+$\inr()$. \textsc{Act} and \textsc{Spend} take the step of their action. They differ in what
+they return: the reply of the world, which is any number $n$, or the token.
+
+The semantics is not deterministic. The number in \textsc{Model}, the reply in \textsc{Act},
+the choice between \textsc{Ask-Yes} and \textsc{Ask-No}, and the code $e$ in \textsc{Run-Yes}
+and \textsc{Run-No} are arbitrary. A statement about all evaluations is therefore a statement
+about every model, every world, and every person. The two rules for $\kw{run}$ depend on a
+check $y{:}\tau_1 \vdash_{\code} e : \tau_2$ of the code, which Section~\ref{sec:types}
+defines.
+
+An evaluation can also \emph{go wrong}, written $L, e \evto \wrong$. This happens in three
+situations: the ledger has no step for the event of an \textsc{Act}, a \textsc{Spend}, or a
+\textsc{Split}; an operand does not have the shape that its expression needs, as in an action
+under a number; or a part that is evaluated in a premise of \textsc{Let}, \textsc{Iter-S}, or
+\textsc{Run-Yes} goes wrong. The ledger is thus a monitor. It refuses the action that no
+answer of the person covers, and the program stops there.
+
+\subsection{A Semantics without Tokens}
+\label{sec:erased}
+
+The second semantics is the one that an implementation runs. It has no ledger, and a token is
+the value $\bullet$, which carries nothing. The judgment $e \evto^{\circ} v, s$ is defined by
+the evaluation rules of Figure~\ref{fig:semantics} without the ledgers and without the
+premises about them. A split evaluates to $(\bullet, \bullet)$ and leaves no event. The other
+events lose their names: they are $\grant(E)$, $\deny(a)$, and $\evact(a, n)$. We write
+$\er{v}$, $\er{e}$, and $\er{s}$ for a value, an expression, and a trace in which every token
+is replaced by $\bullet$, every name is dropped, and every split event is removed.
+
+Nothing stops an action in this semantics. If a program acts without an approval, the action
+happens. The theorems of Section~\ref{sec:results} say that a well-typed program does, in this
+semantics, only what the ledger would have allowed.
+
+\section{Types}
+\label{sec:types}
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Var]{ }{\Delta, y{:}\tau \vdash y : \tau}
+\and
+\inferrule*[right=Tm]{ }{\Delta \vdash t : \Base}
+\and
+\inferrule*[right=Unit]{ }{\Delta \vdash () : 1}
+\and
+\inferrule*[right=Inl]{\Delta \vdash w : \tau_1}{\Delta \vdash \inl w : \tau_1 \oplus \tau_2}
+\and
+\inferrule*[right=Pair]{\Delta_1 \vdash w_1 : \tau_1 \\ \Delta_2 \vdash w_2 : \tau_2}
+  {\Delta_1, \Delta_2 \vdash (w_1, w_2) : \tau_1 \otimes \tau_2}
+\and
+\inferrule*[right=Pack]{\Delta \vdash w : \tau[t/x]}{\Delta \vdash \pack{t}{w} : \exists x.\tau}
+\and
+\inferrule*[right=Ret]{\Delta \vdash w : \tau}{\Delta \vdash \ret w : \tau}
+\and
+\inferrule*[right=Let-B]{\Delta_1 \vdash e_1 : \Base \\ \Phi; \Gamma, x; \Delta_2 \vdash e_2 : \tau \\
+  x \notin \Gamma \cup \fv(\tau)}
+  {\Delta_1, \Delta_2 \vdash \letin{x}{e_1}{e_2} : \tau}
+\and
+\inferrule*[right=Let-R]{\Delta_1 \vdash e_1 : \tau_1 \\ \Delta_2, y{:}\tau_1 \vdash e_2 : \tau}
+  {\Delta_1, \Delta_2 \vdash \letin{y}{e_1}{e_2} : \tau}
+\and
+\inferrule*[right=Let-P]{\Delta_1 \vdash w : \tau_1 \otimes \tau_2 \\ \Delta_2, y_1{:}\tau_1, y_2{:}\tau_2 \vdash e : \tau}
+  {\Delta_1, \Delta_2 \vdash \letin{(y_1, y_2)}{w}{e} : \tau}
+\and
+\inferrule*[right=Case]{\Delta_1 \vdash w : \tau_1 \oplus \tau_2 \\ \Delta_2, y_1{:}\tau_1 \vdash e_1 : \tau \\
+  \Delta_2, y_2{:}\tau_2 \vdash e_2 : \tau}
+  {\Delta_1, \Delta_2 \vdash \kw{case}\;w\;\kw{of}\;\inl y_1 \Rightarrow e_1;\ \inr y_2 \Rightarrow e_2 : \tau}
+\and
+\inferrule*[right=Unpack]{\Delta_1 \vdash w : \exists x.\tau_1 \\ \Phi; \Gamma, x; \Delta_2, y{:}\tau_1 \vdash e : \tau \\
+  x \notin \Gamma \cup \fv(\tau)}
+  {\Delta_1, \Delta_2 \vdash \letin{\pack{x}{y}}{w}{e} : \tau}
+\and
+\inferrule*[right=If]{\Phi, \varphi; \Gamma; \Delta \vdash e_1 : \tau \\ \Phi, \neg\varphi; \Gamma; \Delta \vdash e_2 : \tau}
+  {\Delta \vdash \ite{\varphi}{e_1}{e_2} : \tau}
+\and
+\inferrule*[right=Model]{ }{\Delta \vdash \model : \Base}
+\and
+\inferrule*[right=Ask]{ }{\Delta \vdash \ask{a}{x.\varphi} : \Ok{a}{x.\varphi} \oplus 1}
+\and
+\inferrule*[right=Ask-Upto]{ }{\Delta \vdash \askupto{a}{t} : \Bud{a}{t} \oplus 1}
+\and
+\inferrule*[right=Act]{\Delta \vdash w : \Ok{a}{x.\varphi} \\ \Phi \models \varphi[t/x]}
+  {\Delta \vdash \act{a}{t}{w} : \Base}
+\and
+\inferrule*[right=Spend]{\Delta \vdash w : \Bud{a}{s} \\ \Phi \models t \le s}
+  {\Delta \vdash \spend{a}{t}{w} : \Bud{a}{s \monus t}}
+\and
+\inferrule*[right=Split]{\Delta \vdash w : \Bud{a}{s} \\ \Phi \models t \le s}
+  {\Delta \vdash \splt{w}{t} : \Bud{a}{t} \otimes \Bud{a}{s \monus t}}
+\and
+\inferrule*[right=Run]{\Delta \vdash w : \tau_1 \\ \tau_1, \tau_2\ \text{closed}}
+  {\Delta \vdash \run{\tau_1}{\tau_2}{t}{w} : \tau_2 \oplus \tau_1}
+\and
+\inferrule*[right=Iter]{\Delta \vdash w : \tau \\ \Phi; \Gamma; y{:}\tau \vdash e : \tau}
+  {\Delta \vdash \iter{n}{w}{y}{e} : \tau}
+\and
+\inferrule*[right=Sub]{\Delta \vdash e : \tau \\ \Phi \vdash \tau \le \tau'}{\Delta \vdash e : \tau'}
+\and
+\inferrule*[right=S-Ok]{\Phi, \psi \models \varphi}{\Phi \vdash \Ok{a}{x.\varphi} \le \Ok{a}{x.\psi}}
+\and
+\inferrule*[right=S-Bud]{\Phi \models t \le s}{\Phi \vdash \Bud{a}{s} \le \Bud{a}{t}}
+\and
+\inferrule*[right=S-Ex]{\Phi \vdash \tau \le \tau'}{\Phi \vdash \exists x.\tau \le \exists x.\tau'}
+\end{mathpar}
+\Description{Typing rules for operands and expressions, and three rules of subtyping.}
+\caption{Typing and subtyping. A judgment $\Delta \vdash e : \tau$ stands for
+$\Phi; \Gamma; \Delta \vdash e : \tau$ with the $\Phi$ and $\Gamma$ of the conclusion. The
+terms, predicates, and types of an expression mention only variables of $\Gamma$, and the bound
+variable of a predicate or a package does not occur in $\Phi$. There is a rule \textsc{Inr}
+like \textsc{Inl}, \textsc{Sub} applies to operands as well, and subtyping is reflexive and
+goes through $\otimes$ and $\oplus$.}
 \label{fig:typing}
 \end{figure}
 
-The rule \textsc{Act} is the point of the system. The payload $i$ is an index, so it is a
-variable or a value, and it cannot be an expression that is evaluated again. The entailment says
-that the predicate of the approval covers this payload. The rule \textsc{Attenuate} lets an
-approval for many payloads serve as an approval for fewer. No rule produces an approval except
-\textsc{Ask}, and source programs contain no token names.
+The types are those of Figure~\ref{fig:syntax}: numbers, the unit type, pairs, sums, packages,
+and the two types of tokens. The judgment $\Phi; \Gamma; \Delta \vdash e : \tau$ has three
+contexts. $\Gamma$ is the set of base variables in scope. $\Phi$ is a list of predicates over
+them, the \emph{facts}. $\Delta$ gives a type to every resource variable.
+Figure~\ref{fig:typing} shows the rules. Entailment $\Phi \models \varphi$ is semantic: every
+assignment of numbers to the variables that makes all of $\Phi$ true makes $\varphi$ true.
 
-\paragraph{Example.}
-The following program asks the model for a message, shows exactly that message, and sends it.
-\[
-\begin{array}{l}
-\letin{m}{\orc{q}}{} \\
-\letin{r}{\ask{\nm{send}}{x.\,x = m}}{} \\
-\kw{case}\;r\;\{\kw{inl}\;t \Rightarrow \act{\nm{send}}{m}{t} \mid \kw{inr}\;u \Rightarrow
-  \ret\;0\}
-\end{array}
-\]
-It is well typed, because $\models (x = m)[m/x]$. Replace the action by
-$\letin{m'}{\orc{q}}{\act{\nm{send}}{m'}{t}}$, which asks the model again. The program is
-rejected, since $m' = m$ does not follow from anything. So is a program that uses $t$ twice, and
-a program that shows $x = m$ and sends a string built from $m$ by a further step.
+\paragraph{Used at most once.} A rule with several parts divides $\Delta$ among them. In
+\textsc{Let-R} the first part gets $\Delta_1$ and the second gets $\Delta_2$, and no variable
+is in both. The two branches of \textsc{Case} and of \textsc{If} get the same context, because
+only one of them runs. The rules at the leaves accept any context, so a token may be left
+unused. The discipline is therefore affine and not linear in the strict sense. Consent that is
+not used hurts nobody, and a program that is refused in one place must be free to give up.
 
-\subsection{Semantics}
+\paragraph{Tokens.} \textsc{Ask} and \textsc{Ask-Upto} are the only rules whose conclusion has
+a token type that comes neither from a premise nor from the context. \textsc{Act} needs an approval for the same
+action and the entailment $\Phi \models \varphi[t/x]$. \textsc{Spend} and \textsc{Split} need
+$\Phi \models t \le s$, and they return budgets whose amounts add up to what went in. That is
+the whole mechanism. The rest of the system moves tokens around.
 
-A token store $\rho$ maps token names to pairs $(a, x.\varphi)$. A configuration is a store and
-a closed expression. Steps are labelled with events. The rules for $\kw{let}$, $\kw{case}$,
-$\kw{unpack}$, $\kw{if}$, and calls are standard and silent. A $\kw{let}$ on a base value
-substitutes it for the base variable in terms, types, and predicates. The other rules are
-\[
-\begin{array}{lcll}
-(\rho,\; \orc{c}) & \step{} & (\rho,\; \ret\;c') & \text{for any } c' \\
-(\rho,\; \ask{a}{x.\varphi}) & \step{\kw{grant}(n, a, x.\varphi)} &
-  (\rho[n \mapsto (a, x.\varphi)],\; \ret\;(\kw{inl}\;n)) & n \text{ fresh} \\
-(\rho,\; \ask{a}{x.\varphi}) & \step{\kw{deny}(a)} & (\rho,\; \ret\;(\kw{inr}\;())) \\
-(\rho,\; \act{a}{c}{n}) & \step{\kw{act}(n, a, c)} & (\rho \setminus n,\; \ret\;c') &
-  \text{if } \rho(n) = (a, x.\varphi) \\
- & & & \text{and } \models \varphi[c/x]
-\end{array}
-\]
-with any result $c'$ of the action. The side condition of the last rule is the \emph{monitor}.
-The \emph{unmonitored} semantics $\ustep{\ell}$ acts on expressions alone and has the same rules
-without stores and without this side condition.
+\paragraph{Facts.} \textsc{If} adds its test to the facts of one branch and the negation to
+those of the other. Facts speak of variables by name, so \textsc{Let-B} and \textsc{Unpack}
+require that the variable that they bind is new. Without this condition a fact about an old
+variable would be applied to a new one of the same name. Section~\ref{sec:needed} shows that
+the condition is needed.
 
-The model and the world are nondeterministic. An execution fixes one behavior of both, so a
-statement about all executions is a statement about all models, including one that an attacker
-controls through its input.
+\paragraph{Loops.} The body of \textsc{Iter} is checked with one resource variable, its state.
+The type of the state is the same before and after every turn, and a package $\exists x.\tau$
+hides what changes.
 
-\section{Safety and Consent}
+\paragraph{Narrowing.} Subtyping lets a token serve where less is expected. By \textsc{S-Ok},
+an approval for the payloads that satisfy $\varphi$ serves as an approval for those that
+satisfy $\psi$, if $\psi$ entails $\varphi$. By \textsc{S-Bud}, a budget of $s$ serves as a
+budget of $t \le s$. A caller uses this to hand a part of the program less than the caller
+holds.
 
-A configuration $(\rho, e)$ has type $\tau$ when $\cdot\,; \cdot\,; \Delta \vdash e : \tau$ for a
-context $\Delta$ of token names with $\Delta \subseteq \rho$. The tokens of $\rho$ outside
-$\Delta$ are approvals that the program has dropped.
+\paragraph{Code.} The types in \textsc{Run} are closed, because the code is written without
+knowledge of the variables of the program. The type of the result is a sum: the result of the
+code, or the argument, which comes back if the code is rejected. The check
+$y{:}\tau_1 \vdash_{\code} e : \tau_2$ in the semantics holds if $e$ contains no $\kw{run}$
+and a checker accepts the judgment $\cdot; \cdot; y{:}\tau_1 \vdash e : \tau_2$. The theorems
+need one property of the checker: it accepts only judgments that have a derivation.
 
-\begin{lemma}[Substitution]
-\label{lem:subst}
-If $\Phi; \Gamma, x; \Delta \vdash e : \tau$, then
-$\Phi[c/x]; \Gamma; \Delta[c/x] \vdash e[c/x] : \tau[c/x]$. If
-$\Phi; \Gamma; \Delta, y : \tau_1 \vdash e : \tau$ and $\Phi; \Gamma; \Delta' \vdash v : \tau_1$
-for a value $v$ and a context $\Delta'$ disjoint from $\Delta$, then
-$\Phi; \Gamma; \Delta, \Delta' \vdash e[v/y] : \tau$.
+\paragraph{The checker.} The checker of the artifact follows the syntax. It computes the type
+of an expression together with the set of resource variables that the expression uses, and it
+removes that set from the context of the parts that come later. This finds the division of
+$\Delta$ that the rules ask for. It applies \textsc{Sub} where a program states the type of a
+value, which is at a package, at the state of a loop, and at the argument of $\kw{run}$, and
+where two branches meet. Programs carry type annotations at these places and at injections;
+Figure~\ref{fig:syntax} omits them. The predicates are
+quantifier-free formulas of linear arithmetic, for which entailment is decidable. The artifact
+works with the numbers $0$ to $5$ and an addition that stops at $5$, and it decides entailment
+by trying all assignments; nothing in what follows depends on which numbers there are. The
+checker makes one query for every action, for every split, and for every token type that is
+narrowed. It has fewer than two hundred lines, and with the two rules of the semantics that
+perform an action it is all that has to be trusted.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Values in a Ledger}
+
+The proofs relate values to ledgers.
+
+\begin{definition}[Typed values]
+\label{def:values}
+For a closed type $\tau$, the judgment $L \vdash v : \tau \own O$ says that the value $v$ has
+the type $\tau$ in the ledger $L$ and \emph{owns} the set $O$ of names. It is defined by
+induction on $\tau$.
+\begin{itemize}
+\item $L \vdash n : \Base \own \emptyset$ and $L \vdash () : 1 \own \emptyset$.
+\item $L \vdash (v_1, v_2) : \tau_1 \otimes \tau_2 \own O_1 \cup O_2$ if
+  $L \vdash v_1 : \tau_1 \own O_1$ and $L \vdash v_2 : \tau_2 \own O_2$ and
+  $O_1 \cap O_2 = \emptyset$.
+\item $L \vdash \inl v : \tau_1 \oplus \tau_2 \own O$ if $L \vdash v : \tau_1 \own O$, and
+  $L \vdash \inr v : \tau_1 \oplus \tau_2 \own O$ if $L \vdash v : \tau_2 \own O$.
+\item $L \vdash \pack{n}{v} : \exists x.\tau \own O$ if $L \vdash v : \tau[n/x] \own O$.
+\item $L \vdash \tok{k} : \Ok{a}{x.\varphi} \own \{k\}$ if $L(k) = \ok{a}{x.\psi}$ and every
+  number that satisfies $\varphi$ satisfies $\psi$.
+\item $L \vdash \tok{k} : \Bud{a}{t} \own \{k\}$ if $L(k) = \bud{a}{m}$ and $\sem{t} \le m$.
+\end{itemize}
+\end{definition}
+
+Two points of the definition carry the development. A token has a type if the ledger covers
+\emph{at least} what the type promises. And the two parts of a pair own disjoint sets of
+names, which is what ``used at most once'' means for values.
+
+An \emph{environment} $\gamma$ maps the base variables of $\Gamma$ to numbers and the resource
+variables of $\Delta$ to values. We write $L \vdash \gamma : \Phi; \Gamma; \Delta \own O$ if
+the numbers satisfy every predicate of $\Phi$, and
+$L \vdash \gamma(y) : \gamma(\Delta(y)) \own O_y$ holds for every $y$, with sets $O_y$ that
+are pairwise disjoint and whose union is $O$.
+
+\begin{lemma}[Values]
+\label{lem:values}
+\begin{enumerate}
+\item If $L \vdash v : \tau \own O$, then $O$ is the set of the names in $v$, and
+  $O \subseteq \dom L$.
+\item If $L \vdash v : \tau \own O$ and $L'(k) = L(k)$ for all $k \in O$, then
+  $L' \vdash v : \tau \own O$.
+\item If $\Phi \vdash \tau \le \tau'$, the numbers of $\gamma$ satisfy $\Phi$, and
+  $L \vdash v : \gamma(\tau) \own O$, then $L \vdash v : \gamma(\tau') \own O$.
+\item If $\Phi; \Gamma; \Delta \vdash w : \tau$ and
+  $L \vdash \gamma : \Phi; \Gamma; \Delta \own O$, then
+  $L \vdash \sem{\gamma(w)} : \gamma(\tau) \own O'$ for some $O' \subseteq O$.
+\end{enumerate}
 \end{lemma}
 
-The first part uses that entailment is closed under substitution. The second is the usual
-statement for affine variables.
-
-\begin{theorem}[Preservation]
-\label{thm:pres}
-If $(\rho, e)$ has type $\tau$ and $(\rho, e) \step{\ell} (\rho', e')$, then $(\rho', e')$ has
-type $\tau$.
-\end{theorem}
-
-\begin{proof}[Proof sketch]
-By induction on the step. The silent rules follow from Lemma~\ref{lem:subst}. A grant returns
-$\kw{inl}\;n$, which has type $\Ok{a}{x.\varphi} \oplus \kw{Unit}$ in the context
-$n : \Ok{a}{x.\varphi}$, and this context is part of the new store. An action is typed by
-\textsc{Act} with a context that contains $n$, and its result $\ret\;c'$ needs no context. In a
-$\kw{let}$ whose first part takes the step, the typing splits the context between the two
-parts. The name $n$ is in the part of the first, so the second part is still typed without it
-after $n$ leaves the store.
+\begin{proof}
+(1) and (2) are by induction on the definition, which reads the ledger only at the names that
+are owned. (3) is by induction on the derivation of subtyping. For \textsc{S-Ok}, let
+$L(k) = \ok{a}{x.\chi}$, where every number that satisfies $\gamma(\varphi)$ satisfies $\chi$.
+A number that satisfies $\gamma(\psi)$ satisfies $\gamma(\varphi)$, because
+$\Phi, \psi \models \varphi$ and the numbers of $\gamma$ satisfy $\Phi$; so it satisfies
+$\chi$. For \textsc{S-Bud}, $\sem{\gamma(t)} \le \sem{\gamma(s)} \le m$. For \textsc{S-Ex}, the
+value is $\pack{n}{v}$, and the induction hypothesis applies to $v$ with $\gamma[x \mapsto n]$,
+which still satisfies $\Phi$ because $x$ does not occur in it. (4) is by induction on the
+typing of $w$. In \textsc{Pair} the two parts of the context own disjoint sets, so the pair is
+typed. In \textsc{Pack}, $\gamma(\tau[t/x])$ is $\gamma(\tau)[n/x]$ for $n = \sem{\gamma(t)}$.
+\textsc{Sub} is (3).
 \end{proof}
 
-\begin{theorem}[Progress]
-\label{thm:prog}
-If $(\rho, e)$ has a type, then $e$ is $\ret\;v$ for a value $v$, or $(\rho, e)$ takes a step.
-\end{theorem}
+\subsection{The Ledger Never Refuses}
 
-\begin{proof}[Proof sketch]
-By induction on the typing. The interesting case is $\act{a}{c}{w}$. The operand $w$ is closed
-and has type $\Ok{a}{x.\varphi}$. Only \textsc{Token} and \textsc{Attenuate} give this type to a
-closed operand, so $w$ is a token name $n$ in $\Delta$, with $\rho(n) = (a, x.\varphi_0)$ and
-$\varphi \models \varphi_0$. The premise of \textsc{Act} gives $\models \varphi[c/x]$, hence
-$\models \varphi_0[c/x]$, and the monitor lets the action through.
-\end{proof}
-
-A \emph{trace} is the sequence of events of an execution. A trace has \emph{consent} when
+\begin{theorem}[Safety]
+\label{thm:safety}
+Let $\Phi; \Gamma; \Delta \vdash e : \tau$ and $L \vdash \gamma : \Phi; \Gamma; \Delta \own O$.
+Then no evaluation of $\gamma(e)$ from $L$ goes wrong. Moreover, if
+$L, \gamma(e) \evto L', v, s$, and $N = \dom L' \setminus \dom L$ is the set of the names that
+are new, then
 \begin{enumerate}
-\item every event $\kw{act}(n, a, c)$ is preceded by an event $\kw{grant}(n, a, x.\varphi)$ with
-  the same name and action, and $\varphi[c/x]$ holds;
-\item no two $\kw{act}$ events have the same name.
+\item $L' \vdash v : \gamma(\tau) \own O'$ for some $O' \subseteq O \cup N$;
+\item $\dom L \subseteq \dom L'$, and $L'(k) = L(k)$ for every $k \in \dom L \setminus O$;
+\item every name in an event of $s$ is in $O \cup N$.
 \end{enumerate}
-The first condition says that what ran satisfies what was shown. The second says that an
-approval is spent once.
-
-\begin{theorem}[Consent]
-\label{thm:consent}
-Every trace of the unmonitored semantics of a well-typed program has consent.
 \end{theorem}
 
 \begin{proof}
-Every trace of the monitored semantics from the empty store has consent. A name enters the store
-only by its $\kw{grant}$ event, with the action and predicate of that event, names are fresh, and
-an $\kw{act}$ event requires its name in the store with the same action and a predicate that the
-payload satisfies, and then removes it.
+We prove the statement first for derivations without \textsc{Run}, by induction on the
+derivation, and then for all derivations by the same induction, in which the case of
+\textsc{Run} uses the first part for the code. In each case the last rule fixes the form of
+$e$ and with it the evaluation rules that can apply. We show the cases that use the ledger or
+divide the context.
 
-It remains to show that the two semantics have the same executions on well-typed programs. Let
-$e_0$ be the main expression, so $(\emptyset, e_0)$ has a type. Suppose
-$e_0 \ustep{\ell_1} \cdots \ustep{\ell_k} e_k$ and, by induction, that
-$(\emptyset, e_0) \step{\ell_1} \cdots \step{\ell_{k-1}} (\rho, e_{k-1})$. By
-Theorem~\ref{thm:pres}, $(\rho, e_{k-1})$ has a type. If the step $\ell_k$ is not an action, the
-monitored semantics has the same rule. If it is the action $\kw{act}(n, a, c)$ of a subterm
-$\act{a}{c}{n}$, then by the argument of Theorem~\ref{thm:prog} applied to that subterm the side
-condition of the monitor holds, so the monitored semantics takes the same step.
+\emph{Let-R.} Here $\Delta = \Delta_1, \Delta_2$, and the two parts of $\gamma$ own disjoint
+sets $O_1$ and $O_2$ with union $O$. By induction, the evaluation of $\gamma(e_1)$ does not go
+wrong. If it ends with $L_1$, $v_1$, and $s_1$, then $v_1$ owns some
+$O_1' \subseteq O_1 \cup N_1$, and $L_1$ agrees with $L$ outside $O_1$. The names in $O_2$ are
+in $\dom L$ and not in $O_1$. So $L_1$ agrees with $L$ on $O_2$, the values of $\Delta_2$ keep
+their types in $L_1$ by Lemma~\ref{lem:values}(2), and $O_1'$ is disjoint from $O_2$. Hence
+$L_1 \vdash \gamma[y \mapsto v_1] : \Phi; \Gamma; \Delta_2, y{:}\tau_1 \own O_2 \cup O_1'$, and
+the induction hypothesis applies to $e_2$. It yields a value that owns a subset of
+$O_2 \cup O_1' \cup N_2$, which is a subset of $O \cup N$. For (2), let
+$k \in \dom L \setminus O$. Then $L_1(k) = L(k)$, and $k$ is neither in $O_2$ nor in $O_1'$,
+so $L_2(k) = L_1(k)$. (3) follows in the same way.
+
+\emph{Act.} By Lemma~\ref{lem:values}(4) the operand has a value of the type
+$\Ok{a}{x.\gamma(\varphi)}$. By Definition~\ref{def:values} it is a token $\tok{k}$ with
+$k \in O$ and $L(k) = \ok{a}{x.\psi}$, where every number that satisfies $\gamma(\varphi)$
+satisfies $\psi$. Let $n = \sem{\gamma(t)}$. The numbers of $\gamma$ satisfy $\Phi$, and
+$\Phi \models \varphi[t/x]$, so $n$ satisfies $\gamma(\varphi)$ and hence $\psi$. The ledger
+therefore has the step $\evact(k, a, n)$, and the evaluation does not go wrong. The result is
+a number, which owns nothing. The ledger changes at $k$ only, and the event names $k$ only.
+
+\emph{Spend.} The operand is a token $\tok{k}$ with $k \in O$ and $L(k) = \bud{a}{m}$, where
+$\sem{\gamma(s)} \le m$. Let $n = \sem{\gamma(t)}$. From $\Phi \models t \le s$ we get
+$n \le \sem{\gamma(s)} \le m$, so the ledger has the step, and the new entry is
+$\bud{a}{m - n}$. The result $\tok{k}$ has the type $\Bud{a}{\gamma(s \monus t)}$, because
+$\sem{\gamma(s \monus t)} = \sem{\gamma(s)} - n \le m - n$.
+
+\emph{Split.} As for \textsc{Spend}, $n \le m$, and the ledger has the step
+$\evsplit(k, k', n)$ for a new name $k'$. Afterwards $k'$ has $n$ and $k$ has $m - n$, which
+is at least $\sem{\gamma(s \monus t)}$. So the pair $(\tok{k'}, \tok{k})$ has the type
+$\Bud{a}{\gamma(t)} \otimes \Bud{a}{\gamma(s \monus t)}$, and it owns
+$\{k', k\} \subseteq O \cup N$.
+
+\emph{Ask and Ask-Upto.} A grant enters $\ok{a}{x.\gamma(\varphi)}$ or
+$\bud{a}{\sem{\gamma(t)}}$ under a new name $k$, and $\tok{k}$ has the type of the left
+summand and owns $\{k\} \subseteq N$. A refusal returns $\inr()$.
+
+\emph{Case, Let-P, Unpack, Let-B, If.} The operand has a value of the right shape by
+Lemma~\ref{lem:values}(4), so the evaluation does not go wrong there, and the rest is as in
+\textsc{Let-R}. In \textsc{If}, the branch that runs is the one whose added fact is true for
+the numbers of $\gamma$. In \textsc{Unpack} the value is $\pack{n}{v_1}$ with $v_1$ of the type
+$\gamma(\tau_1)[n/x]$. The environment $\gamma[x \mapsto n, y \mapsto v_1]$ still satisfies
+$\Phi$, because $x \notin \Gamma$ and so no fact mentions $x$. The same holds in
+\textsc{Let-B}. The type of the result does not mention $x$.
+
+\emph{Iter.} By Lemma~\ref{lem:values}(4) the operand has a value of the type $\gamma(\tau)$
+that owns a subset of $O$. Consider the loop $\iter{n}{v}{y}{\gamma(e)}$ for any ledger $L$
+and any value $v$ with $L \vdash v : \gamma(\tau) \own O_v$. By induction on $n$ we show the statement of
+the theorem for it, with $O_v$ in the place of $O$. For no turns nothing happens. Otherwise the body runs in the environment $\gamma[y \mapsto v]$, which owns $O_v$,
+since the body has no other resource variable. The outer induction hypothesis gives a state
+$v_1$ of the type $\gamma(\tau)$, and the inner one applies to the remaining turns from $v_1$.
+The two compose as in \textsc{Let-R}.
+
+\emph{Run.} The operand has a value $v$ of the closed type $\tau_1$ that owns
+$O_v \subseteq O$. If the code is rejected, the result $\inr v$ has the type
+$\tau_2 \oplus \tau_1$ and nothing changes. If it is accepted, the judgment
+$\cdot; \cdot; y{:}\tau_1 \vdash e' : \tau_2$ has a derivation without \textsc{Run}, and
+$L \vdash [y \mapsto v] : \cdot; \cdot; y{:}\tau_1 \own O_v$. The first part of the proof
+applies to the code $e'$.
+
+\emph{Sub.} By the induction hypothesis and Lemma~\ref{lem:values}(3).
 \end{proof}
 
-The theorem needs no assumption on the oracle. Its answers are base values. They can steer the
-program into any branch and fill any payload, and they cannot be approvals.
+Items (2) and (3) are a frame property, as in separation logic~\citep{reynolds2002}. A part of
+a program changes the ledger only at the names that its environment owns and at names that are
+new, and its events mention no others. This is what lets a caller reason about a part that it
+has not read.
 
-\section{Code Written by the Model}
-\label{sec:code}
+\subsection{Tokens Can Be Erased}
 
-An agent also runs code that the model writes. We add a construct for it. Assume an encoding of
-closed source expressions as base values. The expression $\kw{run}_\tau(i)$, for a closed type
-$\tau$, has type $\tau \oplus \kw{Unit}$ and the rules
-\[
-\begin{array}{lcll}
-(\rho,\; \kw{run}_\tau(c)) & \step{} & (\rho,\; \letin{y}{e}{\ret\;(\kw{inl}\;y)}) &
-  \text{if } c \text{ encodes } e \text{ and } \cdot\,;\cdot\,;\cdot \vdash e : \tau \\
-(\rho,\; \kw{run}_\tau(c)) & \step{} & (\rho,\; \ret\;(\kw{inr}\;())) & \text{otherwise.}
-\end{array}
-\]
-The first rule type-checks the code against the signatures of the procedures of the program
-before it runs. Source expressions contain no token names, so the code is checked in empty
-contexts.
+\begin{lemma}[The ledger does not steer]
+\label{lem:steer}
+\begin{enumerate}
+\item If $L, e \evto L', v, s$, then $L \lstep{s} L'$.
+\item If $L, e \evto L', v, s$ and $\dom L_0 \subseteq \dom L$, then $L_0, e \evto \wrong$, or
+  $L_0, e \evto L_0', v, s$ for some $L_0'$.
+\item If $L, e \evto L', v, s$, then $\er{e} \evto^{\circ} \er{v}, \er{s}$. Conversely, if
+  $\er{e} \evto^{\circ} u, r$, then for every ledger $L$ either $L, e \evto \wrong$, or
+  $L, e \evto L', v, s$ for some $L'$, $v$, and $s$ with $\er{v} = u$ and $\er{s} = r$.
+\end{enumerate}
+\end{lemma}
 
-\begin{corollary}
-Theorems~\ref{thm:pres}, \ref{thm:prog}, and~\ref{thm:consent} hold for the calculus with
-$\kw{run}$.
+\begin{proof}
+Each by induction on the given derivation. A rule changes the ledger only by a step whose
+event it adds to the trace, which gives (1). A rule consults the ledger only to ask whether a
+step exists. No rule compares two names, and no value depends on an entry. For (2) and for the
+second half of (3) we build the evaluation with the same numbers, the same answers, the same
+code, and the same new names. A name that is new for $L$ is new for $L_0$, and the inclusion of
+the domains is kept. Where the ledger at hand has the step that a rule needs, the rule
+applies and gives the same value and event. Where it does not, the evaluation goes wrong.
+\end{proof}
+
+\begin{theorem}[Erasure]
+\label{thm:erasure}
+Let $\cdot; \cdot; \cdot \vdash e : \tau$. Then $e \evto^{\circ} u, r$ if and only if
+$\emptyset, e \evto L, v, s$ for some $L$, $v$, and $s$ with $\er{v} = u$ and $\er{s} = r$.
+\end{theorem}
+
+\begin{proof}
+From right to left by Lemma~\ref{lem:steer}(3). From left to right by the same lemma, since
+by Theorem~\ref{thm:safety} no evaluation of $e$ from the empty ledger goes wrong.
+\end{proof}
+
+The ledger is state that exists for the proof, in the way of the ghost state of program
+logics~\citep{jung2018}. An implementation keeps neither tokens nor a ledger. It may keep
+them all the same, as a second line of defense, and then Theorem~\ref{thm:safety} says that the
+second line is never reached.
+
+\subsection{Every Action Has a Grant}
+
+What does a trace of the ledger look like? The next definition says it without the ledger, in
+terms that a person who reads the log can check.
+
+\begin{definition}[Explained traces]
+\label{def:explained}
+In a trace, the event $\grant(k, E)$ \emph{introduces} the name $k$, and
+$\evsplit(k, k', n)$ introduces the name $k'$ \emph{from} $k$. The names \emph{under} a name
+$g$ are $g$ and every name that is introduced from a name under $g$. A trace is
+\emph{explained} if every name is introduced at most once, and before every other event that
+contains it, and
+\begin{enumerate}
+\item for every event $\grant(k, \ok{a}{x.\varphi})$ there is at most one action on $k$ and
+  no split from $k$, and the action has the form $\evact(k, a, n)$ for a number $n$ that
+  satisfies $\varphi$;
+\item for every event $\grant(g, \bud{a}{m})$, every action on a name under $g$ is an action
+  $a$, and the payloads of all these actions sum to at most $m$.
+\end{enumerate}
+\end{definition}
+
+Every name is introduced by a grant or from a name that was introduced earlier, and by (1)
+only budgets are split. So in an explained trace every action falls under exactly one grant,
+and that grant covers it.
+
+\begin{lemma}[The ledger explains]
+\label{lem:ledger}
+If $\emptyset \lstep{s} L$, then $s$ is explained.
+\end{lemma}
+
+\begin{proof}
+By induction on the length of $s$ we show that $s$ is explained and that $L$ records what is
+left: (a) the domain of $L$ is the set of the names that $s$ introduces; (b) a name that was
+granted $\ok{a}{x.\varphi}$ has this entry if $s$ has no action on it, and $\gone$ otherwise;
+(c) for a name $g$ that was granted $\bud{a}{m}$, every name $k$ under $g$ has an entry
+$\bud{a}{m_k}$, and the sum of these $m_k$ and of the payloads of the actions on names under
+$g$ is $m$. A grant or a split introduces a name that is not in the domain. By (b), an action
+on an approval has a step only if the approval has not been used, and then the action and the
+payload are as (1) asks. An action on a budget moves its payload from $m_k$ to the sum of the
+payloads, and a split moves a part of $m_k$ to a new name under $g$; both keep (c). Since no
+$m_k$ is negative, (c) gives (2).
+\end{proof}
+
+The lemma holds for every program, well typed or not: it is what the ledger enforces as a
+monitor. For well-typed programs it holds without the monitor.
+
+\begin{theorem}[Consent]
+\label{thm:consent}
+Let $\cdot; \cdot; \cdot \vdash e : \tau$. If $e \evto^{\circ} u, r$, then $r = \er{s}$ for a
+trace $s$ that is explained.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:erasure} there is an evaluation $\emptyset, e \evto L, v, s$ with
+$\er{s} = r$. By Lemma~\ref{lem:steer}(1), $\emptyset \lstep{s} L$, and by
+Lemma~\ref{lem:ledger}, $s$ is explained.
+\end{proof}
+
+In words: take any execution of a well-typed program, with no ledger and no tokens. The events
+of its log can be given names such that every action falls under a grant that the person made
+before it. An approval pays for at most one action, of the kind that the person was shown and
+with a payload that satisfies the predicate that the person was shown. The payloads under a
+budget sum to at most its amount, however often it was split. The theorem quantifies over all
+evaluations. It holds for a model that an attacker steers, for every reply of the world, and
+for all the code that the model writes.
+
+\subsection{A Part Does What Its Types Allow}
+
+Theorem~\ref{thm:consent} is about whole programs. The next theorem is about a part: a branch,
+the body of a loop, or code that the model has written. It bounds the actions of the part by
+the \emph{types} of the tokens that the part is given.
+
+\begin{definition}[Least ledger]
+\label{def:least}
+Let $L \vdash v : \tau \own O$. The \emph{least ledger} $\least{v}{\tau}$ has the domain $O$
+and holds for every token what its type promises:
+$\least{\tok{k}}{\Ok{a}{x.\varphi}} = [k \mapsto \ok{a}{x.\varphi}]$ and
+$\least{\tok{k}}{\Bud{a}{t}} = [k \mapsto \bud{a}{\sem{t}}]$. For the other types it follows
+the value: $\least{(v_1, v_2)}{\tau_1 \otimes \tau_2}$ is the union of $\least{v_1}{\tau_1}$
+and $\least{v_2}{\tau_2}$; $\least{\inl v}{\tau_1 \oplus \tau_2} = \least{v}{\tau_1}$ and
+likewise for $\inr$; $\least{\pack{n}{v}}{\exists x.\tau} = \least{v}{\tau[n/x]}$; and it is
+empty for numbers and for $()$. For an environment, $\least{\gamma}{\Delta}$ is the union of
+the ledgers $\least{\gamma(y)}{\gamma(\Delta(y))}$.
+\end{definition}
+
+A value has its type in its least ledger: $\least{v}{\tau} \vdash v : \tau \own O$, by
+induction on Definition~\ref{def:values}.
+
+\begin{theorem}[Authority]
+\label{thm:authority}
+Let $\Phi; \Gamma; \Delta \vdash e : \tau$ and $L \vdash \gamma : \Phi; \Gamma; \Delta \own O$,
+and let $L, \gamma(e) \evto L', v, s$. Then the least ledger $\least{\gamma}{\Delta}$ has the
+steps of $s$.
+\end{theorem}
+
+\begin{proof}
+Let $L_0 = \least{\gamma}{\Delta}$. Its domain is $O$, which is a subset of $\dom L$, and
+$L_0 \vdash \gamma : \Phi; \Gamma; \Delta \own O$. By Lemma~\ref{lem:steer}(2), an evaluation
+of $\gamma(e)$ from $L_0$ goes wrong or ends with the same trace $s$. By
+Theorem~\ref{thm:safety}, applied to $L_0$, it does not go wrong. By
+Lemma~\ref{lem:steer}(1), $L_0 \lstep{s} L_0'$ for some $L_0'$.
+\end{proof}
+
+The theorem speaks about the ledger that the types describe and not about the ledger that
+exists. The least ledger is built from the empty one by one grant for each of its names, so
+Lemma~\ref{lem:ledger} applies to these grants followed by $s$. It gives three statements about
+the trace $s$ of a part:
+\begin{itemize}
+\item An approval that the part holds at the type $\Ok{a}{x.\varphi}$ pays for at most one
+  action, an $a$ with a payload that satisfies $\varphi$. This is the predicate of the type,
+  also where the person agreed to more.
+\item The actions under a budget that the part holds at the type $\Bud{a}{t}$, and under
+  everything that is split from it, are actions $a$ whose payloads sum to at most $t$, also
+  where more is left.
+\item Every other action of the part falls under a grant that the person made while the part
+  ran.
+\end{itemize}
+
+\begin{corollary}[Code that nobody has read]
+\label{cor:code}
+Let $L \vdash v : \tau_1 \own O$, let $y{:}\tau_1 \vdash_{\code} e : \tau_2$, and let
+$L, e[v/y] \evto L', v', s$. Then $\least{v}{\tau_1}$ has the steps of $s$. In particular, code
+that is accepted for $\Bud{a}{n} \multimap \tau_2$ performs, apart from what the person grants
+it while it runs, only actions $a$ whose payloads sum to at most $n$.
 \end{corollary}
 
-\begin{proof}[Proof sketch]
-The expression that the first rule steps to is well typed by its side condition, and typing is
-preserved when the contexts grow. The other cases are unchanged.
-\end{proof}
+By the proof of Theorem~\ref{thm:safety}, the hypothesis on $v$ holds at every \textsc{Run-Yes}
+in an evaluation of a well-typed program. So a program that passes a budget at the type
+$\Bud{\pay}{2}$ knows that the code will spend at most $2$ of it, before the code exists.
 
-The code that the model writes may call $\kw{ask}$ and $\kw{act}$ and any procedure. It has the
-same power as the code of the agent and is under the same discipline. It cannot contain an
-approval, because approvals have no source syntax, and it cannot receive one unless $\tau$ or a
-procedure hands it over. This is the argument that protects abstract values from untrusted
-code~\citep{morris1973}, applied to approvals.
+\section{Testing the Claims}
+\label{sec:tests}
+
+The artifact is one Python script without dependencies. It contains the checker, the two
+semantics, Definition~\ref{def:explained} written as a function that does not use the ledger,
+a generator of random programs, and the tests. This section says what was tested and what came
+out. All numbers are those of one fixed seed, and \texttt{make -C artifact check} computes them
+again and compares.
+
+\subsection{Programs}
+
+The generator builds programs of type $\Base$ by following the typing rules. It keeps the
+three contexts and chooses among the forms that they allow: questions for approvals and
+budgets, actions, tests, splits, sequences, loops that carry a budget of a changing amount or
+an approval that may be used in a later turn, and calls of $\kw{run}$ with an approval or a
+budget that is narrowed first. A payload is found by a search for a term for which the facts
+entail the side condition. Programs have a nesting depth of at most five, and the median
+program has \exMedianNodes{} nodes in its syntax tree.
+
+A switch makes the generator \emph{slip}. With a probability of one in ten, at each place where
+a rule constrains a choice, it ignores the constraint: it uses a token that is gone, picks a
+payload without looking at the facts, names another action, hands code a type that the
+argument does not have, lets the body of a loop use a token from outside, or binds a name
+again.
+
+The model, the world, and the person are a random stream. Numbers are uniform, and the person
+agrees three times out of four. Code that the model writes comes from the same generator. Half
+of the time it is written for the type that was asked. Otherwise it is written for a wider
+type, such as a budget of $5$ where $2$ was given, or with slips.
+
+\subsection{The Theorems}
+
+We took $3{,}000$ programs from the generator without slips, and $3{,}000$ programs from the
+generator with slips that the checker accepts. Of the latter, \exLucky{} contain a slip and are
+accepted all the same, because the constraint that was ignored happens to hold. Each of the
+\exPrograms{} programs ran three times with the ledger, and each execution was repeated
+without tokens on the same random stream. The tests are these.
+\begin{itemize}
+\item Theorem~\ref{thm:safety}: the ledger refuses no step, and no value has a wrong shape.
+\item Theorem~\ref{thm:erasure}: the execution without tokens returns the erasure of the value
+  and the erasure of the trace.
+\item Theorem~\ref{thm:consent}: the trace is explained.
+\item The frame of Theorem~\ref{thm:safety}, wherever accepted code runs and at every turn of
+  a loop: the tokens in the result are owned by the argument or new, no entry outside the
+  names that the argument owns has changed, and no event names another token.
+\item Theorem~\ref{thm:authority} and Corollary~\ref{cor:code}, at the same places: the least
+  ledger of the argument at its type has the steps of the trace of the part.
+\end{itemize}
+In the \exRuns{} executions the person was asked \exAsks{} times and granted \exGrants{}
+tokens, the programs performed \exActs{} actions, and the model wrote \exWritten{} pieces of
+code, of which \exAccepted{} were accepted and ran. No test failed.
+
+\subsection{Every Side Condition Is Needed}
+\label{sec:needed}
+
+\begin{table}[t]
+\caption{Twelve checkers with one side condition removed. Each accepts a program that the
+ledger refuses in one of three executions. The last column is the number of random programs
+that were tried until the first such program.}
+\label{tab:broken}
+\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+Rule & What the broken checker allows & Programs tried \\
+\midrule
+division of $\Delta$ & a token is still there after it was used & \exTryContraction \\
+\textsc{Case}, \textsc{If} & a token counts as used only if both branches use it & \exTryBranch \\
+\textsc{Iter} & the body of a loop uses a token from outside & \exTryLoop \\
+\textsc{Let-B}, \textsc{Unpack} & a base variable is bound a second time & \exTryShadow \\
+\textsc{Act} & any payload under an approval & \exTryAct \\
+\textsc{Act}, \textsc{Spend} & a token for one action serves for another & \exTryAction \\
+\textsc{Spend} & any payload under a budget & \exTrySpend \\
+\textsc{Split} & a part that is larger than the budget & \exTrySplit \\
+\textsc{S-Ok} & an approval serves as any approval for the same action & \exTryAttenuate \\
+\textsc{S-Bud} & a budget serves as any budget for the same action & \exTryAttenuateBudget \\
+\textsc{If} & the second branch assumes the test and not its negation & \exTryIfFact \\
+\textsc{Run-Yes} & code runs without the check & \exTryRun \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A type system can be sound because it rejects too much. To see that the conditions of
+Figure~\ref{fig:typing} are not of that kind, we removed them one at a time.
+Table~\ref{tab:broken} lists \exRules{} broken checkers. For each one the script draws programs
+from the generator with slips, here with a probability of $0.15$, until it finds one that the
+broken checker accepts and that the ledger refuses in one of three executions. It finds one for every broken checker. The slowest
+case needs \exSlowest{} programs. It is the rule for branches, where the counterexample must
+use a token in one branch only and use it again after the branches have joined.
+
+The fourth row is the condition that a base variable is bound once. We had not planned it. The
+first version of the checker lacked it, and the lack is a real hole: a test establishes a fact
+about $x$, a new $x$ is bound, and the action under the fact uses the new one.
+
+\subsection{A Ledger at Run Time Is Late}
+\label{sec:late}
+
+The ledger of Section~\ref{sec:ledger} can run as a monitor, and for programs that nobody
+checks it is the only protection. How does it compare? We took $3{,}000$ programs from the
+generator with slips that the checker rejects, and ran each of them twenty times with the
+ledger. Programs that bind a name twice were left out, since that is a matter of the checker
+and not of consent.
+
+Every trace that the ledger let through was explained, as Lemma~\ref{lem:ledger} says. The
+ledger stopped \exStopped{} of the \exRejectedRuns{} executions, which is \exStoppedPercent{}
+percent. In \exLate{} of the executions that it stopped, \exLatePercent{} percent, at least one
+action had been performed before the stop. The program had paid, sent, or deleted something,
+and it could not go on. The checker rejects the same programs before they start. For code that
+the model writes, that is the difference between a piece of code that is turned down, with its
+argument handed back, and a task that is left half done.
+
+The comparison has another side. The checker is conservative: \exQuiet{} of the $3{,}000$
+programs, \exQuietPercent{} percent, were never stopped in twenty executions. Such a program
+either contains a step that the ledger would refuse, on a path that twenty executions did not
+take, or it is safe on every path for a reason that the rules do not see, such as two uses of
+a token in branches that exclude each other. We did not separate the two cases.
+
+\subsection{What the Tests Do Not Show}
+
+The tests run programs of depth at most five over six numbers, and three executions of each.
+They cannot find an error that needs a larger program, or a rare coincidence of answers. They
+test the checker of the artifact, which accepts a subset of the judgments of
+Figure~\ref{fig:typing}; rules that it never uses in their general form, such as \textsc{Sub}
+at an arbitrary place, are covered by the proofs only. And the tests share the reading of the
+definitions with the proofs: both were written by the same author.
 
 \section{Limits}
+\label{sec:limits}
 
-\emph{What a payload names.} The type fixes a base value. If the value is a name for something
-that changes, such as a file path, the approval covers the name and not the content. The agent
-should show and send the content or a digest of it.
+\paragraph{The person.} The theorems begin at the answer. Whether the person read the
+question, understood the predicate, or was worn down by the tenth dialog is outside the
+calculus~\citep{felt2012}. Budgets reduce the number of questions, at the price that the
+person no longer sees every payload. The calculus makes this price visible in a type, and it
+does not say which price is right.
 
-\emph{One action per approval.} A person may want to approve a budget, such as payments up to a
-total. This needs approvals whose type changes with each use, in the way of
-typestate~\citep{strom1986}. Withdrawing an approval that has not been used needs an action that
-can fail. We leave both for later work.
+\paragraph{Payloads, not the world.} A predicate speaks about the payload of an action. It
+does not speak about the world at the time of the action. An approval to delete the file of a
+given name says nothing about what the file contains when it is deleted. The gap between check
+and use is closed for what the program computes and stays open for what the world does in the
+meantime.
 
-\emph{What the person understood.} The theorem relates what ran to what was shown. It says
-nothing about whether the person read it.
+\paragraph{Time.} A token does not expire, and the person cannot take it back. An expiry date
+would be an index of the type together with a clock, and an action could then fail and would
+have to return a sum. Revocation is dynamic by nature. Both give up the property that a
+well-typed program stops only where it asks.
 
-\emph{Entailment.} The type checker has to decide $\Phi \models \varphi$. Equalities between
-variables and values suffice for exact approvals, and linear arithmetic covers amounts and
-bounds~\citep{xi1999}.
+\paragraph{Questions.} Nothing bounds how often a program asks, and code that the model writes
+may ask too. A question costs attention, and attention is the scarce resource here. A token
+that permits a number of questions would fit the calculus, and we have not worked it out.
+
+\paragraph{The language.} Programs are first order with bounded loops, code may not call
+$\kw{run}$, and every program ends. For programs that run without end the theorems would
+speak of the finite parts of a run; we expect them to hold and have not proved it. More
+important in practice, code that the model writes has to be written in this calculus, while
+agents write Python. A checker for a subset of a real language, with the same two token types,
+is engineering that we have not attempted.
+
+\paragraph{Trust.} What has to be trusted is the checker, the two rules that perform an
+action, and the absence of any other way to act: if code can reach the network without going
+through $\kw{act}$, no type helps. The proofs are on paper, and the artifact tests them and
+does not prove them.
 
 \section{Related Work}
+\label{sec:related}
 
-An approval is a capability~\citep{dennis1966}: an unforgeable value whose possession grants a
-right. Its unforgeability comes from the language, as in the protection by sealing
-of~\citet{morris1973}. Ours is linear and its type is indexed by the payload, in the style of the
-restricted dependent types of~\citet{xi1999}.
+\paragraph{Capabilities.} A token is a capability in the sense of
+\citet{dennis1966}: evidence of a permission that a program must present in order to act, and
+that it cannot make. Capabilities serve the principle of least
+privilege~\citep{saltzer1975} and remove the confused deputy~\citep{hardy1988}, and languages
+built on them pass authority only by passing references~\citep{miller2006}. Macaroons let the
+holder of a credential add caveats before passing it on~\citep{birgisson2014}; our subtyping
+is this attenuation, and a split is attenuation for amounts. These are mechanisms of the run
+time. Here the tokens are checked statically and erased, and copying is excluded by the types
+and not by cryptography. That only \textsc{Ask} creates a token is the sealing
+of~\citet{morris1973}, with the person as the only holder of the seal.
 
-\citet{schneider2000} characterizes the policies that a monitor can enforce by watching a
-program run, and \citet{walker2000} gives a type system that enforces such policies statically,
-with the automaton state in the types. Consent is a policy of this kind, with a state that
-grows with each approval. Our tokens represent that state by linear values, which keeps the
-types free of the history of the program.
+\paragraph{Linear types and resources.} Linear logic~\citep{girard1987} gave the idea of a
+hypothesis that is used once, and affine types make it practical in a
+language~\citep{tov2011}. Vault~\citep{deline2001} tracks keys linearly to enforce protocols
+on resources, and the capability calculus~\citep{crary1999} and $\mathrm{L}^3$
+\citep{morrisett2005} track capabilities for memory in types. Typestate~\citep{strom1986} lets the
+type of a value change as it is used; an approval has two states and a budget has a counter.
+Closest in spirit for budgets is Move, in which money is a linear resource and conservation is
+a theorem~\citep{blackshear2020}. Our subject differs in what a token stands for, which is an
+answer of a person together with what the person was shown, and in who writes the code that
+holds it.
 
-Authorization logics describe who may do what and by whose
-statement~\citep{abadi1993}, and \citet{jia2008} build a language whose programs carry proofs of
-authorization and log them for audit. There a principal's statement can justify many actions.
-Here a statement of the person is consumed by the one action it describes.
+\paragraph{Quantities in types.} Indexed types in the style of \citet{xi1999} supply the
+predicates and the amounts. Bounded linear logic counts the uses of a
+hypothesis~\citep{girard1992}, and graded modal types generalise the count to a
+semiring~\citep{orchard2019}. A budget is closer to the potential of \citet{hofmann2003}, which
+pays for heap cells where ours pays for actions, and its splitting resembles that of fractional
+permissions~\citep{boyland2003}.
+
+\paragraph{Separation and ghost state.} The proof of Theorem~\ref{thm:safety} is the frame
+rule of separation logic~\citep{reynolds2002} in small: owned sets are disjoint, and a part
+changes only what it owns. The ledger is ghost state~\citep{jung2018}, and
+Theorem~\ref{thm:erasure} is its erasure. The least ledger of Theorem~\ref{thm:authority} uses
+the fact that a specification which holds for every ledger that fits the types holds for the
+smallest one.
+
+\paragraph{Monitors.} The policies that a monitor can enforce are the safety properties
+\citep{schneider2000}, and being explained is one of them. Edit automata extend monitors with
+the power to suppress and insert actions~\citep{ligatti2005}. \citet{walker2000} turns a security
+automaton into the signature of a typed language, so that a host can check before it runs code
+that the code respects the policy; our type system does this for the ledger. Our monitor's state is
+made of tokens that the program holds, which is what makes delegation expressible: a part can
+be given some of the state.
+
+\paragraph{Authorization logics.} Logics of access control reason about who said what
+\citep{abadi1993}, and proofs in such logics can be carried by requests~\citep{appel1999} and
+by programs, as in AURA~\citep{jia2008}. \citet{garg2006} add linearity to obtain credentials
+that are consumed by use. An approval is such a credential, issued only by the person and
+specialised to a predicate on one payload; a budget is one that is consumed in parts.
+
+\paragraph{Code from an untrusted author.} In proof-carrying code~\citep{necula1997} the
+producer of code supplies a proof that the consumer checks. Here the model supplies code only,
+and the type against which it is checked is the policy. This is an instance of generate and
+check: the checker is sound, so an error of the model becomes a refusal that the program must
+handle~\citep{tpp3}.
+
+\paragraph{Agents.} Agents that act by writing code are common~\citep{wang2024}.
+CaMeL~\citep{debenedetti2025} attaches capabilities to the values of such code in order to
+control where untrusted data may flow, and a companion paper derives from the origin of a
+payload whether an action needs a question at all~\citep{tpp7}. Those systems answer the
+question of who chose a payload. This paper answers the question of whether the person agreed
+to it, and what the agreement covers once it has been given.
 
 \section{Conclusion}
 
-An approval can be a value. When its type records the predicate that the person saw and the
-value is linear, the type checker ensures that every action was approved as it ran and that no
-approval is used twice, whatever the model does and whatever code it writes. The next steps are
-budgets, withdrawal, and a mechanized proof of the theorems.
+An answer of a person is a small thing that is easy to stretch: to another payload, to a second
+use, to a part of the agent that was not meant. We have treated it as a value that cannot be
+copied, with a type that says what it covers. The type system that results is small, two
+token types and a handful of side conditions, and its theorems say what one would hope for. Every
+action falls under a grant, what was shown is what is done, a budget holds however it is
+split, and code that nobody has read can do no more than the type at which it was accepted.
+None of this needs a monitor while the program runs. What it needs is that programs, and the
+code that models write, are checked before they act.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}
