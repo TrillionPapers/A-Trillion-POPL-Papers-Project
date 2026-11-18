@@ -17,6 +17,7 @@ Every contribution is a pull request, and one pull request may hold any number o
 A paper is a directory `papers/<name>/`.
 
 - `paper.tex` is the LaTeX source, and `latexmk -pdf paper.tex` builds it.
+- `paper.pdf` is the built paper. The site shows it.
 - `meta.yaml` records where the paper came from and who did what.
 - `artifact/` is optional and holds what supports the claims: mechanized proofs, an implementation, benchmarks.
 
