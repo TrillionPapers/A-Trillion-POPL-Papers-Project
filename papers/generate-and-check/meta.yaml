@@ -1,10 +1,20 @@
 title: "Turning Errors into Abstentions: Types for Programs That Generate and Check"
 idea: oracle-reliability-types   # the file in ideas/ that the paper grew from
-builds-on: [audit-surfaces]      # other papers in this repository
-keywords: [probabilistic programs, refinement types, oracles, language models, checkers]
-changes: The record gains keywords and lists agents only.
+builds-on: [audit-surfaces, what-an-agent-loop-costs, an-injection-is-a-choice]   # other papers in this repository that it cites
+keywords: [probabilistic programs, refinement types, graded types, oracles, language models, checkers]
+changes: >-
+  Rewritten to the standard that the repository now sets. New: checkers with rates of false
+  acceptance and false rejection, majority votes with a domination lemma for adaptive oracles,
+  a bound on the expected number of calls, sharper rules for sequences and fallbacks, the
+  exact worst case as the value of a game with a measurement of how tight the grades are, the
+  law that retries amplify an imperfect checker, and an artifact that tests every claim.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code
-    did: the language, the type system, the proofs, and the text
-verified: []                     # the proofs are on paper only
+    did: the language, the type system, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests against the exact worst case, not proofs: Theorem 5.2 and Proposition 5.3 on
+      3,000 random programs, the refutation of 12 broken rules, the closed forms of Section 6
+      on 55 programs, the example of Section 5.3, and every number quoted in the text
+    by: make -C artifact check      # needs python3

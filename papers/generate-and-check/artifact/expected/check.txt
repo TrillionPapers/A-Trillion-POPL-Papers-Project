@@ -1,0 +1,5 @@
+Theorem 5.2 and Proposition 5.3: 3000 random programs, every grade bounds the exact value; the bounds on wrong results, failures and calls are exact for 2025, 2194 and 2325 programs
+with sums in place of products: still sound, exact for 1809 and 1889 programs
+12 broken rules, each refuted by a random program: oracle 1, let-eps 26, let-gam 26, check-complete 7, judge-eps 8, judge-gam 5, or-eps 4, or-gam 4, vote-eps 9, vote-gam 7, cost-let 50, cost-or 7
+closed forms of Section 6: 55 programs whose grades equal the exact values
+the fallback of Section 5.3: bound 5/12 on wrong results, exact value 3/8
