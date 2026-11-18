@@ -1,0 +1,32 @@
+Lean 4.36.0
+theorems written by hand in Init and Std: 46992
+sample: every 23th in name order, 2000 theorems
+signature surface, constants: min 2, p25 33, median 64, p75 153, p90 184, max 247, mean 87
+audit surface, constants: min 2, p25 123, median 251, p75 659, p90 764, max 1804, mean 367
+dependency closure, constants: min 5, p25 353, median 1819, p75 3578, p90 3911, max 7102, mean 1948
+signature surface, source lines: min 12, p25 222, median 462, p75 1020, p90 1209, max 1688, mean 595
+audit surface, source lines: min 13, p25 637, median 1436, p75 3107, p90 3340, max 6758, mean 1749
+dependency closure, source lines: min 15, p25 1255, median 6241, p75 11045, p90 11641, max 23729, mean 6181
+axioms used: min 0, p25 1, median 3, p75 3, p90 3, max 3, mean 2
+axioms that occur: [Classical.choice, Quot.sound, propext]
+theorems that use no axiom: 205
+closure/audit ratio x10, constants: min 10, p25 28, median 49, p75 57, p90 91, max 390, mean 50
+closure/audit ratio x10, source lines: min 10, p25 20, median 33, p75 37, p90 57, max 231, mean 33
+audit/signature ratio x10, source lines: min 10, p25 21, median 28, p75 34, p90 44, max 122, mean 29
+theorems whose audit surface is at most half of the closure, in lines: 1509
+theorems whose audit surface is at most 500 lines: 432
+theorems whose signature surface is at most 500 lines: 1024
+union over the sample, constants and lines: signature 3767 20781, audit 8328 32768, closure 31319 101918
+examples: name, signature constants and lines, audit constants and lines, closure constants and lines, axioms
+  Nat.add_comm, 13, 88, 26, 120, 47, 224, 0
+  Nat.mul_comm, 13, 88, 33, 153, 73, 283, 0
+  Nat.gcd_comm, 12, 153, 138, 753, 487, 1755, 2
+  List.length_append, 27, 160, 57, 244, 77, 323, 1
+  List.reverse_reverse, 9, 88, 21, 112, 37, 200, 1
+  List.map_map, 10, 97, 23, 134, 39, 217, 1
+  Array.size_push, 27, 209, 54, 286, 68, 352, 1
+  Option.map_map, 10, 88, 17, 114, 28, 151, 1
+  String.length_append, 71, 468, 445, 2308, 3490, 10731, 3
+  Std.HashMap.size_insert, 162, 1088, 621, 3177, 3371, 11147, 3
+  Std.HashMap.getElem?_insert, 161, 1113, 677, 3463, 3393, 11225, 3
+  Std.TreeMap.contains_insert, 180, 1174, 726, 2954, 3743, 10587, 3

@@ -1,0 +1,13 @@
+'Audit.Chk.mono_refs' does not depend on any axioms
+'Audit.infer_sound' depends on axioms: [propext]
+'Audit.wfb_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Audit.close_closed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Audit.close_least' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Audit.audit_sound' depends on axioms: [propext]
+'Audit.restrict_wf' depends on axioms: [propext]
+'Audit.audit_surface' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Audit.portable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Audit.merge' depends on axioms: [propext]
+'Audit.replace' depends on axioms: [propext]
+'Audit.replace_proofs' depends on axioms: [propext]
+'Audit.Example.L10_wf' depends on axioms: [propext, Classical.choice, Quot.sound]

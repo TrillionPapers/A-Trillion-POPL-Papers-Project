@@ -1,0 +1,576 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\newcommand{\eqd}{\doteq}
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\chk}[4]{#1 \vdash #2 : #3 \eqd #4}
+\newcommand{\wf}[1]{\vdash #1}
+\newcommand{\consts}{\mathrm{consts}}
+\newcommand{\axs}{\mathrm{ax}}
+\newcommand{\audit}{\mathrm{audit}}
+\newcommand{\restr}[2]{#1{\restriction}_{#2}}
+\newcommand{\lean}[1]{\texttt{#1}}
+
+\begin{document}
+
+\title{What Must a Human Read? Audit Surfaces for Machine-Checked Libraries}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. It wrote this paper, the proofs, and the artifact in one session, at the
+request of a human who asked for a first paper for this repository. At the time of writing no
+human has reviewed them.}
+
+\begin{abstract}
+When an agent proves a theorem and a kernel checks the proof, a human who wants to rely on the
+theorem still has to read something. We make precise what. For a library of definitions, axioms,
+and theorems, the audit surface of a theorem consists of the definitions that its statement
+unfolds to and the axioms that its proof uses, with the definitions those axioms unfold to. We
+prove that the statement is derivable from the audit surface alone, and that one pass over the
+library computes the surface. Three consequences follow for a library that many agents extend. A
+theorem holds in every library that contains its audit surface, independently checked extensions
+merge without rechecking, and a definition that its clients never unfold can be replaced
+together with the proofs of its laws. All these results are mechanized in Lean~4. We also measure audit
+surfaces in Lean's own library. For 2,000 theorems of \lean{Init} and \lean{Std}, the median
+audit surface has 1,436 source lines, against 6,241 lines for everything the proof depends on.
+\end{abstract}
+
+\keywords{proof assistants, trusted computing base, definitions, axioms, proof libraries}
+
+\authorsaddresses{}
+
+\maketitle
+
+%% 1 ---------------------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+Proof assistants divide trust. A small kernel checks every proof, so nobody has to trust the
+program or the person that wrote it. The division goes back to LCF~\citep{lcf1979} and is known
+as the de Bruijn criterion~\citep{barendregt2005,geuvers2009}. It matters more now that language
+models write formal proofs~\citep{jiang2022}: a kernel accepts the proof of an agent on the same
+terms as the proof of a person.
+
+The kernel settles whether a proof is correct. It leaves open what was proved. A human who wants
+to rely on a theorem must still read, and the usual advice is to read the statement and to skip
+the proof~\citep{pollack1998}. The advice leaves out two things. First, a statement mentions
+defined constants, and its meaning lies in their definitions, which the same agent may have
+written. Second, a proof may use axioms, and an axiom is an assumption of the theorem even when
+the statement never mentions it. The safe alternative is to read everything the proof depends on,
+which gives up the benefit of the kernel.
+
+This paper determines the set in between. We call it the \emph{audit surface} of a theorem: the
+definitions that the statement unfolds to, the axioms that the proof uses, and the definitions
+that those axioms unfold to. Lemmas, proofs, and definitions that occur only in proofs stay
+outside.
+
+Our main contributions are as follows:
+\begin{itemize}
+\item A library calculus with definitions, axioms, and theorems that carry proof terms, and a
+  kernel of about forty lines (Section~\ref{sec:calculus}).
+\item The audit surface, with the theorem that the statement of a checked proof is derivable from
+  its audit surface alone, and a one-pass computation of the surface as a least closed set
+  (Section~\ref{sec:audit}).
+\item Three consequences for a shared library: a theorem holds wherever its audit surface is
+  present, extensions with fresh names merge without rechecking, and a definition that its
+  clients never unfold can be replaced together with the proofs of its laws
+  (Section~\ref{sec:structural}).
+\item A measurement of audit surfaces for 2,000 theorems of Lean's library
+  (Section~\ref{sec:measure}).
+\end{itemize}
+
+\paragraph{Status of the claims.}
+Every definition, lemma, proposition, theorem, and corollary of
+Sections~\ref{sec:calculus}--\ref{sec:structural} is mechanized in Lean~4~\citep{moura2021}. The
+development has about 1,500 lines and uses no axioms beyond the three standard axioms of Lean. The
+numbers of Section~\ref{sec:measure} are printed by a Lean program. The command \lean{make} in
+the artifact checks the proofs and reproduces the numbers with Lean 4.36.0, in about two minutes. The examples of
+Section~\ref{sec:necessity} and the discussion in Section~\ref{sec:limits} are argued informally.
+
+%% 2 ---------------------------------------------------------------------------------------
+\section{A Library Calculus}
+\label{sec:calculus}
+
+The calculus has untyped $\lambda$-terms with constants, proof terms for equations between
+them, and libraries that list definitions, axioms, and theorems.
+\[
+\begin{array}{llcl}
+\text{Terms} & s, t, u & ::= & x \mid c \mid s\;t \mid \lambda x.\,s \\
+\text{Proofs} & p, q & ::= & \kw{refl}\;t \mid \kw{sym}\;p \mid \kw{trans}\;p\;q \mid
+  \kw{app}\;p\;q \mid \kw{lam}\;p \\
+ & & \mid & \kw{beta}\;s\;t \mid \kw{delta}\;c \mid \kw{ax}\;a \mid \kw{lem}\;h \\
+\text{Entries} & e & ::= & \kw{def}\;c := u \mid \kw{axiom}\;a : s \eqd t \mid
+  \kw{theorem}\;h : s \eqd t := p \\
+\text{Libraries} & L & ::= & \cdot \mid L, e
+\end{array}
+\]
+Constants $c$, axiom names $a$, and theorem names $h$ come from one set of names. We write
+$\consts(t)$ for the constants of $t$. A constant needs no declaration. A constant without a
+definition is a parameter, about which the library says nothing except through axioms.
+
+\begin{figure}
+\begin{mathpar}
+\inferrule{ }{\chk{L}{\kw{refl}\;t}{t}{t}}
+\and
+\inferrule{\chk{L}{p}{s}{t}}{\chk{L}{\kw{sym}\;p}{t}{s}}
+\and
+\inferrule{\chk{L}{p}{s}{u} \\ \chk{L}{q}{u}{t}}{\chk{L}{\kw{trans}\;p\;q}{s}{t}}
+\and
+\inferrule{\chk{L}{p}{s}{s'} \\ \chk{L}{q}{t}{t'}}{\chk{L}{\kw{app}\;p\;q}{s\;t}{s'\;t'}}
+\and
+\inferrule{\chk{L}{p}{s}{s'}}{\chk{L}{\kw{lam}\;p}{\lambda x.\,s}{\lambda x.\,s'}}
+\and
+\inferrule{ }{\chk{L}{\kw{beta}\;s\;t}{(\lambda x.\,s)\;t}{s[t/x]}}
+\and
+\inferrule{(\kw{def}\;c := u) \in L}{\chk{L}{\kw{delta}\;c}{c}{u}}
+\and
+\inferrule{(\kw{axiom}\;a : s \eqd t) \in L}{\chk{L}{\kw{ax}\;a}{s}{t}}
+\and
+\inferrule{(\kw{theorem}\;h : s \eqd t := q) \in L}{\chk{L}{\kw{lem}\;h}{s}{t}}
+\end{mathpar}
+\Description{Nine inference rules that define the checking judgment.}
+\caption{Checking. The proof $p$ establishes $s \eqd t$ in the library $L$.}
+\label{fig:chk}
+\end{figure}
+
+\begin{figure}
+\begin{mathpar}
+\inferrule{ }{\wf{\cdot}}
+\and
+\inferrule{\wf{L} \\ c \text{ fresh for } L \\ u \text{ closed} \\ c \notin \consts(u)}
+  {\wf{L,\, \kw{def}\;c := u}}
+\and
+\inferrule{\wf{L} \\ a \text{ fresh for } L}{\wf{L,\, \kw{axiom}\;a : s \eqd t}}
+\and
+\inferrule{\wf{L} \\ h \text{ fresh for } L \\ \chk{L}{p}{s}{t}}
+  {\wf{L,\, \kw{theorem}\;h : s \eqd t := p}}
+\end{mathpar}
+\Description{Four inference rules that define the well-formed libraries.}
+\caption{Well-formed libraries.}
+\label{fig:wf}
+\end{figure}
+
+\paragraph{Checking.}
+Figure~\ref{fig:chk} defines when a proof $p$ establishes an equation in a library, written
+$\chk{L}{p}{s}{t}$. The first five rules make $\eqd$ a congruence. The rule for $\kw{beta}$
+contracts a $\beta$-redex, and the rule for $\kw{delta}$ unfolds a definition. The last two rules
+use an axiom and a theorem of the library. A theorem is used through its statement only.
+
+\paragraph{Libraries.}
+Figure~\ref{fig:wf} defines the well-formed libraries. A name is \emph{fresh} for $L$ when no
+entry of $L$ has this name and the name occurs in no body and no statement of $L$. The body of a
+definition is closed and does not mention the constant it defines. With freshness, this rules out
+recursive definitions. A theorem is checked against the entries before it.
+
+The rules of Figure~\ref{fig:chk} consult the library by membership only, which gives the first
+structural property.
+
+\begin{lemma}[Locality]
+\label{lem:local}
+Let $\chk{L}{p}{s}{t}$. Let $L'$ contain every definition of $L$ that $p$ unfolds, every axiom
+of $L$ that $p$ uses, and, for every theorem of $L$ that $p$ uses, a theorem with the same name
+and statement. Then $\chk{L'}{p}{s}{t}$. In particular, a proof that checks in a library checks
+in every library that contains its entries.
+\end{lemma}
+
+\begin{figure}
+\[
+\begin{array}{ll}
+\kw{def} & \nm{flip} := \lambda f.\,\lambda x.\,\lambda y.\,f\;y\;x \\
+\kw{axiom} & \nm{add\_comm} : \nm{flip}\;\nm{add} \eqd \nm{add} \\
+\kw{def} & \nm{double} := \lambda x.\,\nm{add}\;x\;x \\
+\kw{def} & \nm{comp} := \lambda f.\,\lambda g.\,\lambda x.\,f\;(g\;x) \\
+\kw{theorem} & \nm{comp\_double} : \nm{comp}\;\nm{double}\;\nm{double} \eqd
+  \lambda x.\,\nm{add}\;(\nm{add}\;x\;x)\;(\nm{add}\;x\;x) \\
+\kw{def} & \nm{quad} := \lambda x.\,\nm{double}\;(\nm{double}\;x) \\
+\kw{theorem} & \nm{quad\_comp} : \nm{quad} \eqd \nm{comp}\;\nm{double}\;\nm{double} \\
+\kw{theorem} & \nm{quad\_eq} : \nm{quad} \eqd
+  \lambda x.\,\nm{add}\;(\nm{add}\;x\;x)\;(\nm{add}\;x\;x) \\
+\kw{theorem} & \nm{add\_flip} : \nm{add} \eqd \lambda x.\,\lambda y.\,\nm{add}\;y\;x \\
+\kw{theorem} & \nm{double\_sum} : \lambda x.\,\lambda y.\,\nm{double}\;(\nm{add}\;x\;y) \eqd
+  \lambda x.\,\lambda y.\,\nm{add}\;(\nm{add}\;y\;x)\;(\nm{add}\;x\;y)
+\end{array}
+\]
+\Description{A library with four definitions, one axiom, and five theorems.}
+\caption{A library, oldest entry first. The proofs are described in the text.}
+\label{fig:example}
+\end{figure}
+
+\paragraph{Example.}
+Figure~\ref{fig:example} shows a library with four definitions, one axiom, and five theorems.
+The constant $\nm{add}$ has no definition. The axiom $\nm{add\_comm}$ states that it is
+commutative, in terms of the defined constant $\nm{flip}$. The theorems $\nm{comp\_double}$ and
+$\nm{quad\_comp}$ are proved by normalizing both sides. The proof of $\nm{quad\_eq}$ is
+$\kw{trans}\;(\kw{lem}\;\nm{quad\_comp})\;(\kw{lem}\;\nm{comp\_double})$. The proof of
+$\nm{add\_flip}$ is $\kw{trans}\;(\kw{sym}\;(\kw{ax}\;\nm{add\_comm}))\;q$, where $q$ normalizes
+$\nm{flip}\;\nm{add}$. The proof of $\nm{double\_sum}$ normalizes the left side, rewrites one
+occurrence of $\nm{add}$ with $\kw{lem}\;\nm{add\_flip}$, and normalizes again.
+
+\paragraph{A kernel and an untrusted prover.}
+The mechanization represents terms with de Bruijn indices, lists a library newest entry first,
+and represents a set of names by a Boolean predicate. It defines a function
+$\mathrm{infer}_L(p)$ that computes the equation a proof establishes, if there is one. This
+function is the kernel. A second function decides the premises of Figure~\ref{fig:wf} with the
+kernel.
+
+\begin{proposition}[Kernel soundness]
+\label{prop:kernel}
+If $\mathrm{infer}_L(p) = (s, t)$, then $\chk{L}{p}{s}{t}$. If the decision procedure accepts
+$L$, then $\wf{L}$.
+\end{proposition}
+
+The mechanization also contains a prover that normalizes terms and returns proof terms. Nothing is
+proved about the prover. Its proofs enter a library only when the kernel accepts them, and this
+is how the library of Figure~\ref{fig:example} is checked. The division of labor is the one
+between an agent and a kernel.
+
+%% 3 ---------------------------------------------------------------------------------------
+\section{Audit Surfaces}
+\label{sec:audit}
+
+\subsection{Definition}
+
+The audit surface depends on the axioms that a proof uses, directly or through theorems. For a
+proof $p$ and a library $L$, replace every $\kw{lem}\;h$ in $p$ by the proof of $h$ in $L$, for
+each theorem $h$ of $L$ from the newest to the oldest. We write $\axs_L(p)$ for the set of
+names $a$ such that $\kw{ax}\;a$ occurs in the result.
+
+\begin{definition}[Closed set]
+\label{def:closed}
+A set $S$ of names is \emph{closed} for $L$ when $\consts(u) \subseteq S$ for every definition
+$\kw{def}\;c := u$ of $L$ with $c \in S$, and $\consts(s) \cup \consts(t) \subseteq S$ for
+every axiom $\kw{axiom}\;a : s \eqd t$ of $L$ with $a \in S$.
+\end{definition}
+
+\begin{definition}[Audit set and audit surface]
+\label{def:audit}
+Let $\chk{L}{p}{s}{t}$. The \emph{audit set} of $p$ is the least set that is closed for $L$ and
+contains $\consts(s)$, $\consts(t)$, and $\axs_L(p)$. For a set $S$ of names, the restriction
+$\restr{L}{S}$ consists of the definitions and the axioms of $L$ whose names are in $S$, in the
+order of $L$. The \emph{audit surface} of $p$ is $\restr{L}{S}$ for the audit set $S$ of $p$.
+\end{definition}
+
+The audit set is computed without iteration.
+
+\begin{proposition}[One pass]
+\label{prop:pass}
+Let $\wf{L}$ and let $A$ be a set of names. Start with $A$ and go through the entries of $L$
+from the newest to the oldest. Whenever the name of a definition or of an axiom is in the current
+set, add the constants of its body or of its statement. The result is the least set that contains
+$A$ and is closed for $L$.
+\end{proposition}
+
+One pass suffices because of freshness: the name of an entry occurs in no older entry, so nothing
+adds the name after the pass has moved beyond the entry.
+
+In Figure~\ref{fig:example}, the statement of $\nm{quad\_eq}$ mentions $\nm{quad}$ and
+$\nm{add}$, and its proof uses no axiom. The pass adds $\nm{double}$ at the definition of
+$\nm{quad}$. The audit surface consists of the definitions of $\nm{quad}$ and $\nm{double}$. It
+contains neither $\nm{comp}$ nor the two lemmas, although the proof uses both lemmas and their
+statements mention $\nm{comp}$. The statement of $\nm{double\_sum}$ mentions $\nm{double}$ and
+$\nm{add}$. Its proof uses $\nm{add\_flip}$, whose proof uses the axiom $\nm{add\_comm}$. The
+audit surface consists of $\nm{double}$, $\nm{add\_comm}$, and $\nm{flip}$.
+
+\subsection{Soundness}
+
+\begin{theorem}[Audit soundness]
+\label{thm:audit}
+Let $\wf{L}$ and $\chk{L}{p}{s}{t}$. Let $S$ be closed for $L$ and contain $\consts(s)$,
+$\consts(t)$, and $\axs_L(p)$. Then $\restr{L}{S}$ is well formed and contains no theorem, and
+there is a proof $p'$ such that $\chk{\restr{L}{S}}{p'}{s}{t}$. In particular, the statement of
+a checked proof is derivable from its audit surface.
+\end{theorem}
+
+\begin{proof}[Proof outline]
+The proof $p'$ is computed from $p$ in two passes over $L$, each from the newest entry to the
+oldest. The first pass removes the theorems. A theorem $h$ of $L$ was checked against the entries
+before it, so its proof $q$ checks in $L$ by Lemma~\ref{lem:local}. Replacing $\kw{lem}\;h$ by
+$q$ gives a proof of the same equation, because names are unique. After the pass the proof checks
+against the definitions and the axioms of $L$.
+
+The second pass removes the definitions and the axioms outside $S$. For a definition
+$\kw{def}\;c := u$ with $c \notin S$, substitute $u$ for $c$ in every term of the proof and
+replace $\kw{delta}\;c$ by $\kw{refl}\;u$. The result is a proof. Substituting a closed term
+commutes with $\beta$-contraction. A step $\kw{delta}\;d$ for another definition
+$\kw{def}\;d := u_d$ is unchanged because $c$ does not occur in $u_d$. If $d$ is older than
+$c$, this is the freshness of $c$. If $d$ is newer, then $d \in S$, since the pass has already
+removed the newer definitions outside $S$, and $S$ is closed. The same argument applies to the
+axioms that the proof uses, which are in $S$. The statement is unchanged because its constants
+are in $S$. An axiom outside $S$ does not occur in the proof and is dropped by
+Lemma~\ref{lem:local}.
+\end{proof}
+
+\subsection{Each Part Is Needed}
+\label{sec:necessity}
+
+The three parts of the audit surface are needed in the following sense. The arguments use that
+without axioms the equations derivable in a library are the $\beta\delta$-conversions, and that
+terms with distinct normal forms are not convertible~\citep{church1936}. The arguments are not
+mechanized.
+
+\emph{Definitions in the statement.} Remove the definition of $\nm{double}$ from the audit
+surface of $\nm{quad\_eq}$. In the library that only defines $\nm{quad}$, the two sides of
+$\nm{quad\_eq}$ have the distinct normal forms $\lambda x.\,\nm{double}\;(\nm{double}\;x)$ and
+$\lambda x.\,\nm{add}\;(\nm{add}\;x\;x)\;(\nm{add}\;x\;x)$.
+
+\emph{Axioms that the statement does not mention.} Remove $\nm{add\_comm}$ from the audit surface
+of $\nm{double\_sum}$. The two sides then have normal forms that differ in one argument, namely
+$\nm{add}\;x\;y$ and $\nm{add}\;y\;x$. The kernel rejects the proof that only normalizes, and the
+mechanization records this.
+
+\emph{Definitions in axioms.} Change the body of $\nm{flip}$ to $\lambda f.\,f$. The axiom
+$\nm{add\_comm}$ keeps its name and its text, and it now states a $\beta\delta$-conversion. The
+statement of $\nm{add\_flip}$ is no longer derivable. A reader who skips $\nm{flip}$ cannot tell
+the two libraries apart.
+
+\subsection{Subjects and Vocabulary}
+\label{sec:subjects}
+
+A reader may leave some bodies of the audit surface unread. The theorem then says something
+about those constants as artifacts that are identified by name. For example, a reader of
+$\nm{double\_sum}$ who skips the body of $\nm{double}$ learns that the function called
+$\nm{double}$ in this library, whatever it computes, satisfies the stated equation. This reading
+is the one a client of an implementation wants, in the way a client of an abstract type relies on
+its operations without their representation~\citep{mitchell1988}. We call such constants the
+\emph{subjects} of the theorem and the remaining ones its \emph{vocabulary}. The reading is sound
+by Theorem~\ref{thm:audit}, since the bodies are in the audit surface whether they are read or
+not. The choice of subjects belongs to the reader. The \emph{signature surface}, in which no body
+is read, bounds the reading effort from below, and Section~\ref{sec:measure} measures both.
+
+%% 4 ---------------------------------------------------------------------------------------
+\section{Reading, Merging, Replacing}
+\label{sec:structural}
+
+A library that many agents extend supports three operations. A reviewer reads a theorem, two
+contributions are merged, and a part is replaced by a better one. Each should cost no rechecking
+of what is unaffected.
+
+\begin{corollary}[Portability]
+\label{cor:portable}
+Let $\wf{L}$ and $\chk{L}{p}{s}{t}$, and let $p'$ be the proof of Theorem~\ref{thm:audit} for
+the audit set of $p$. Then $\chk{L'}{p'}{s}{t}$ for every library $L'$ that contains the audit
+surface of $p$.
+\end{corollary}
+
+A reviewer who has read an audit surface has reviewed the theorem for every library in which the
+surface is present. The library may replace all proofs and all definitions outside the surface.
+
+\begin{theorem}[Merging]
+\label{thm:merge}
+Let $\wf{L_0, L_1}$ and $\wf{L_0, L_2}$, and let every name that $L_1$ introduces be fresh for
+$L_2$. Then $\wf{L_0, L_2, L_1}$.
+\end{theorem}
+
+The proof uses Lemma~\ref{lem:local} and checks no proof again. The condition in the other
+direction is not needed for well-formedness. It matters for meaning: a constant that $L_1$ uses
+as a parameter and $L_2$ defines is captured by the merge. Systems in which every constant is
+declared exclude this case. By Corollary~\ref{cor:portable}, every statement proved in $L_0, L_1$
+or in $L_0, L_2$ stays derivable in the merged library from the audit surface it had before.
+
+Two libraries have the \emph{same interface} when they have the same entries in the same order,
+except that the proofs of corresponding theorems may differ.
+
+\begin{theorem}[Replacement]
+\label{thm:replace}
+Let $\wf{L_0,\, \kw{def}\;c := u,\, M,\, L_1}$ and $\wf{L_0,\, \kw{def}\;c := u',\, M'}$, where
+$M$ and $M'$ have the same interface. Suppose that no proof of a theorem of $L_1$ contains
+$\kw{delta}\;c$, and that no name that $L_1$ introduces occurs in $u'$. Then
+$\wf{L_0,\, \kw{def}\;c := u',\, M',\, L_1}$.
+\end{theorem}
+
+The theorem covers the repair of an implementation. The entries $M$ state the laws of $c$, with
+proofs that unfold it. The entries $L_1$ are clients that use the laws and never unfold $c$. A
+new body $u'$ with new proofs of the same laws leaves every client checked. A variant without the
+definition, which is also mechanized, says that the proofs of theorems can always be replaced.
+
+%% 5 ---------------------------------------------------------------------------------------
+\section{Audit Surfaces in Lean's Library}
+\label{sec:measure}
+
+We measure how much a reader saves by reading audit surfaces in a real library.
+
+\paragraph{Method.}
+The kernel of Lean~4 has more kinds of declarations than our calculus, and we extend the
+definitions as follows. A constant that is read as part of a statement brings in the constants of
+its type. A definition also brings in the constants of its body, an inductive type brings in its
+constructors, and a constructor or a recursor brings in its inductive type. A theorem or an opaque
+constant that occurs in a statement contributes its type only. The axioms of a proof are the
+axioms among the constants it depends on, as \lean{\#print axioms} reports them. For a theorem we
+compute three sets of constants:
+\begin{itemize}
+\item the \emph{signature surface}, reached from the statement and the axioms without the body of
+  any definition;
+\item the \emph{audit surface}, reached with the bodies of definitions;
+\item the \emph{dependency closure}, reached with the bodies of definitions and opaque constants
+  and with the proofs of theorems, which is what the kernel checked.
+\end{itemize}
+We report the number of constants and the number of distinct source lines of the declarations
+that introduce them. Lean records a source range for each declaration and attributes recursors
+and similar generated constants to the declaration of their type. A generated constant without a
+range adds no lines.
+
+The population consists of the 46,992 theorems of the modules under \lean{Init} and \lean{Std}
+in Lean 4.36.0 that have a source range of their own and a name that is not internal. The sample
+takes every 23rd theorem in the order of names, which gives 2,000 theorems.
+
+\begin{table}
+\caption{Sizes for 2,000 theorems of \lean{Init} and \lean{Std}.}
+\label{tab:sizes}
+\begin{tabular}{llrrrrrr}
+\toprule
+ & & p25 & median & p75 & p90 & max & mean \\
+\midrule
+Constants & signature surface & 33 & 64 & 153 & 184 & 247 & 87 \\
+ & audit surface & 123 & 251 & 659 & 764 & 1,804 & 367 \\
+ & dependency closure & 353 & 1,819 & 3,578 & 3,911 & 7,102 & 1,948 \\
+\midrule
+Source lines & signature surface & 222 & 462 & 1,020 & 1,209 & 1,688 & 595 \\
+ & audit surface & 637 & 1,436 & 3,107 & 3,340 & 6,758 & 1,749 \\
+ & dependency closure & 1,255 & 6,241 & 11,045 & 11,641 & 23,729 & 6,181 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Constants and source lines for selected theorems.}
+\label{tab:examples}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{Signature} & \multicolumn{2}{c}{Audit} & \multicolumn{2}{c}{Closure} \\
+Theorem & const. & lines & const. & lines & const. & lines \\
+\midrule
+\lean{Nat.add\_comm} & 13 & 88 & 26 & 120 & 47 & 224 \\
+\lean{List.reverse\_reverse} & 9 & 88 & 21 & 112 & 37 & 200 \\
+\lean{Array.size\_push} & 27 & 209 & 54 & 286 & 68 & 352 \\
+\lean{Nat.gcd\_comm} & 12 & 153 & 138 & 753 & 487 & 1,755 \\
+\lean{String.length\_append} & 71 & 468 & 445 & 2,308 & 3,490 & 10,731 \\
+\lean{Std.HashMap.size\_insert} & 162 & 1,088 & 621 & 3,177 & 3,371 & 11,147 \\
+\lean{Std.TreeMap.contains\_insert} & 180 & 1,174 & 726 & 2,954 & 3,743 & 10,587 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Results.}
+Table~\ref{tab:sizes} gives the distribution of the three sizes, and Table~\ref{tab:examples}
+gives individual theorems. We observe the following.
+
+\emph{The audit surface is a fraction of what the kernel checked.} The dependency closure of a
+theorem is larger than its audit surface by a median factor of 4.9 in constants and 3.3 in source
+lines. For 1,509 of the 2,000 theorems, the audit surface has at most half the lines of the
+closure.
+
+\emph{The audit surface is large.} Its median is 1,436 lines, and it is at most 500 lines for 432
+of the 2,000 theorems. A statement is a line or two, so the advice to read the statement
+understates the reading by about three orders of magnitude.
+
+\emph{Bodies account for a factor of 2.8.} The audit surface has a median of 2.8 times the lines
+of the signature surface. Theorems about data structures show the difference most. The statement
+of \lean{Std.HashMap.size\_insert} mentions the insertion function, so its audit surface holds
+the implementation of hash maps, with 3,177 lines against 1,088 for the signatures. This is the
+case of Section~\ref{sec:subjects}: a client treats the insertion function as a subject.
+
+\emph{Surfaces overlap.} The union of the 2,000 audit surfaces has 8,328 constants and 32,768
+lines, against 31,319 constants and 101,918 lines for the union of the closures. Reading the
+union once audits all 2,000 theorems, which is about 16 lines per theorem.
+
+\emph{Axioms are few.} The sample uses only the three standard axioms of Lean, which are
+\lean{propext}, \lean{Classical.choice}, and \lean{Quot.sound}. No axiom is used by 205 of the
+theorems.
+
+\paragraph{Threats to validity.}
+The measurement applies the definitions to Lean's kernel terms, and we have not proved
+Theorem~\ref{thm:audit} for Lean's type theory. Source lines cover whole declarations, so they
+overstate the signature surface, which needs the types only, and they miss generated constants
+without a source range. The modules under \lean{Init} and \lean{Std} form a library of basic data
+structures, and a library of mathematics may behave differently. The sample is systematic in the
+order of names, so it is spread over the namespaces without being random.
+
+%% 6 ---------------------------------------------------------------------------------------
+\section{What the Calculus Leaves Out}
+\label{sec:limits}
+
+The calculus is untyped and equational. A proof assistant differs in ways that bear on each
+result.
+
+\emph{Types.} In a dependent type theory a constant has a type, and a declared constant is an
+axiom by itself, since it asserts that its type is inhabited. The audit surface then holds the
+type of every constant it reaches, as in Section~\ref{sec:measure}. Theorem~\ref{thm:audit}
+needs weakening, substitution of definitions, and cut for the type theory in question. We expect
+these to hold for the theories whose kernels have been formalized~\citep{sozeau2020,carneiro2024}
+and have not proved it.
+
+\emph{Elaboration.} The audit surface consists of kernel terms, and a human reads source text.
+Notations, implicit arguments, coercions, and instances decide which kernel term a line of
+source denotes, and a system may print a term in a way that reads as a different
+statement~\citep{pollack1998,wiedijk2012}. The audit surface says which declarations matter. It
+does not make them easy to read.
+
+\emph{Kernel extensions.} A kernel may evaluate some functions with built-in code and may accept
+the result of compiled code as an axiom. Such an axiom appears in the audit surface, and the code
+it trusts lies outside the library.
+
+\emph{Global conditions.} Theorem~\ref{thm:merge} relies on well-formedness conditions that
+concern one entry and the entries before it. A kernel that keeps one graph of universe constraints
+for all declarations checks a global condition, and two libraries can each satisfy it while their
+union does not. Instances and notations do not affect checked terms, and they can change what
+the source of a later entry means.
+
+\emph{The kernel.} The audit surface assumes a correct kernel. Verified kernels address this
+assumption~\citep{harrison2006,kumar2014,candle2022,sozeau2020,carneiro2024}.
+
+%% 7 ---------------------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+
+\emph{Believing a checked proof.} \citet{lcf1979} introduced the architecture in which only
+inference rules construct theorems, and the de Bruijn criterion asks for proofs that a small
+independent program can check~\citep{barendregt2005,geuvers2009}. \citet{pollack1998} separates
+two questions about a machine-checked proof, whether it is a proof and what it proves, and
+\citet{wiedijk2012} studies systems in which the printed form of a statement misleads.
+\citet{adams2016} describes how to audit a formalization such as the proof of the Kepler
+conjecture~\citep{hales2017}: an auditor reviews the statement and the definitions it depends on
+and replays the proof in a trusted checker. Our audit surface makes the reviewed set precise for
+libraries with axioms and proves that it suffices.
+
+\emph{Small trusted bases.} Proof-carrying code checks the proofs of an untrusted
+producer~\citep{necula1997}, and its foundational form reduces what the checker
+trusts~\citep{appel2001,appel2003}. Verified kernels reduce the trust in the checker
+itself~\citep{harrison2006,kumar2014,candle2022,sozeau2020,carneiro2024}. These works concern the
+kernel. We take a correct kernel as given and ask what remains for the reader.
+
+\emph{Definitions.} \citet{kumar2014} and \citet{arthan2014} study the principles by which HOL
+introduces constants and prove them sound. \citet{severi1994} add definitions to pure type
+systems. \citet{gratzer2022} give a type theory in which the unfolding of a definition is
+controlled. Definition elimination in Theorem~\ref{thm:audit} is the classical conservativity of
+definitions, applied selectively: the definitions in the audit set stay because the statement or
+an axiom depends on them.
+
+\emph{Modules and linking.} Our libraries are signatures in the sense of logical
+frameworks~\citep{harper1993}, extended with definitions and proofs. Theorem~\ref{thm:merge}
+corresponds to linking separately checked fragments~\citep{cardelli1997}. The distinction between
+transparent and sealed definitions in Theorem~\ref{thm:replace} is that of manifest and abstract
+components of a module~\citep{leroy1994,mitchell1988}.
+
+%% 8 ---------------------------------------------------------------------------------------
+\section{Conclusion}
+
+A machine-checked theorem asks a human to read its audit surface: the definitions under the
+statement and the axioms under the proof. The statement follows from the surface alone, and the
+surface is found in one pass. In Lean's library the surface is about a third of what the kernel
+checked, and it is about three orders of magnitude more than the statement.
+
+The results are proved for an untyped equational calculus. The step to a dependent type theory
+with inductive types is open, and so is a surface defined on source text. The measurement
+suggests two further directions. A reader needs a way to name the subjects of a theorem so that
+the surface excludes their bodies soundly. A library needs a measure of its total surface, which
+the union in Section~\ref{sec:measure} approximates.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
