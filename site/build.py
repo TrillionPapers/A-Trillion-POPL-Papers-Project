@@ -3,10 +3,13 @@
 
 Usage: python site/build.py OUTPUT_DIR
 
-The site lists the ideas in ideas/ and the papers in papers/, shows the record and the PDF of
-each paper, and renders RATIONALE.md and CONTRIBUTING.md. The script only reads files. It never
-runs anything that a contribution contains, and HTML that comes from Markdown passes through an
-allowlist.
+The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
+the record, the versions, the reviews, and the PDF of each paper, and renders RATIONALE.md and
+CONTRIBUTING.md. Earlier versions of a paper are read from the git history at the commits that
+papers/VERSIONS records.
+
+The script only reads files. It never runs anything that a contribution contains, and HTML that
+comes from Markdown passes through an allowlist.
 """
 
 import html
@@ -14,6 +17,7 @@ import os
 import posixpath
 import re
 import shutil
+import subprocess
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -22,13 +26,22 @@ from urllib.parse import quote
 import markdown
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ids  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 REPO = os.environ.get("GITHUB_REPOSITORY", "TrillionPapers/A-Trillion-POPL-Papers-Project")
 REPO_URL = f"https://github.com/{REPO}"
+OWNER, _, PROJECT = REPO.partition("/")
+SITE_URL = os.environ.get("SITE_URL", f"https://{OWNER.lower()}.github.io/{PROJECT}/")
 COMMIT = os.environ.get("GITHUB_SHA", "")
 SITE_NAME = "A Trillion POPL Papers"
+GOAL = 1_000_000_000_000
+PREFIX = "tpp"
 SLUG = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 SCHEME = re.compile(r"^([a-zA-Z][a-zA-Z0-9+.\-]*):")
+MACRO = re.compile(r"\\newcommand\{\\([A-Za-z]+)\}\{([^{}]*)\}")
+INPUT = re.compile(r"\\input\{([^{}]+)\}")
 DOC_PAGES = {
     "README.md": "index.html",
     "RATIONALE.md": "rationale.html",
@@ -159,11 +172,70 @@ def first_sentence(text, limit=260):
 
 
 # ---------------------------------------------------------------------------------------------
+# The files of a paper, in the working tree or at a commit
+
+class Source:
+    """Reads the files of one paper directory. With a commit, it reads that state from git."""
+
+    def __init__(self, name, commit=None):
+        self.name, self.commit = name, commit
+        self.folder = ROOT / "papers" / name
+
+    def _clean(self, relative):
+        parts = relative.split("/")
+        if relative.startswith("/") or any(part in ("", ".", "..") for part in parts):
+            return None
+        return relative
+
+    def data(self, relative, limit=50_000_000):
+        relative = self._clean(relative)
+        if relative is None:
+            return None
+        if self.commit is None:
+            path = self.folder / relative
+            try:
+                inside = self.folder.resolve() in path.resolve().parents
+                if inside and path.is_file() and path.stat().st_size <= limit:
+                    return path.read_bytes()
+            except OSError:
+                pass
+            return None
+        try:
+            done = subprocess.run(
+                ["git", "-C", str(ROOT), "show", f"{self.commit}:papers/{self.name}/{relative}"],
+                capture_output=True, check=True)
+        except (OSError, subprocess.CalledProcessError):
+            return None
+        return done.stdout if len(done.stdout) <= limit else None
+
+    def text(self, relative):
+        data = self.data(relative, limit=2_000_000)
+        return data.decode("utf-8", errors="replace") if data is not None else None
+
+    def has_directory(self, relative):
+        if self.commit is None:
+            return (self.folder / relative).is_dir()
+        return ids.git("cat-file", "-t", f"{self.commit}:papers/{self.name}/{relative}") == "tree"
+
+
+# ---------------------------------------------------------------------------------------------
 # LaTeX, read for the abstract only
 
-def detex(source):
+def macros_of(source, tex):
+    """Macros without arguments that the paper defines, in its own file or in a file of its
+    directory that it includes."""
+    texts = [tex]
+    for name in INPUT.findall(tex):
+        included = source.text(name if name.endswith(".tex") else name + ".tex")
+        if included is not None:
+            texts.append(included)
+    return {name: value for text in texts for name, value in MACRO.findall(text)}
+
+
+def detex(source, macros):
     """A rough conversion of LaTeX prose to plain text."""
     s = re.sub(r"(?<!\\)%.*", "", source)
+    s = re.sub(r"\\([A-Za-z]+)", lambda match: macros.get(match.group(1), match.group(0)), s)
     s = s.replace("~", " ").replace("``", "\u201c").replace("''", "\u201d")
     s = s.replace("---", "\u2014").replace("--", "\u2013")
     for _ in range(4):
@@ -174,16 +246,16 @@ def detex(source):
     return " ".join(s.split())
 
 
-def abstract_of(tex):
+def abstract_of(source, tex):
     match = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", tex, flags=re.S)
-    return detex(match.group(1)) if match else ""
+    return detex(match.group(1), macros_of(source, tex)) if match else ""
 
 
 # ---------------------------------------------------------------------------------------------
 # Reading the repository
 
 def text_of(value):
-    return str(value).strip() if isinstance(value, (str, int, float)) else ""
+    return " ".join(str(value).split()) if isinstance(value, (str, int, float)) else ""
 
 
 def items_of(value):
@@ -192,7 +264,16 @@ def items_of(value):
     return value if isinstance(value, list) else [value]
 
 
-def load_ideas():
+def registries():
+    """The registered names and versions. A malformed registry gives empty results."""
+    try:
+        return ids.numbers("ideas"), ids.numbers("papers"), ids.versions()
+    except ValueError as problem:
+        warn(str(problem))
+        return [], [], []
+
+
+def load_ideas(numbers):
     ideas = []
     folder = ROOT / "ideas"
     for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
@@ -205,11 +286,80 @@ def load_ideas():
         body = text[: heading.start()] + text[heading.end():] if heading else text
         ideas.append({
             "slug": path.stem, "title": title, "body": body, "summary": first_sentence(body),
+            "number": numbers.index(path.stem) + 1 if path.stem in numbers else None,
         })
-    return sorted(ideas, key=lambda idea: idea["title"].lower())
+    return sorted(ideas, key=lambda idea: (idea["number"] is None, idea["number"] or 0,
+                                           idea["title"].lower()))
 
 
-def load_papers():
+def describe(source):
+    """The record of one state of a paper."""
+    meta, problem = {}, ""
+    record = source.text("meta.yaml")
+    if record is None:
+        problem = "meta.yaml is missing."
+    else:
+        try:
+            loaded = yaml.safe_load(record)
+            if isinstance(loaded, dict):
+                meta = loaded
+            else:
+                problem = "meta.yaml is not a mapping."
+        except yaml.YAMLError:
+            problem = "meta.yaml could not be read."
+    tex = source.text("paper.tex") or ""
+    abstract = abstract_of(source, tex)
+    agents = []
+    for agent in items_of(meta.get("agents")):
+        if isinstance(agent, dict):
+            agents.append({key: text_of(agent.get(key)) for key in ("model", "harness", "did")})
+        elif text_of(agent):
+            agents.append({"model": text_of(agent), "harness": "", "did": ""})
+    humans = []
+    for human in items_of(meta.get("humans")):
+        if isinstance(human, dict):
+            humans.append({key: text_of(human.get(key)) for key in ("name", "did")})
+        elif text_of(human):
+            humans.append({"name": text_of(human), "did": ""})
+    verified = []
+    for claim in items_of(meta.get("verified")):
+        if isinstance(claim, dict):
+            verified.append({key: text_of(claim.get(key)) for key in ("what", "by")})
+    return {
+        "title": text_of(meta.get("title")) or source.name,
+        "idea": text_of(meta.get("idea")),
+        "builds_on": [text_of(name) for name in items_of(meta.get("builds-on")) if text_of(name)],
+        "changes": text_of(meta.get("changes")),
+        "agents": [agent for agent in agents if agent["model"]],
+        "humans": [human for human in humans if human["name"]],
+        "verified": [claim for claim in verified if claim["what"]],
+        "abstract": abstract,
+        "summary": first_sentence(abstract),
+        "problem": problem,
+        "pdf": source.data("paper.pdf"),
+        "tex": bool(tex),
+        "artifact": source.has_directory("artifact"),
+    }
+
+
+def load_reviews(name):
+    """The reviews of a paper. A file v<version>-<reviewer>.md reviews that version."""
+    reviews = []
+    folder = ROOT / "reviews" / name
+    for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
+        if not SLUG.fullmatch(path.stem):
+            continue
+        match = re.fullmatch(r"v(\d+)-(.+)", path.stem)
+        reviews.append({
+            "version": int(match.group(1)) if match else None,
+            "reviewer": match.group(2) if match else path.stem,
+            "body": read(path),
+            "file": path.name,
+        })
+    return reviews
+
+
+def load_papers(numbers, versions):
     papers = []
     folder = ROOT / "papers"
     for path in sorted(folder.iterdir()) if folder.is_dir() else []:
@@ -218,60 +368,26 @@ def load_papers():
         if not SLUG.fullmatch(path.name):
             warn(f"skipping papers/{path.name}: unexpected directory name")
             continue
-        meta, problem = {}, ""
-        record = path / "meta.yaml"
-        if record.is_file():
-            try:
-                loaded = yaml.safe_load(read(record))
-                if isinstance(loaded, dict):
-                    meta = loaded
-                else:
-                    problem = "meta.yaml is not a mapping."
-            except yaml.YAMLError:
-                problem = "meta.yaml could not be read."
-        else:
-            problem = "meta.yaml is missing."
-        if problem:
-            warn(f"papers/{path.name}: {problem}")
-        tex = read(path / "paper.tex") if (path / "paper.tex").is_file() else ""
-        abstract = abstract_of(tex)
-        agents = []
-        for agent in items_of(meta.get("agents")):
-            if isinstance(agent, dict):
-                agents.append({key: text_of(agent.get(key)) for key in ("model", "harness", "did")})
-            elif text_of(agent):
-                agents.append({"model": text_of(agent), "harness": "", "did": ""})
-        humans = []
-        for human in items_of(meta.get("humans")):
-            if isinstance(human, dict):
-                humans.append({key: text_of(human.get(key)) for key in ("name", "did")})
-            elif text_of(human):
-                humans.append({"name": text_of(human), "did": ""})
-        verified = []
-        for claim in items_of(meta.get("verified")):
-            if isinstance(claim, dict):
-                verified.append({key: text_of(claim.get(key)) for key in ("what", "by")})
-        reviews = []
-        review_folder = ROOT / "reviews" / path.name
-        for review in sorted(review_folder.glob("*.md")) if review_folder.is_dir() else []:
-            reviews.append({"name": review.stem, "body": read(review)})
-        papers.append({
-            "slug": path.name,
-            "title": text_of(meta.get("title")) or path.name,
-            "idea": text_of(meta.get("idea")),
-            "builds_on": [text_of(name) for name in items_of(meta.get("builds-on")) if text_of(name)],
-            "agents": [agent for agent in agents if agent["model"]],
-            "humans": [human for human in humans if human["name"]],
-            "verified": [claim for claim in verified if claim["what"]],
-            "abstract": abstract,
-            "summary": first_sentence(abstract),
-            "problem": problem,
-            "reviews": reviews,
-            "pdf": (path / "paper.pdf").is_file(),
-            "tex": bool(tex),
-            "artifact": (path / "artifact").is_dir(),
-        })
-    return sorted(papers, key=lambda paper: paper["title"].lower())
+        number = numbers.index(path.name) + 1 if path.name in numbers else None
+        paper = describe(Source(path.name))
+        if paper["problem"]:
+            warn(f"papers/{path.name}: {paper['problem']}")
+        recorded = [entry for entry in versions if entry[0] == number]
+        head_tree = ids.git("rev-parse", "--verify", "--quiet", f"HEAD:papers/{path.name}")
+        history = []
+        for _, version, commit, tree, date in recorded:
+            state = describe(Source(path.name, commit))
+            if state["problem"] == "meta.yaml is missing." and not state["tex"]:
+                warn(f"papers/{path.name}: version {version} is not in the git history here")
+                continue
+            state.update(version=version, commit=commit, date=date)
+            history.append(state)
+        paper.update(
+            slug=path.name, number=number, history=history, reviews=load_reviews(path.name),
+            version=recorded[-1][1] if recorded and recorded[-1][3] == head_tree else None)
+        papers.append(paper)
+    return sorted(papers, key=lambda paper: (paper["number"] is None, paper["number"] or 0,
+                                             paper["title"].lower()))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -309,19 +425,47 @@ def page(title, body, base):
 """
 
 
+def redirect(target):
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url={esc(target, quote=True)}">
+<link rel="canonical" href="{esc(target, quote=True)}">
+<title>{esc(SITE_NAME)}</title>
+</head>
+<body><p><a href="{esc(target, quote=True)}">Continue</a></p></body>
+</html>
+"""
+
+
+def identifier(number, version=None):
+    return f"{PREFIX}:{number}" + (f"v{version}" if version else "")
+
+
+def label(number):
+    return f'<span class="num">{number}</span> ' if number else ""
+
+
 def byline(paper):
     """The models that wrote the paper. A paper without an agent is credited to its humans."""
     names = [agent["model"] for agent in paper["agents"]] or [human["name"] for human in paper["humans"]]
-    return ", ".join(esc(name) for name in names)
+    return ", ".join(esc(name) for name in dict.fromkeys(names))
 
 
 def paper_entry(paper, base):
     count = len(paper["verified"])
-    claims = f"{count} verified claim{'s' if count != 1 else ''}"
-    details = " · ".join(part for part in (byline(paper), claims) if part)
+    facts = [byline(paper)]
+    if paper["version"]:
+        facts.append(f"version {paper['version']}")
+    facts.append(f"{count} verified claim{'s' if count != 1 else ''}")
+    if paper["reviews"]:
+        facts.append(f"{len(paper['reviews'])} review{'s' if len(paper['reviews']) != 1 else ''}")
     summary = f"<p>{esc(paper['summary'])}</p>" if paper["summary"] else ""
-    return (f'<li><a class="title" href="{base}papers/{quote(paper["slug"])}/index.html">'
-            f'{esc(paper["title"])}</a>{summary}<p class="meta">{details}</p></li>')
+    return (f'<li>{label(paper["number"])}'
+            f'<a class="title" href="{base}papers/{quote(paper["slug"])}/index.html">'
+            f'{esc(paper["title"])}</a>{summary}'
+            f'<p class="meta">{" · ".join(fact for fact in facts if fact)}</p></li>')
 
 
 def idea_entry(idea, base, papers):
@@ -333,7 +477,8 @@ def idea_entry(idea, base, papers):
             for paper in grown)
         note = f'<p class="meta">Realized by {links}</p>'
     summary = f"<p>{esc(idea['summary'])}</p>" if idea["summary"] else ""
-    return (f'<li><a class="title" href="{base}ideas/{quote(idea["slug"])}.html">'
+    return (f'<li>{label(idea["number"])}'
+            f'<a class="title" href="{base}ideas/{quote(idea["slug"])}.html">'
             f'{esc(idea["title"])}</a>{summary}{note}</li>')
 
 
@@ -346,8 +491,10 @@ def home_page(ideas, papers):
     heading = re.search(r"^#\s+(.+?)\s*$", readme, flags=re.M)
     name = plain(heading.group(1)) if heading else SITE_NAME
     lead = first_sentence(readme[heading.end():] if heading else readme, limit=400)
+    count = max([paper["number"] or 0 for paper in papers] + [0])
     body = f"""<h1>{esc(name)}</h1>
 <p class="lead">{esc(lead)}</p>
+<p class="progress"><strong>{count:,}</strong> of {GOAL:,} papers</p>
 <p class="actions"><a href="rationale.html">Why the project exists</a>
 <a href="contributing.html">How to take part</a></p>
 <h2>Papers <span class="count">{len(papers)}</span></h2>
@@ -362,7 +509,8 @@ def idea_page(idea, papers):
     grown = [paper_entry(paper, base) for paper in papers if paper["idea"] == idea["slug"]]
     papers_html = f"<h2>Papers from this idea</h2>\n{entries(grown)}" if grown else ""
     source = f"{REPO_URL}/blob/main/ideas/{quote(idea['slug'])}.md"
-    body = f"""<p class="kicker">Idea</p>
+    kicker = f"Idea {idea['number']}" if idea["number"] else "Idea"
+    body = f"""<p class="kicker">{kicker}</p>
 <h1>{esc(idea["title"])}</h1>
 {render_markdown(idea["body"], linker("ideas", base))}
 {papers_html}
@@ -370,83 +518,133 @@ def idea_page(idea, papers):
     return page(idea["title"], body, base)
 
 
-def record_rows(paper, ideas, papers, base):
+def record_rows(state, ideas, papers, base):
     rows = []
     known_ideas = {idea["slug"]: idea for idea in ideas}
     known_papers = {other["slug"]: other for other in papers}
-    if paper["idea"]:
-        idea = known_ideas.get(paper["idea"])
+    if state["idea"]:
+        idea = known_ideas.get(state["idea"])
         value = (f'<a href="{base}ideas/{quote(idea["slug"])}.html">{esc(idea["title"])}</a>'
-                 if idea else esc(paper["idea"]))
+                 if idea else esc(state["idea"]))
         rows.append(("Idea", value))
-    if paper["builds_on"]:
+    if state["builds_on"]:
         links = []
-        for name in paper["builds_on"]:
+        for name in state["builds_on"]:
             other = known_papers.get(name)
             links.append(
                 f'<a href="{base}papers/{quote(other["slug"])}/index.html">{esc(other["title"])}</a>'
                 if other else esc(name))
         rows.append(("Builds on", ", ".join(links)))
-    for agent in paper["agents"]:
+    for agent in state["agents"]:
         value = esc(agent["model"])
         if agent["harness"]:
             value += f" in {esc(agent['harness'])}"
         if agent["did"]:
             value += f": {esc(agent['did'])}"
         rows.append(("Agent", value))
-    for human in paper["humans"]:
+    for human in state["humans"]:
         value = esc(human["name"])
         if human["did"]:
             value += f": {esc(human['did'])}"
         rows.append(("Human", value))
-    return "\n".join(f"<dt>{label}</dt><dd>{value}</dd>" for label, value in rows)
+    return "\n".join(f"<dt>{name}</dt><dd>{value}</dd>" for name, value in rows)
 
 
-def paper_page(paper, ideas, papers):
-    base = "../../"
-    folder = f"papers/{quote(paper['slug'])}"
+def demote(rendered):
+    """Moves the headings of a rendered text below the headings of the page around it."""
+    return re.sub(r"<(/?)h([1-6])>", lambda match: f"<{match.group(1)}h{min(6, int(match.group(2)) + 3)}>",
+                  rendered)
+
+
+def review_blocks(paper, reviews, base):
+    blocks = []
+    for review in reviews:
+        about = f"Version {review['version']}, " if review["version"] else ""
+        source = f"{REPO_URL}/blob/main/reviews/{quote(paper['slug'])}/{quote(review['file'])}"
+        blocks.append(
+            f'<section class="review"><h3>{about}reviewed by {esc(review["reviewer"])}</h3>\n'
+            + demote(render_markdown(review["body"], linker(f"reviews/{paper['slug']}", base)))
+            + f'\n<p class="meta"><a href="{source}">Source of this review</a></p></section>')
+    return "\n".join(blocks)
+
+
+def paper_body(paper, state, ideas, papers, base, version):
+    """The page of a paper. `state` is the latest state, or the state of `version`."""
+    slug = quote(paper["slug"])
+    number = paper["number"]
+    place = f"tree/{state['commit']}" if version else "tree/main"
+    blob = f"blob/{state['commit']}" if version else "blob/main"
+    folder = f"{REPO_URL}/{place}/papers/{slug}"
     actions = []
-    if paper["pdf"]:
+    if state["pdf"] is not None:
         actions.append('<a class="button" href="paper.pdf">Read the PDF</a>')
-    if paper["tex"]:
-        actions.append(f'<a href="{REPO_URL}/blob/main/{folder}/paper.tex">LaTeX source</a>')
-    if paper["artifact"]:
-        actions.append(f'<a href="{REPO_URL}/tree/main/{folder}/artifact">Artifact</a>')
-    actions.append(f'<a href="{REPO_URL}/tree/main/{folder}">All files</a>')
+    if state["tex"]:
+        actions.append(f'<a href="{REPO_URL}/{blob}/papers/{slug}/paper.tex">LaTeX source</a>')
+    if state["artifact"]:
+        actions.append(f'<a href="{folder}/artifact">Artifact</a>')
+    actions.append(f'<a href="{folder}">All files</a>')
+    shown = version or paper["version"]
+    kicker = f"Paper {number}" if number else "Paper"
+    if shown:
+        kicker += f" · version {shown}"
     parts = [
-        '<p class="kicker">Paper</p>',
-        f"<h1>{esc(paper['title'])}</h1>",
-        f'<p class="byline">{byline(paper)}</p>' if byline(paper) else "",
-        f'<p class="actions">{" ".join(actions)}</p>',
+        f'<p class="kicker">{kicker}</p>',
+        f"<h1>{esc(state['title'])}</h1>",
+        f'<p class="byline">{byline(state)}</p>' if byline(state) else "",
     ]
-    if paper["problem"]:
-        parts.append(f'<p class="meta">The record of this paper is incomplete: {esc(paper["problem"])}</p>')
-    if paper["abstract"]:
-        parts.append(f"<h2>Abstract</h2>\n<p>{esc(paper['abstract'])}</p>")
-    rows = record_rows(paper, ideas, papers, base)
+    latest = paper["history"][-1]["version"] if paper["history"] else None
+    if version and latest and version != latest:
+        parts.append(f'<p class="notice">This is version {version}. '
+                     f'<a href="../index.html">Version {latest}</a> is the latest.</p>')
+    if number:
+        permanent = f"{SITE_URL}p/{number}/" + (f"v{shown}/" if shown else "")
+        cite = identifier(number, shown)
+        parts.append(f'<p class="meta">Identifier <code>{cite}</code>, permanent address '
+                     f'<a href="{permanent}">{esc(permanent)}</a></p>')
+    else:
+        parts.append('<p class="meta">This paper has no number yet. '
+                     "Numbers are assigned on the main branch.</p>")
+    parts.append(f'<p class="actions">{" ".join(actions)}</p>')
+    if state["problem"]:
+        parts.append(f'<p class="meta">The record of this paper is incomplete: {esc(state["problem"])}</p>')
+    if state["abstract"]:
+        parts.append(f"<h2>Abstract</h2>\n<p>{esc(state['abstract'])}</p>")
+    rows = record_rows(state, ideas, papers, base)
     if rows:
         parts.append(f'<h2>Record</h2>\n<dl class="record">\n{rows}\n</dl>')
     parts.append("<h2>Verified</h2>")
-    if paper["verified"]:
+    if state["verified"]:
         claims = "\n".join(
             f"<tr><td>{esc(claim['what'])}</td><td><code>{esc(claim['by'])}</code></td></tr>"
-            for claim in paper["verified"])
+            for claim in state["verified"])
         parts.append("<p>A command in the paper's directory checks each of these claims. "
                      "Every other claim of the paper is unverified.</p>\n"
                      f"<table><thead><tr><th>Claim</th><th>Checked by</th></tr></thead>\n"
                      f"<tbody>\n{claims}\n</tbody></table>")
     else:
         parts.append("<p>No claim of this paper is checked by a command.</p>")
-    if paper["reviews"]:
-        parts.append("<h2>Reviews</h2>")
-        for review in paper["reviews"]:
-            parts.append(f"<h3>{esc(review['name'])}</h3>\n"
-                         + render_markdown(review["body"], linker(f"reviews/{paper['slug']}", base)))
-    if paper["pdf"]:
+    if paper["history"] and not version:
+        lines = []
+        for entry in reversed(paper["history"]):
+            note = f" {esc(entry['changes'])}" if entry["changes"] and entry["version"] > 1 else ""
+            lines.append(
+                f'<li><a href="v{entry["version"]}/index.html">Version {entry["version"]}</a> '
+                f'<span class="meta">{esc(entry["date"])} · <code>{identifier(number, entry["version"])}'
+                f'</code> · commit <a href="{REPO_URL}/commit/{entry["commit"]}">'
+                f'{entry["commit"][:7]}</a></span>{note}</li>')
+        parts.append('<h2>Versions</h2>\n<ul class="versions">\n' + "\n".join(lines) + "\n</ul>")
+    reviews = [review for review in paper["reviews"]
+               if not version or review["version"] == version]
+    if reviews:
+        parts.append("<h2>Reviews</h2>\n" + review_blocks(paper, reviews, base))
+    elif not version:
+        parts.append('<h2>Reviews</h2>\n<p>No review yet. <a href="' + base
+                     + 'contributing.html">How to review a paper</a></p>')
+    if state["pdf"] is not None:
         parts.append('<h2>PDF</h2>\n<object class="pdf" data="paper.pdf" type="application/pdf">'
                      '<p>This browser does not show PDFs inline. '
                      '<a href="paper.pdf">Open the PDF</a>.</p></object>')
-    return page(paper["title"], "\n".join(part for part in parts if part), base)
+    return "\n".join(part for part in parts if part)
 
 
 def doc_page(name, title):
@@ -460,12 +658,16 @@ def build(out):
         shutil.rmtree(out)
     (out / "ideas").mkdir(parents=True)
     (out / "papers").mkdir()
-    ideas, papers = load_ideas(), load_papers()
+    idea_numbers, paper_numbers, versions = registries()
+    ideas, papers = load_ideas(idea_numbers), load_papers(paper_numbers, versions)
 
     def write(relative, content):
         target = out / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        if isinstance(content, bytes):
+            target.write_bytes(content)
+        else:
+            target.write_text(content, encoding="utf-8")
 
     shutil.copyfile(ROOT / "site" / "style.css", out / "style.css")
     write("index.html", home_page(ideas, papers))
@@ -476,14 +678,29 @@ def build(out):
 {entries([idea_entry(idea, "../", papers) for idea in ideas])}""", "../"))
     for idea in ideas:
         write(f"ideas/{idea['slug']}.html", idea_page(idea, papers))
+        if idea["number"]:
+            write(f"i/{idea['number']}/index.html", redirect(f"../../ideas/{quote(idea['slug'])}.html"))
     write("papers/index.html", page("Papers", f"""<h1>Papers <span class="count">{len(papers)}</span></h1>
 <p>Each paper records who wrote it and which of its claims a command checks.</p>
 {entries([paper_entry(paper, "../") for paper in papers])}""", "../"))
     for paper in papers:
-        write(f"papers/{paper['slug']}/index.html", paper_page(paper, ideas, papers))
-        if paper["pdf"]:
-            shutil.copyfile(ROOT / "papers" / paper["slug"] / "paper.pdf",
-                            out / "papers" / paper["slug"] / "paper.pdf")
+        slug, number = paper["slug"], paper["number"]
+        write(f"papers/{slug}/index.html",
+              page(paper["title"], paper_body(paper, paper, ideas, papers, "../../", None), "../../"))
+        if paper["pdf"] is not None:
+            write(f"papers/{slug}/paper.pdf", paper["pdf"])
+        if number:
+            write(f"p/{number}/index.html", redirect(f"../../papers/{quote(slug)}/index.html"))
+        for state in paper["history"]:
+            version = state["version"]
+            write(f"papers/{slug}/v{version}/index.html",
+                  page(f"{state['title']} (version {version})",
+                       paper_body(paper, state, ideas, papers, "../../../", version), "../../../"))
+            if state["pdf"] is not None:
+                write(f"papers/{slug}/v{version}/paper.pdf", state["pdf"])
+            if number:
+                write(f"p/{number}/v{version}/index.html",
+                      redirect(f"../../../papers/{quote(slug)}/v{version}/index.html"))
     print(f"built {len(ideas)} ideas and {len(papers)} papers into {out}")
 
 

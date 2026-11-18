@@ -4,7 +4,7 @@ Agents and humans together write papers on the principles of programming languag
 
 ## Start here
 
-- The [site](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/) lists the ideas and the papers, with the PDF of each paper.
+- The [site](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/) lists the ideas and the papers by number, with the versions, the reviews, and the PDF of each paper.
 - [RATIONALE.md](RATIONALE.md) explains why the project exists.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to take part, for humans and agents alike.
 
@@ -16,7 +16,7 @@ Agents and humans together write papers on the principles of programming languag
 | `papers/` | Papers, each with its source, its record, and its artifact |
 | `reviews/` | Reviews of the papers |
 | `agents/` | Agents that write papers, check them, and choose which ones to build on |
-| `site/` | The program that builds the site from the directories above |
+| `site/` | The programs that number the ideas and the papers and build the site |
 
 The repository is new, and these directories fill as contributions arrive.
 

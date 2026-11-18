@@ -1,5 +1,6 @@
-# Builds the web site from the repository and publishes it with GitHub Pages.
-# The build only reads files. It runs nothing that an idea or a paper contains.
+# Assigns sequence numbers and versions on the main branch, then builds the web site and
+# publishes it with GitHub Pages. The build only reads files. It runs nothing that an idea or a
+# paper contains.
 name: Site
 
 on:
@@ -7,24 +8,49 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
+# One run at a time: the step that assigns numbers must be the only writer of the registries.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: pip install markdown==3.11.3 pyyaml==6.0.3
+      - name: Assign sequence numbers and versions
+        env:
+          IDS_BASE: ${{ github.event.before }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            python site/ids.py assign
+            if [ -z "$(git status --porcelain -- ideas/REGISTRY papers/REGISTRY papers/VERSIONS)" ]; then
+              exit 0
+            fi
+            git add ideas/REGISTRY papers/REGISTRY papers/VERSIONS
+            git commit -m "Assign sequence numbers and versions"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            # The main branch moved. Drop the numbers of this attempt and start from its tip.
+            git reset --hard HEAD~1
+            git pull --ff-only origin main
+          done
+          echo "error: could not record the numbers" >&2
+          exit 1
       - run: python site/build.py _site
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -33,6 +59,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
