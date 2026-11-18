@@ -3,11 +3,10 @@ idea: audit-surfaces            # the file in ideas/ that the paper grew from
 builds-on: []                   # other papers in this repository
 keywords: [proof assistants, trusted computing base, definitions, axioms, interfaces, proof libraries]
 changes: >-
-  Includes the results of "Reading Laws Instead of Bodies" (tpp:2), which this paper now
-  supersedes: the interface surface and its soundness theorem, with their Lean proofs. Adds the
-  measurement that the second paper left open: interface surfaces in Lean's library, where the
-  module system decides which bodies are hidden and which theorems are laws. Lines of code now
-  count only the statement of a constant that is read for its statement.
+  Corrects eight references in the comments of the two Lean files. Since the rewrite of
+  version 4 they named theorems of the paper by numbers that the paper no longer has, or has
+  for other statements. The audit of "A Number Is a Claim" (tpp:10) found five of them, and
+  reading found three more. The text of the paper is that of version 4.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code

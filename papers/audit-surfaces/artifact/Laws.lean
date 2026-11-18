@@ -251,7 +251,7 @@ theorem ifaceBase_wf {L : Lib} (hwf : WF L) (T C : Name → Bool) : WF (ifaceBas
     | axm _ _ _ => rfl
     | thm _ _ _ _ => simp [Entry.notSubject] at he)
 
-/-- Theorem 3.2 (interface soundness). Let the proof, with the theorems outside the laws
+/-- Theorem 4.2 (interface soundness). Let the proof, with the theorems outside the laws
 inlined, unfold no subject. Then its statement is derivable from the interface surface. -/
 theorem interface_surface {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} (hc : Chk L p l r)
     (T C : Name → Bool) (hseal : ∀ c ∈ (unfoldExcept T L p).deltaRefs, C c = false) :
@@ -294,14 +294,14 @@ theorem ifaceLib_wf {L : Lib} (hwf : WF L) (T C : Name → Bool) (p : Pf) (l r :
     WF (ifaceLib T C L p l r) :=
   restrict_wf (ifaceBase_wf hwf T C) _
 
-/-- Proposition 3.3, first half: the interface surface defines no subject. -/
+/-- Proposition 4.3, first half: the interface surface defines no subject. -/
 theorem ifaceLib_noSubject {T C : Name → Bool} {L : Lib} {p : Pf} {l r : Tm} {c : Name} {u : Tm}
     (hm : Entry.defn c u ∈ ifaceLib T C L p l r) : C c = false := by
   have h1 : Entry.defn c u ∈ ifaceBase T C L := (List.mem_filter.mp hm).1
   have h2 := (List.mem_filter.mp h1).2
   simpa [Entry.notSubject] using h2
 
-/-- Proposition 3.3, second half: an entry of the interface surface is a definition or an
+/-- Proposition 4.3, second half: an entry of the interface surface is a definition or an
 axiom of the library, or the statement of one of its laws. -/
 theorem ifaceLib_entries {T C : Name → Bool} {L : Lib} {p : Pf} {l r : Tm} {e : Entry}
     (hm : e ∈ ifaceLib T C L p l r) :
@@ -368,7 +368,7 @@ example : ifaceLib laws subjects K3 pClient (app twiceId twiceId) twiceId
     = [Entry.axm nTwiceId twiceId (const nId), Entry.defn nId idBody] := by
   decide
 
-/-- The proof over the interface surface is accepted by the kernel, as Theorem 3.2 says. -/
+/-- The proof over the interface surface is accepted by the kernel, as Theorem 4.2 says. -/
 example : infer (ifaceLib laws subjects K3 pClient (app twiceId twiceId) twiceId)
     (ifacePf laws subjects K3 pClient (app twiceId twiceId) twiceId)
     = some (app twiceId twiceId, twiceId) := by

@@ -1145,12 +1145,12 @@ theorem auditLib_wf {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} : WF (auditLib L 
 
 /-! ## Portability and merging (Section 5) -/
 
-/-- Corollary 4.1: every library that contains the audit surface proves the statement. -/
+/-- Corollary 5.1: every library that contains the audit surface proves the statement. -/
 theorem portable {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} (hc : Chk L p l r)
     (L' : Lib) (hsub : ∀ e ∈ auditLib L p l r, e ∈ L') : Chk L' (auditPf L p l r) l r :=
   (audit_surface hwf hc).weaken hsub
 
-/-- Theorem 4.2: two extensions of a library merge without rechecking when the names that
+/-- Theorem 5.2: two extensions of a library merge without rechecking when the names that
 one introduces are fresh for the other. -/
 theorem merge {L1 L2 L0 : Lib} (h1 : WF (L1 ++ L0)) (h2 : WF (L2 ++ L0))
     (hfresh : ∀ e ∈ L1, Fresh e.name L2) : WF (L1 ++ (L2 ++ L0)) := by
@@ -1251,7 +1251,7 @@ theorem SameIface.fresh {M M' : Lib} (hi : SameIface M M') {n : Name} :
     · rw [h']; exact hf (Entry.thm h l r p) (List.Mem.head _)
     · exact ih (fun x hx => hf x (List.Mem.tail _ hx)) e' h'
 
-/-- Theorem 4.3: let the entries `L1` never unfold the definition `c`. Then the body of `c`
+/-- Theorem 5.3: let the entries `L1` never unfold the definition `c`. Then the body of `c`
 and the proofs between `c` and `L1` can be replaced without rechecking `L1`. -/
 theorem replace {L1 M M' L0 : Lib} {c : Name} {u u' : Tm}
     (h : WF (L1 ++ (M ++ Entry.defn c u :: L0)))
@@ -1320,7 +1320,7 @@ theorem replace {L1 M M' L0 : Lib} {c : Name} {u u' : Tm}
             · exact ⟨q2, List.mem_append_right _ (mem_mid.mpr (Or.inr
                 (List.mem_append_right _ hm)))⟩
 
-/-- The variant of Theorem 4.3 without a definition: the proofs of theorems can always be
+/-- The variant of Theorem 5.3 without a definition: the proofs of theorems can always be
 replaced. -/
 theorem replace_proofs {L1 M M' L0 : Lib}
     (h : WF (L1 ++ (M ++ L0))) (h' : WF (M' ++ L0)) (hiface : SameIface M M') :
