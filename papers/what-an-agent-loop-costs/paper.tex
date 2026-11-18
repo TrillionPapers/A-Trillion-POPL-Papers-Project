@@ -1,0 +1,1350 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\Str}[2]{\kw{Str}[#1 \triangleright #2]}
+\newcommand{\cat}{\mathbin{+\!\!+}}
+\newcommand{\recv}[1]{\kw{recv}\,#1}
+\newcommand{\hear}[1]{\kw{hear}\,#1}
+\newcommand{\tail}[2]{\kw{tail}_{#1}\,#2}
+\newcommand{\call}[3]{\kw{call}(#1;\,#2,\,#3)}
+\newcommand{\letin}[2]{\kw{let}\;#1 = #2\;\kw{in}}
+\newcommand{\letx}[2]{\kw{let}\;#1 = #2}
+\newcommand{\iter}[4]{\kw{iter}\;#1\;\kw{from}\;#2\;\kw{as}\;#3.\;#4}
+\newcommand{\orr}{\mathbin{\kw{or}}}
+\newcommand{\ev}[5]{\langle #1,\, #2\rangle \Downarrow^{#3} \langle #4,\, #5\rangle}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\fl}[1]{\lfloor #1 \rfloor}
+\newcommand{\hit}{\mathrm{hit}}
+\newcommand{\pre}{\sqsubseteq}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\turn}{\nm{turn}}
+\newcommand{\hturn}{\nm{hturn}}
+\newcommand{\defeq}{\;\triangleq\;}
+\newcommand{\tsum}{\textstyle\sum}
+\newcommand{\N}{\mathbb{N}}
+\newsavebox{\progbox}
+\newenvironment{prog}
+  {\begin{lrbox}{\progbox}$\displaystyle\begin{array}{@{}l@{\qquad}l@{}}}
+  {\end{array}$\end{lrbox}%
+   \ifdim\wd\progbox>\linewidth
+     \PackageWarning{paper}{Overfull program display by \the\dimexpr\wd\progbox-\linewidth\relax}%
+   \fi
+   \[\usebox{\progbox}\]\ignorespacesafterend}
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{What an Agent Loop Costs: Sized Types for Tokens}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. It wrote this paper at the request of a human who asked for papers on
+the strongest ideas of this repository, of at least twelve pages each, written to withstand
+the scrutiny of a POPL review. The proofs are on paper and have not been checked by a machine.
+A script tests the theorems on random programs. At the time of writing nobody has reviewed the
+paper.}
+
+\begin{abstract}
+An agent that works in a loop sends its whole history to the model at every turn. The tokens it
+pays for therefore grow with the square of the number of turns, and its author usually learns
+this from the invoice. We give a type system that states the cost of a loop in advance. A
+string type carries two sizes: a bound on a prefix that the provider has already stored, which
+is billed at a reduced price, and a bound on the rest. A call to the model costs its prompt and
+its answer, a loop is typed with an invariant on the sizes of its state, and an effect records
+where the program may wait for so long that the provider's cache expires. We prove that the
+cost in the type bounds the cost of every execution, whatever the model, the user, the tools
+and the provider do, and that without a cache and without choice the bound is attained. Typing
+six programs gives six laws. In a loop that only appends, every token is bought once and then
+rented at every later turn. A question to a person forfeits the cache. A loop that summarizes
+its history every $p$ turns has linear cost, which is least at $p = \sqrt{2E/(\rho d)}$. A
+sliding window is cheaper than the full history only when it is smaller than the discounted
+history. One token placed before the history costs as much as having no cache. With $L$ levels
+of delegation, the overhead of $T$ turns grows as $T^{1+1/(2^{L+1}-1)}$. A script tests the
+theorems on random programs and every formula against an implementation of the semantics.
+\end{abstract}
+
+\keywords{sized types, cost analysis, type-and-effect systems, language models, agents, caching}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+An agent is a loop around a language model. At every turn the loop receives a message, from its
+user or from a tool that the model asked to run, appends the message to a context, sends the
+context to the model, and appends the answer~\cite{yao2022}. The model keeps no state between
+calls, so every call carries the whole context, and the provider bills every call by the token:
+a price for each token of the prompt and a higher price for each token of the answer. If a turn
+adds $d$ tokens, then turn $k$ sends about $kd$ tokens, and $T$ turns send about $dT^2/2$. Twice
+the turns cost up to four times as much.
+
+The people who build agents know this in outline and answer it with engineering. Providers keep
+a cache: a prompt that begins with a prefix sent a few minutes earlier is billed for that
+prefix at a fraction $\rho$ of the price~\cite{anthropic2026}. Harnesses replace a long context
+by a summary or keep only a window of recent messages~\cite{packer2023}, or they hand parts
+of the work to agents with contexts of their own. Each of these measures changes the bill, and by how
+much depends on details of the program: whether it appends to the context or writes at its
+top, how often it summarizes, and where it waits for a person. Today these effects are found by
+measurement~\cite{lumer2026,xu2026}, after the money is spent.
+
+This paper treats the bill as a static property of the loop. A harness is a program, the price
+list is public, and the quantities that decide the bill are the sizes of strings. We define a
+small calculus of agent loops with a cost semantics, and a type system whose judgment
+$\Gamma \vdash_\varphi e : A \mid C$ says that $e$ costs at most $C$. Three ideas fit the type
+system to the price list.
+
+\begin{itemize}
+\item \emph{A string type has two sizes.} A value of type $\Str{P}{R}$ is a string that begins
+with at most $P$ tokens which the provider has stored and continues with at most $R$ other
+tokens. Sending it as a prompt costs at most $\rho P + R$. The split is the invariant of every
+loop that appends: the context is what was sent last time, followed by the last answer and the
+new message.
+\item \emph{A call returns what is now stored.} The call $\call{v_1}{v_2}{M}$ sends the prompt
+$v_1v_2$ and asks for an answer of at most $M$ tokens. It returns $v_1$, the prompt, and the
+answer. The two returned strings are equal to strings that the program already had, but their
+types are new: both are now known to be stored. The fact that a string was sent thus travels
+with a value and needs no flow-sensitive environment.
+\item \emph{Waiting is an effect.} A provider's cache forgets after a few minutes. The
+expression $\hear{M}$ receives a message that may take long to arrive, such as an answer from a
+person. Its effect $\varphi = 1$ makes the typing rules forget, for every variable in scope,
+that a prefix was stored.
+\end{itemize}
+
+\paragraph{Results.} The cost semantics leaves four parties free: the model and the user choose
+the content and the length of answers and messages within the stated bounds, a wait may empty
+any part of the cache, and the provider may bill more of a prompt at the reduced price than it
+must, never less. Theorem~\ref{thm:sound} states that the cost in the type bounds the cost of
+every evaluation. Corollary~\ref{cor:window} states that no call of a typed program exceeds the
+model's context window. Proposition~\ref{prop:attained} states that without a cache and without
+choice the bound is attained, so that the rules lose nothing of their own.
+Section~\ref{sec:laws} types six programs. Each typing derivation yields a closed form, and
+each closed form is a law about agent loops; Table~\ref{tab:laws} lists them. Some of them are
+folklore among practitioners, such as the advice to keep the stable part of a prompt in front.
+The type system derives them from one set of rules, with constants, and makes them properties
+of the program text that a checker can enforce.
+
+\begin{table}[t]
+\caption{The laws of Section~\ref{sec:laws}. A turn adds a message of at most $q$ tokens and an
+answer of at most $m$ tokens, and $d = q + m$. The price of a stored prompt token is $\rho$,
+that of an answer token is $\omega$, and the unit is the price of a prompt token that is not
+stored. The system prompt has $h$ tokens.}
+\label{tab:laws}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Program & Cost of $T$ turns & Law \\
+\midrule
+plain loop, no cache (\S\ref{sec:plain}) & $dT^2/2 + O(T)$ & every turn buys the context again \\
+plain loop (\S\ref{sec:plain}) & $\rho\,dT^2/2 + O(T)$ & a token is bought once, then rented \\
+a person every $j$ turns (\S\ref{sec:human}) & $(\rho + \frac{1-\rho}{j})\,dT^2/2 + O(T)$ & a wait forfeits the cache \\
+summary every $p$ turns (\S\ref{sec:compaction}) & $T\,(E/p + \rho dp/2 + c)$ & least at $p = \sqrt{2E/(\rho d)}$ \\
+window of $b$ tokens (\S\ref{sec:window}) & $T\,(b + \rho h + q + \omega m)$ & pays only if $b < \rho \cdot \text{history} + m$ \\
+window sliding every $p$ turns (\S\ref{sec:window}) & $T\,(E'/p + \rho dp/2 + c')$ & $E' = (1-\rho)(b - m)$ \\
+a token before the history (\S\ref{sec:order}) & $dT^2/2 + O(T)$ & as without a cache \\
+$L$ levels of delegation (\S\ref{sec:delegation}) & overhead $\Theta(T^{1+1/(2^{L+1}-1)})$ & $\theta_L - 1$ more than halves per level \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{An example in numbers.} Throughout we use one example: a system prompt of
+$h = 10{,}000$ tokens, messages and answers of at most $q = m = 500$ tokens, and the prices
+$\rho = 0.08$ and $\omega = 4$, which Section~\ref{sec:calculus} takes from the price list of a
+provider. A plain loop of 200 turns then costs \exBareTwoHundred{} million units without a
+cache and \exCostTwoHundred{} million with one, and \exRentShare{} percent of the latter is
+rent on tokens bought at earlier turns. Summarizing every \exPbest{} turns, the period that the
+square-root law gives, costs \exCompShare{} percent of summarizing only when the context window
+is full. A sliding window of 20,000 tokens costs three times as much as the plain loop over the
+first 100 turns. All numbers in this paper are computed by the script of
+Section~\ref{sec:tests}.
+
+\paragraph{What the paper does not do.} We bound money and say nothing about the quality of
+the agent's work: a summary forgets, and no term of our formulas prices that. We have not
+compared the bounds with invoices; the semantics follows the published billing rules of one
+provider, and Section~\ref{sec:calculus} states under which conditions. The calculus is first
+order with bounded loops, which is the shape of a harness with a turn limit, and the
+invariants of loops are given by the programmer. The proofs are on paper.
+Section~\ref{sec:limits} lists these limits again, together with the problems that we think
+come next.
+
+\paragraph{Contributions.}
+\begin{itemize}
+\item A calculus of agent loops and a cost semantics with a prefix cache, parametric in the
+prices and nondeterministic in the model, the user, and the provider
+(Section~\ref{sec:calculus}).
+\item A type-and-effect system with split string sizes, cost bounds and loop invariants
+(Section~\ref{sec:types}), with a proof that its bounds hold, that they keep every call within
+the context window, and that they are attained when there is no cache and no choice
+(Section~\ref{sec:sound}).
+\item Six programs with their types and the laws of Table~\ref{tab:laws}
+(Section~\ref{sec:laws}), among them a square-root law for the period of compaction and the
+exponent $1 + 1/(2^{L+1}-1)$ for delegation with $L$ levels.
+\item An executable semantics and a checker for closed programs, used to test the theorems on
+random programs and every closed form on a grid of parameters (Section~\ref{sec:tests}).
+\end{itemize}
+
+\section{Overview: The Plain Loop}
+\label{sec:overview}
+
+This section types the simplest agent and shows the two ways in which a program loses the
+cache. The definitions are made precise in Sections~\ref{sec:calculus} and~\ref{sec:types}.
+
+\paragraph{The loop.} One turn of an agent with context $y$ is the expression
+\begin{prog}
+\turn(y) \defeq \letin{u}{\recv{q}} & \text{a message of at most $q$ tokens}\\
+\phantom{\turn(y) \defeq{}} \letin{(\_, c, a)}{\call{y}{u}{m}} & \text{send $y$ then $u$; the answer has at most $m$ tokens}\\
+\phantom{\turn(y) \defeq{}} c \cat a & \text{the new context}
+\end{prog}
+The harness cuts every message and every tool result to $q$ tokens, and it passes $m$ to the
+provider as the limit on the length of the answer. The call returns three strings: its first
+argument, the prompt $c = yu$, and the answer $a$. An agent that starts from a system prompt
+$w_0$ of $h$ tokens and runs for $N+1$ turns is
+\[
+\nm{loop}_N \defeq \letin{x}{\turn(w_0)}\; \iter{N}{x}{i, y}{\turn(y)} .
+\]
+
+\paragraph{Its type.} Suppose that $y$ has the type $\Str{P}{R}$: its first $P$ tokens are
+stored at the provider and $R$ tokens follow. The prompt $yu$ then has $P$ stored tokens and
+$R + q$ others, so the call costs at most $\rho P + R + q$ for the prompt and $\omega m$ for the
+answer. After the call the whole prompt is stored, so $c$ has the type $\Str{P+R+q}{0}$, and
+the new context $c \cat a$ has the type $\Str{P+R+q}{m}$. One turn thus moves everything that
+was sent into the stored part and leaves the answer as the rest.
+
+The literal $w_0$ has the type $\Str{0}{h}$, since nothing has been sent yet. The first turn
+costs $h + q + \omega m$ and yields a context of type $\Str{h+q}{m}$. From there on the type of
+the context after $i$ further turns is $\Str{h + q + i d}{m}$ with $d = q + m$: this is the
+invariant of the loop, and turn $i$ of the loop costs $\rho\,(h + q + i d) + d + \omega m$.
+Summing over $i < N$ and adding the first turn gives the cost of $\nm{loop}_N$:
+\[
+\underbrace{h + q + N d}_{\text{bought}} \;+\;
+\underbrace{(N+1)\,\omega m}_{\text{answers}} \;+\;
+\rho \underbrace{\tsum_{i<N} (h + q + i d)}_{\text{rented}} .
+\]
+Every token of the final context except the last answer is billed once at the full price, in
+the first prompt that contains it. At every later turn it is billed again at the price $\rho$.
+The first term is linear in $N$, and the last is quadratic. A cache therefore multiplies the
+quadratic term by $\rho$ and leaves it quadratic.
+
+\paragraph{Losing the cache by order.} Suppose that the harness writes the current time at the
+top of every prompt, so that the call is $\call{t}{y \cat u}{m}$ for a new string $t$ of one
+token. The rule for calls gives the reduced price only to the stored part of the first
+argument. Here the first argument is new, the stored part of $y$ does not count because it no
+longer stands at the front, and the turn costs $1 + P + R + q + \omega m$. No prompt of this
+loop begins with a stored string, the context keeps the type $\Str{0}{h + id}$, and the loop
+costs as much as it would without a cache (Corollary~\ref{cor:clock}). One token has multiplied
+the rent by $1/\rho$.
+
+\paragraph{Losing the cache by waiting.} Suppose that the message comes from a person, and
+write $\hear{q}$ in place of $\recv{q}$. The person may answer after the cache has expired. The
+rule for $\kw{let}$ therefore types what follows a $\kw{hear}$ in an environment that has
+forgotten all stored prefixes: there $y$ has the type $\Str{0}{P+R}$ and the turn costs
+$P + R + q + \omega m$. A question to a person costs $(1-\rho)P$ more than a message from a
+tool (Corollary~\ref{cor:human}).
+
+\paragraph{Why types.} The three analyses above are compositional: $\turn$ is typed once, as a
+function of $P$ and $R$, and is used in five of the six programs of Section~\ref{sec:laws}. The
+bound holds for every behavior of the model, which no test run can establish. And the
+discipline that keeps a loop cheap, namely that a prompt begins with a string known to be
+stored, is a property of the program text, so a type checker can report its violation before
+the loop runs.
+
+\section{A Calculus of Agent Loops}
+\label{sec:calculus}
+
+\paragraph{Strings and sizes.} A \emph{string} $w$ is a finite sequence of tokens, $|w|$ is
+its length, $\eps$ is the empty string, and $u \pre w$ says that $u$ is a prefix of $w$. Sizes
+and costs are written with index terms. An \emph{index term} denotes a natural number and a
+\emph{cost term} a nonnegative real:
+\[
+I, J, M, N, P, R ::= i \mid n \mid I + J \mid I \cdot J \mid \tsum_{i<I} J
+\qquad\qquad
+C, D ::= I \mid r \cdot C \mid C + D \mid \tsum_{i<I} C
+\]
+Here $i$ is an index variable, $n$ a natural number, and $r$ a nonnegative real. A valuation
+$\eta$ maps index variables to natural numbers, and $\sem{I}\eta$ and $\sem{C}\eta$ are the
+values of the terms. An inequality $I \le J$ or $C \le D$ \emph{holds under} $\eta$ if
+the values of its two sides under $\eta$ compare so.
+
+\paragraph{Syntax.} Figure~\ref{fig:syntax} gives the syntax. Values are variables, strings and
+pairs. The expressions $v_1 \cat v_2$ and $\tail{M}{v}$ concatenate strings and keep the last
+$M$ tokens of a string. The expressions $\recv{M}$ and $\hear{M}$ receive a message of at most
+$M$ tokens; the second one may take long. A message costs no tokens, and what a tool costs
+otherwise is outside the model. The call $\call{v_1}{v_2}{M}$ sends the prompt
+$v_1v_2$ to the model and returns a triple. The choice $e_1 \orr e_2$ runs one of its branches;
+it stands for a test on the content of a string, about which the type system knows nothing,
+and it lets a loop stop early by doing nothing in its remaining turns. The loop
+$\iter{N}{v}{i,x}{e}$ runs $e$ exactly $N$ times, with $x$ bound to the state and $i$ to the
+number of the turn. Every harness that we know has a limit on the number of turns, and $N$ is
+that limit.
+
+We use three abbreviations. A triple $(v_1, v_2, v_3)$ is the pair $(v_1, (v_2, v_3))$, and
+$\kw{let}$ may bind a triple or a pair of an expression, which stands for the evident sequence
+of bindings. A concatenation in the place of a value, as in $\call{y}{u \cat v}{M}$, stands for
+a $\kw{let}$ that names it. The variable $\_$ is one that is not used.
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}l@{\quad}r@{\;}l@{}}
+\text{values} & v ::= & x \mid w \mid (v_1, v_2) \\
+\text{expressions} & e ::= & v \mid v_1 \cat v_2 \mid \tail{M}{v} \mid \recv{M} \mid \hear{M}
+  \mid \call{v_1}{v_2}{M} \\
+ & \mid & \letin{x}{e_1}\; e_2 \mid \letin{(x, y)}{v}\; e \mid e_1 \orr e_2
+  \mid \iter{N}{v}{i, x}{e} \\
+\text{types} & A, B ::= & \Str{P}{R} \mid A \times B
+\end{array}
+\]
+\Description{The grammar of values, expressions and types.}
+\caption{Syntax. $M$, $N$, $P$ and $R$ are index terms.}
+\label{fig:syntax}
+\end{figure}
+
+\paragraph{Prices.} The unit of cost is the price of a prompt token that the provider does not
+find in its cache. The price of a prompt token that it finds is $\rho$, with
+$0 \le \rho \le 1$, and the price of a token of the answer is $\omega \ge 0$. For example, the
+documentation of one provider~\cite{anthropic2026} lists for several of its models a base price
+for prompt tokens, $1.25$ times the base price for prompt tokens that are written to the
+cache, $0.1$ times for tokens read from the cache, and $5$ times for answer tokens. In a loop
+all new prompt tokens are written to the cache, so our unit is the price of a written token,
+and these multipliers give $\rho = 0.1/1.25 = 0.08$ and $\omega = 5/1.25 = 4$. Setting
+$\rho = 1$ describes a provider without a cache.
+
+\paragraph{The cache.} A \emph{cache} $K$ is a finite set of strings, the \emph{breakpoints}:
+the prefixes of earlier prompts that the provider has stored. A call with the prompt $w_1w_2$
+stores two breakpoints, $w_1$ and $w_1w_2$. The provider must bill at the reduced price the
+longest breakpoint that the prompt begins with. We write
+\[
+\hit_K(w) = \max\,\{\, |u| \;:\; u \in K \cup \{\eps\},\; u \pre w \,\}
+\]
+for its length. A cache stores breakpoints and not all their prefixes: a prompt that shares
+only half of a breakpoint with an earlier prompt need not be found.
+
+\paragraph{Evaluation.} Figure~\ref{fig:semantics} defines the judgment
+$\ev{K}{e}{c}{K'}{v}$: in the cache $K$ the closed expression $e$ evaluates to the value $v$
+at the cost $c$ and leaves the cache $K'$. In a closed expression every index term is closed,
+and we identify it with its value. The judgment is nondeterministic in four places. In
+\textsc{E-Recv} and \textsc{E-Hear} the message is any string within the bound, chosen by a
+user or a tool. In \textsc{E-Call} the answer is any string within the bound, chosen by the
+model. Also in \textsc{E-Call}, the provider bills $\ell$ tokens at the reduced price, where
+$\ell$ is any number between the length that it must grant and the length of the prompt. In
+\textsc{E-Hear} the cache shrinks to any subset.
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=E-Val]{ }{\ev{K}{v}{0}{K}{v}}
+\and
+\inferrule*[right=E-Cat]{ }{\ev{K}{w_1 \cat w_2}{0}{K}{w_1w_2}}
+\and
+\inferrule*[right=E-Tail]{w = w'w'' \\ |w''| = \min(n, |w|)}{\ev{K}{\tail{n}{w}}{0}{K}{w''}}
+\and
+\inferrule*[right=E-Recv]{|w| \le n}{\ev{K}{\recv{n}}{0}{K}{w}}
+\and
+\inferrule*[right=E-Hear]{|w| \le n \\ K' \subseteq K}{\ev{K}{\hear{n}}{0}{K'}{w}}
+\and
+\inferrule*[right=E-Call]{|a| \le n \\ \hit_K(w_1w_2) \le \ell \le |w_1w_2|}
+  {\ev{K}{\call{w_1}{w_2}{n}}{\rho\ell + (|w_1w_2| - \ell) + \omega|a|}{K \cup \{w_1, w_1w_2\}}{(w_1, w_1w_2, a)}}
+\and
+\inferrule*[right=E-Let]{\ev{K}{e_1}{c_1}{K_1}{v_1} \\ \ev{K_1}{e_2\{v_1/x\}}{c_2}{K_2}{v_2}}
+  {\ev{K}{\letin{x}{e_1}\; e_2}{c_1 + c_2}{K_2}{v_2}}
+\and
+\inferrule*[right=E-Split]{\ev{K}{e\{v_1/x, v_2/y\}}{c}{K'}{v}}
+  {\ev{K}{\letin{(x, y)}{(v_1, v_2)}\; e}{c}{K'}{v}}
+\and
+\inferrule*[right=E-Or]{\ev{K}{e_k}{c}{K'}{v} \\ k \in \{1, 2\}}{\ev{K}{e_1 \orr e_2}{c}{K'}{v}}
+\and
+\inferrule*[right=E-Iter0]{ }{\ev{K}{\iter{0}{v}{i,x}{e}}{0}{K}{v}}
+\and
+\inferrule*[right=E-Iter]{\ev{K}{\iter{n}{v}{i,x}{e}}{c_1}{K_1}{v_1} \\
+  \ev{K_1}{e\{n/i, v_1/x\}}{c_2}{K_2}{v_2}}
+  {\ev{K}{\iter{n+1}{v}{i,x}{e}}{c_1 + c_2}{K_2}{v_2}}
+\end{mathpar}
+\Description{Eleven inference rules that define the evaluation judgment.}
+\caption{Cost semantics. $K$ is the cache, $c$ the cost, and $n$ a natural number.}
+\label{fig:semantics}
+\end{figure}
+
+\paragraph{What the semantics assumes.} Three assumptions connect Figure~\ref{fig:semantics}
+to a real provider. The first is that strings are sequences of tokens and that concatenation
+adds lengths. A tokenizer may merge characters across the seam of two strings, and a chat
+format adds a few tokens to every message; both change lengths by a constant for each
+message, which can be added to $q$ and $m$. The second is that a prompt which begins with a
+breakpoint is billed at the reduced price for at least that breakpoint. The documented cache
+grants this when the breakpoint is longer than a minimum length and lies within a fixed number
+of content blocks before a breakpoint of the new prompt~\cite{anthropic2026}; a turn that
+adds more blocks than that needs an additional breakpoint. The third is that a breakpoint stays in the
+cache until the next $\kw{hear}$. The documented cache keeps an entry for five minutes and
+renews it at every use, so the programmer must write $\kw{hear}$ for every input that may take
+longer and may write $\kw{recv}$ for the others. Evaluation always terminates, because a
+loop runs for a fixed number of turns.
+
+\section{The Type System}
+\label{sec:types}
+
+\paragraph{Types.} A type is a string type or a product (Figure~\ref{fig:syntax}). A value of
+type $\Str{P}{R}$ is a string $w_1w_2$ such that $w_1$ is a breakpoint of the current cache or
+empty, $|w_1| \le P$ and $|w_2| \le R$. We call $P$ the \emph{stored} size and $R$ the
+\emph{rest}, and $P + R$ the total size. Both sizes are upper bounds. This is enough because
+the cost of a prompt is monotone in both: a prompt with stored part $w_1$ and rest $w_2$ costs
+at most $\rho|w_1| + |w_2|$, whatever else the provider finds.
+
+\paragraph{Subtyping.} Two rules generate the subtype relation on string types, and products
+are covariant:
+\begin{mathpar}
+\inferrule*[right=S-Widen]{P \le P' \\ R \le R'}{\Str{P}{R} \le \Str{P'}{R'}}
+\and
+\inferrule*[right=S-Forget]{ }{\Str{P}{R} \le \Str{0}{P + R}}
+\and
+\inferrule*[right=S-Pair]{A \le A' \\ B \le B'}{A \times B \le A' \times B'}
+\end{mathpar}
+The relation is closed under reflexivity and transitivity. A type may loosen its bounds, and it
+may forget that a prefix is stored. It may not move a part of the stored size to the rest,
+because a prefix of a breakpoint is not a breakpoint. The function $\fl{\cdot}$ forgets
+everywhere: $\fl{\Str{P}{R}} = \Str{0}{P+R}$ and $\fl{A \times B} = \fl{A} \times \fl{B}$, and
+$\fl{\Gamma}$ applies it to every type of an environment. We write $\Gamma^0$ for $\Gamma$ and
+$\Gamma^1$ for $\fl{\Gamma}$.
+
+\paragraph{Judgments.} Figure~\ref{fig:typing} defines two judgments. $\Gamma \vdash v : A$
+types a value. $\Gamma \vdash_\varphi e : A \mid C$ says that $e$ evaluates to a value of type
+$A$ at a cost of at most $C$; the effect $\varphi$ is $1$ if $e$ may wait and $0$ if it
+cannot. Effects are ordered by $0 \le 1$, and $\vee$ is their maximum. A judgment is made under a set of \emph{assumptions}, which are
+inequalities between index terms and which we do not write. The rule \textsc{Iter} adds the
+assumption $i + 1 \le N$ for its body, and a program may come with assumptions on its
+parameters. A premise $I \le J$ of a rule, also of a rule of subtyping, means that the
+inequality holds under every valuation that satisfies the assumptions.
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Var]{\Gamma(x) = A}{\Gamma \vdash x : A}
+\and
+\inferrule*[right=Lit]{ }{\Gamma \vdash w : \Str{0}{|w|}}
+\and
+\inferrule*[right=Pair]{\Gamma \vdash v_1 : A_1 \\ \Gamma \vdash v_2 : A_2}{\Gamma \vdash (v_1, v_2) : A_1 \times A_2}
+\and
+\inferrule*[right=V-Sub]{\Gamma \vdash v : A \\ A \le A'}{\Gamma \vdash v : A'}
+\and
+\inferrule*[right=Val]{\Gamma \vdash v : A}{\Gamma \vdash_0 v : A \mid 0}
+\and
+\inferrule*[right=Recv]{ }{\Gamma \vdash_0 \recv{M} : \Str{0}{M} \mid 0}
+\and
+\inferrule*[right=Hear]{ }{\Gamma \vdash_1 \hear{M} : \Str{0}{M} \mid 0}
+\and
+\inferrule*[right=Cat]{\Gamma \vdash v_1 : \Str{P_1}{R_1} \\ \Gamma \vdash v_2 : \Str{P_2}{R_2}}
+  {\Gamma \vdash_0 v_1 \cat v_2 : \Str{P_1}{R_1 + P_2 + R_2} \mid 0}
+\and
+\inferrule*[right=Tail]{\Gamma \vdash v : \Str{P}{R}}{\Gamma \vdash_0 \tail{M}{v} : \Str{0}{M} \mid 0}
+\and
+\inferrule*[right=Call]{\Gamma \vdash v_1 : \Str{P_1}{R_1} \\ \Gamma \vdash v_2 : \Str{P_2}{R_2} \\ I = P_1 + R_1 + P_2 + R_2}
+  {\Gamma \vdash_0 \call{v_1}{v_2}{M} : \Str{P_1 + R_1}{0} \times \Str{I}{0} \times \Str{0}{M}
+   \mid \rho P_1 + R_1 + P_2 + R_2 + \omega M}
+\and
+\inferrule*[right=Let]{\Gamma \vdash_{\varphi_1} e_1 : A \mid C_1 \\ \Gamma^{\varphi_1}, x : A \vdash_{\varphi_2} e_2 : B \mid C_2}
+  {\Gamma \vdash_{\varphi_1 \vee \varphi_2} \letin{x}{e_1}\; e_2 : B \mid C_1 + C_2}
+\and
+\inferrule*[right=Split]{\Gamma \vdash v : A_1 \times A_2 \\ \Gamma, x : A_1, y : A_2 \vdash_\varphi e : B \mid C}
+  {\Gamma \vdash_\varphi \letin{(x, y)}{v}\; e : B \mid C}
+\and
+\inferrule*[right=Or]{\Gamma \vdash_\varphi e_1 : A \mid C \\ \Gamma \vdash_\varphi e_2 : A \mid C}
+  {\Gamma \vdash_\varphi e_1 \orr e_2 : A \mid C}
+\and
+\inferrule*[right=Iter]{\Gamma \vdash v : A\{0/i\} \\ \Gamma^{\varphi}, x : A \vdash_\varphi e : A\{i+1/i\} \mid C \\ i \notin \mathrm{fv}(\Gamma, N)}
+  {\Gamma \vdash_\varphi \iter{N}{v}{i, x}{e} : A\{N/i\} \mid \tsum_{i<N} C}
+\and
+\inferrule*[right=Sub]{\Gamma \vdash_\varphi e : A \mid C \\ A \le A' \\ C \le C' \\ \varphi \le \varphi'}
+  {\Gamma \vdash_{\varphi'} e : A' \mid C'}
+\end{mathpar}
+\Description{Sixteen inference rules that define the two typing judgments.}
+\caption{Typing rules for values and expressions.}
+\label{fig:typing}
+\end{figure}
+
+\paragraph{Strings.} A literal has nothing stored (\textsc{Lit}), and neither has a message
+(\textsc{Recv}, \textsc{Hear}). A concatenation keeps the stored part of its left argument
+only (\textsc{Cat}): the stored part of the right argument no longer stands at the front. The
+last $M$ tokens of a string are not a prefix of anything that was sent, so nothing of them is
+stored (\textsc{Tail}).
+
+\paragraph{Calls.} The rule \textsc{Call} is the center of the system. The prompt is $v_1v_2$.
+Of its tokens only the stored part of $v_1$ is billed at $\rho$; the rest of $v_1$ and all of
+$v_2$ are billed in full, and the answer costs $\omega M$. The call stores two breakpoints, and
+its result type says so: the first component is $v_1$ and the second is the prompt, both with
+their total size as stored size. The two-part form lets a program keep a stable front, such as
+a system prompt, as a stored string of its own, which it can put in front of a new context
+later. Section~\ref{sec:compaction} uses this after a summary. A call with a single prompt
+$v$ is $\call{v}{\eps}{M}$.
+
+An alternative design would update the type of a variable in the environment after it has been
+sent, as a typestate. Returning the stored strings as new values avoids this: environments
+stay flow-insensitive, and a variable that was bound before the call keeps its old, weaker
+type, which remains valid.
+
+\paragraph{Waiting.} The effect of $\kw{hear}$ is $1$. In \textsc{Let}, when the first
+expression may wait, the second is typed in $\fl{\Gamma}$: the variables bound before the wait
+keep their sizes and lose their stored parts. The variable $x$ that the $\kw{let}$ binds keeps
+its type $A$, which was established after the wait. The rule \textsc{Iter} does the same for a
+loop whose body may wait, since the body runs after earlier turns.
+
+\paragraph{Loops.} In \textsc{Iter} the type $A$ may mention the index variable $i$, and it is
+the invariant of the loop: the state has the type $A\{0/i\}$ at the start, the body takes
+$A$ to $A\{i+1/i\}$, and the result has the type $A\{N/i\}$. The cost $C$ of turn $i$ may
+mention $i$ as well, and the loop costs their sum.
+
+A loop that starts from a new context needs some care. Its first turn differs from the
+others in its type: before it nothing is stored, and after every turn almost everything is.
+An invariant that covered both would need a case distinction on $i$, which index terms lack.
+We therefore write the first turn before the loop, as in $\nm{loop}_N$ of
+Section~\ref{sec:overview}.
+
+\section{The Bounds Hold}
+\label{sec:sound}
+
+\paragraph{Interpretation.} For closed types and a cache $K$ we define the set of closed
+values of a type:
+\begin{align*}
+\sem{\Str{P}{R}}_K &= \{\, w_1w_2 \mid w_1 \in K \cup \{\eps\},\; |w_1| \le P,\; |w_2| \le R \,\} \\
+\sem{A \times B}_K &= \{\, (v_1, v_2) \mid v_1 \in \sem{A}_K,\; v_2 \in \sem{B}_K \,\}
+\end{align*}
+A substitution $\gamma$ of closed values for variables is in $\sem{\Gamma}_K$ if
+$\gamma(x) \in \sem{\Gamma(x)}_K$ for every $x$. We write $A\eta$ for $A$ with its index
+variables replaced by their values under $\eta$.
+
+\begin{lemma}[Growth]
+\label{lem:growth}
+If $K \subseteq K'$ then $\sem{A}_K \subseteq \sem{A}_{K'}$.
+\end{lemma}
+
+\begin{lemma}[Forgetting]
+\label{lem:forget}
+$\sem{A}_K \subseteq \sem{\fl{A}}_{K'}$ for all caches $K$ and $K'$.
+\end{lemma}
+
+\begin{lemma}[Subtyping]
+\label{lem:sub}
+If $A \le A'$ then $\sem{A\eta}_K \subseteq \sem{A'\eta}_K$ for every cache $K$ and every
+$\eta$ that satisfies the assumptions.
+\end{lemma}
+
+\begin{lemma}[Values]
+\label{lem:values}
+If $\Gamma \vdash v : A$ and $\gamma \in \sem{\Gamma\eta}_K$ then $v\gamma \in \sem{A\eta}_K$.
+\end{lemma}
+
+\begin{proof}
+Lemma~\ref{lem:growth} holds because the cache occurs in the definition only in the condition
+$w_1 \in K \cup \{\eps\}$. For Lemma~\ref{lem:forget}, a string $w_1w_2$ with $|w_1| \le P$ and
+$|w_2| \le R$ is $\eps$ followed by a string of at most $P + R$ tokens, and $\eps$ needs no
+cache. Lemma~\ref{lem:sub} is by induction on the derivation of $A \le A'$: \textsc{S-Widen}
+keeps the same split, and \textsc{S-Forget} is the previous argument. Lemma~\ref{lem:values}
+is by induction on the derivation, with Lemma~\ref{lem:sub} for \textsc{V-Sub}; a literal $w$
+is $\eps$ followed by $w$.
+\end{proof}
+
+\begin{theorem}[The bound holds]
+\label{thm:sound}
+Let $\Gamma \vdash_\varphi e : A \mid C$. Let $\eta$ be a valuation that
+satisfies the assumptions of the judgment, $K$ a cache, and
+$\gamma \in \sem{\Gamma\eta}_K$. If $\ev{K}{e\eta\gamma}{c}{K'}{v}$, then
+\begin{enumerate}
+\item $v \in \sem{A\eta}_{K'}$,
+\item $c \le \sem{C}\eta$, and
+\item if $\varphi = 0$ then $K \subseteq K'$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+By induction on the typing derivation. We omit $\eta$ where it only evaluates index terms.
+
+\textsc{Val}: Lemma~\ref{lem:values}. \textsc{Recv}, \textsc{Tail}: the result has at most $M$
+tokens and is $\eps$ followed by itself; the cache is unchanged. \textsc{Hear}: the same for
+the result, and nothing is claimed about $K'$ since $\varphi = 1$.
+
+\textsc{Cat}: By Lemma~\ref{lem:values} the arguments are strings $w_1 = uu'$ with
+$u \in K \cup \{\eps\}$, $|u| \le P_1$, $|u'| \le R_1$, and $w_2$ with
+$|w_2| \le P_2 + R_2$. The result $w_1w_2$ is $u$ followed by $u'w_2$, which has at most
+$R_1 + P_2 + R_2$ tokens.
+
+\textsc{Call}: With $w_1 = uu'$ and $w_2$ as in the previous case, let $w = w_1w_2$. Since
+$u \in K \cup \{\eps\}$ and $u \pre w$, we have $\hit_K(w) \ge |u|$, so the number $\ell$ of
+\textsc{E-Call} satisfies $\ell \ge |u|$. Because $\rho \le 1$,
+\begin{align*}
+c = |w| - (1-\rho)\,\ell + \omega|a| &\le |w| - (1-\rho)\,|u| + \omega|a| \\
+  &= \rho|u| + |u'| + |w_2| + \omega|a| \;\le\; \rho P_1 + R_1 + P_2 + R_2 + \omega M .
+\end{align*}
+The new cache $K' = K \cup \{w_1, w\}$ contains $K$. It contains $w_1$, and
+$|w_1| \le P_1 + R_1$, so $w_1 \in \sem{\Str{P_1+R_1}{0}}_{K'}$; likewise for $w$. The answer
+has at most $M$ tokens.
+
+\textsc{Let}: The evaluation ends with \textsc{E-Let}. The induction hypothesis for $e_1$
+gives $v_1 \in \sem{A}_{K_1}$ and $c_1 \le C_1$. If $\varphi_1 = 0$ it also gives
+$K \subseteq K_1$, so $\gamma \in \sem{\Gamma}_{K_1}$ by Lemma~\ref{lem:growth}. If
+$\varphi_1 = 1$ then $\gamma \in \sem{\fl{\Gamma}}_{K_1}$ by Lemma~\ref{lem:forget}. In both
+cases $\gamma[x \mapsto v_1] \in \sem{\Gamma^{\varphi_1}, x : A}_{K_1}$, and the induction
+hypothesis for $e_2$ gives $v_2 \in \sem{B}_{K_2}$ and $c_2 \le C_2$. If
+$\varphi_1 \vee \varphi_2 = 0$ then $K \subseteq K_1 \subseteq K_2$.
+
+\textsc{Split}, \textsc{Or}: directly by the induction hypothesis.
+
+\textsc{Iter}: Let $\eta_n = \eta[i \mapsto n]$. For $n < \sem{N}\eta$ the valuation
+$\eta_n$ satisfies the assumption $i + 1 \le N$ of the body. We show by induction on
+$n \le \sem{N}\eta$ that every evaluation $\ev{K}{(\iter{n}{v}{i,x}{e})\eta\gamma}{c}{K'}{v'}$ has
+$v' \in \sem{A\eta_n}_{K'}$, $c \le \sum_{k<n} \sem{C}\eta_k$, and $K \subseteq K'$ if
+$\varphi = 0$. For $n = 0$ this is Lemma~\ref{lem:values} for the first premise. For $n + 1$
+the evaluation ends with \textsc{E-Iter}. The inner hypothesis gives
+$v_1 \in \sem{A\eta_n}_{K_1}$, the bound on $c_1$, and $K \subseteq K_1$ if $\varphi = 0$. As
+in the case of \textsc{Let}, $\gamma \in \sem{\Gamma^\varphi\eta}_{K_1}$, by
+Lemma~\ref{lem:growth} if $\varphi = 0$ and by Lemma~\ref{lem:forget} otherwise. Since $i$ is
+not free in $\Gamma$, the outer induction hypothesis applies to the body with the valuation
+$\eta_n$, the cache $K_1$ and the substitution $\gamma[x \mapsto v_1]$. It gives
+$v_2 \in \sem{A\{i+1/i\}\eta_n}_{K_2} = \sem{A\eta_{n+1}}_{K_2}$ and
+$c_2 \le \sem{C}\eta_n$, and $K_1 \subseteq K_2$ if $\varphi = 0$. The claim of the theorem
+is the case $n = \sem{N}\eta$, because $A\{N/i\}\eta = A\eta_n$ and
+$\sem{\sum_{i<N} C}\eta = \sum_{k<n} \sem{C}\eta_k$.
+
+\textsc{Sub}: Lemma~\ref{lem:sub} and the validity of $C \le C'$; the third claim is weaker
+for $\varphi' = 1$.
+\end{proof}
+
+\begin{corollary}[Closed programs]
+\label{cor:closed}
+If $\vdash_\varphi e : A \mid C$ for a closed expression $e$ and closed $A$ and $C$, then
+every evaluation of $e$ from the empty cache costs at most $C$.
+\end{corollary}
+
+The corollary quantifies over all evaluations. It therefore holds for every model, for every
+sequence of messages, for every provider that grants at least the hits of
+Section~\ref{sec:calculus}, and for every pattern of expiry at the points marked by
+$\kw{hear}$.
+
+\begin{corollary}[The context window]
+\label{cor:window}
+Let $W$ be a natural number. Suppose that in a derivation of $\vdash_\varphi e : A \mid C$
+for closed $e$ every use of \textsc{Call} satisfies $P_1 + R_1 + P_2 + R_2 + M \le W$ under
+its assumptions. Then in every
+evaluation of $e$ from the empty cache, every call has a prompt and a limit on its answer that
+together have at most $W$ tokens.
+\end{corollary}
+
+\begin{proof}
+By the same induction: in the case of \textsc{Call} the prompt $w$ has at most
+$P_1 + R_1 + P_2 + R_2$ tokens.
+\end{proof}
+
+A provider rejects a call that does not fit the context window of its model. A harness
+usually finds this out at the turn where it happens. With the side condition of the corollary
+the type checker finds it before the first turn.
+
+\paragraph{Tightness.} The rules can lose precision in four places: at a choice, where one
+branch may be cheaper; at a use of subsumption that loosens a bound; at a $\kw{tail}$ of a
+string shorter than the window; and at the cache, when the provider finds more than the types
+know. The next proposition says that there is no other place. The total size $|A|$ of a type
+is the sum of $P + R$ over its string types. A derivation is \emph{exact} if it does not use
+\textsc{Or}, every use of \textsc{Tail} has $M \le P + R$, and every use of \textsc{Sub} and
+\textsc{V-Sub} relates types of equal total size, component by component, and equal costs,
+where equal means equal under every valuation that satisfies the assumptions. An
+evaluation is \emph{maximal} if every message and every answer in it has exactly as many
+tokens as its bound allows.
+
+\begin{proposition}[The bound is attained]
+\label{prop:attained}
+Let $\rho = 1$. If a closed expression $e$ has an exact derivation of
+$\vdash_\varphi e : A \mid C$, then every maximal evaluation of $e$ from the empty cache costs
+exactly $C$.
+\end{proposition}
+
+\begin{proof}
+We prove a stronger statement for open expressions: if every string of $\gamma$ has exactly
+the total size of its type in $\Gamma\eta$, then every maximal evaluation of $e\eta\gamma$
+yields a value whose strings have exactly the total sizes of $A\eta$, at the cost
+$\sem{C}\eta$. The proof is by induction on the exact derivation. A literal has its exact
+size. \textsc{Cat} adds sizes. In \textsc{Tail} the string has $P + R \ge M$ tokens, so its
+last $M$ tokens are $M$ tokens. In \textsc{Call} the cost is $|w| + \omega|a|$ for every
+$\ell$ since $\rho = 1$, and this is $P_1 + R_1 + P_2 + R_2 + \omega M$. \textsc{S-Forget}
+keeps total sizes. The other cases follow from the induction hypothesis.
+\end{proof}
+
+With a cache the bound can be loose for the fourth reason only when the program builds a
+string a second time that was already sent, or when two prompts happen to begin alike; the
+provider then finds a breakpoint that no type records. Section~\ref{sec:tests} reports for
+each program of Section~\ref{sec:laws} whether its bound is attained for $\rho < 1$.
+
+\begin{remark}[Polynomial cost]
+Every index term and every cost term denotes a polynomial in its variables, since the sum of a
+polynomial over $i < N$ is a polynomial in $N$. A program with a type therefore has a cost
+that is polynomial in its loop bounds. The loop $\iter{N}{w}{i,x}{x \cat x}$, whose context
+doubles at every turn, has no type unless $w$ is empty: the total size of an invariant would
+have to double with $i$.
+\end{remark}
+
+\begin{remark}[Checking]
+Checking a derivation with given invariants reduces to inequalities between index terms. Since
+the terms denote polynomials, equalities are decided by normal forms. Inequalities between
+polynomials over the natural numbers are undecidable in general~\cite{davis1973}; comparing
+coefficients is a sound test. The side conditions of the programs in this paper are
+equalities that hold without assumptions, apart from those of Corollary~\ref{cor:window}. For closed programs no invariant is needed at all: a checker can unroll the
+loops and compute with numbers, and this is what the script of Section~\ref{sec:tests} does.
+\end{remark}
+
+\section{Six Laws}
+\label{sec:laws}
+
+We now type six programs. In all of them a turn receives a message of at most $q$ tokens and
+an answer of at most $m$ tokens, and $d = q + m$ is the growth of the context per turn. The
+letters $h$, $q$, $m$, $s$, $g$, $b$, $t$ and $r$ stand for natural numbers, and so do the
+periods $j$, $p$, $k$ and $J$, which are at least $1$, so that $p - 1$ is a number. The loop
+bounds $N$, $T$ and $n$ are index variables. The example uses $h = 10{,}000$, $q = m = 500$,
+$\rho = 0.08$ and $\omega = 4$.
+
+\begin{lemma}[A turn]
+\label{lem:turn}
+Let $\turn$ be the expression of Section~\ref{sec:overview}, and let $\hturn$ be the same
+expression with $\hear{q}$ in place of $\recv{q}$. If $\Gamma \vdash v : \Str{P}{R}$ then
+\begin{align*}
+\Gamma &\vdash_0 \turn(v) : \Str{P + R + q}{m} \mid \rho P + R + q + \omega m, \\
+\Gamma &\vdash_1 \hturn(v) : \Str{P + R + q}{m} \mid P + R + q + \omega m .
+\end{align*}
+\end{lemma}
+
+\begin{proof}
+For $\turn$: $u$ has the type $\Str{0}{q}$ by \textsc{Recv}, and \textsc{Call} gives the cost
+$\rho P + R + 0 + q + \omega m$ and the types $c : \Str{P+R+q}{0}$ and $a : \Str{0}{m}$, so
+$c \cat a$ has the type $\Str{P+R+q}{m}$ by \textsc{Cat}. For $\hturn$ the first binding has
+the effect $1$, so \textsc{Let} types the rest in $\fl{\Gamma}$, where $v$ has the type
+$\Str{0}{P+R}$: forgetting commutes with the rules for values. The call then costs
+$P + R + q + \omega m$, and the types of $c$ and $a$ are as before.
+\end{proof}
+
+\subsection{The Plain Loop: Bought Once, Rented Every Turn}
+\label{sec:plain}
+
+\begin{corollary}
+\label{cor:plain}
+Let $\nm{loop}_N$ be the program of Section~\ref{sec:overview}, which runs one turn on a
+string $w_0$ of $h$ tokens and then $N$ more turns. Then
+\[
+\vdash_0 \nm{loop}_N : \Str{h + q + Nd}{m} \;\mid\;
+(h + q + Nd) + (N+1)\,\omega m + \rho\,\bigl(N(h+q) + d\,N(N-1)/2\bigr) .
+\]
+\end{corollary}
+
+\begin{proof}
+By Lemma~\ref{lem:turn} the first turn has the type $\Str{h+q}{m}$ and costs
+$h + q + \omega m$. For the loop take the invariant $\Str{h + q + id}{m}$. By the lemma its
+body has the type $\Str{h + q + id + m + q}{m}$, which is the invariant at $i + 1$, and costs
+$\rho\,(h + q + id) + d + \omega m$. The sum over $i < N$ is
+$\rho\,(N(h+q) + d\,N(N-1)/2) + Nd + N\omega m$.
+\end{proof}
+
+The three summands are the tokens bought, the answers, and the rent
+(Section~\ref{sec:overview}). For a provider without a cache, $\rho = 1$ and the cost of
+$T = N + 1$ turns is $T\,(h + q + \omega m) + d\,T(T-1)/2$: turn $k$ sends $h + kd + q$ tokens.
+With a cache the quadratic term is multiplied by $\rho$. In the example, 100 turns cost
+\exBareHundred{} million units without a cache and \exCostHundred{} million with one; 200 turns
+cost \exBareTwoHundred{} and \exCostTwoHundred{} million. With the cache, twice the turns
+still cost \exDouble{} times as much. In a loop of \exCross{} turns or more the rent is more
+than half of the bill, and at 200 turns it is \exRentShare{} percent. The cache postpones the
+quadratic regime and does not remove it. The largest prompt of the loop, together with the limit on its answer,
+has $h + (N+1)d$ tokens. By Corollary~\ref{cor:window}, under the assumption
+$h + (N+1)d \le W$ no call exceeds a context window of $W$ tokens; for $W = 200{,}000$ this
+allows \exFeasible{} turns.
+
+\subsection{A Person in the Loop: A Wait Forfeits the Cache}
+\label{sec:human}
+
+Suppose that every $j$-th message comes from a person and the others from tools:
+\[
+\nm{session}_n \defeq \iter{n}{w_0}{l, y}{\;\letin{x}{\hturn(y)}\; \iter{j-1}{x}{i,z}{\turn(z)}} .
+\]
+
+\begin{corollary}
+\label{cor:human}
+With $w_0$ of $h$ tokens, $\vdash_1 \nm{session}_n : \Str{0}{h + njd} \mid C$ where
+\[
+C = \bigl(1 + \rho(j-1)\bigr)\Bigl(nh + jd\,\frac{n(n-1)}{2}\Bigr)
+  + n\Bigl(q + (j-1)d + j\omega m + \rho\bigl((j-1)q + d\,\frac{(j-1)(j-2)}{2}\bigr)\Bigr) .
+\]
+\end{corollary}
+
+\begin{proof}
+Take the invariant $\Str{0}{H}$ with $H = h + ljd$ for the outer loop. By
+Lemma~\ref{lem:turn}, $\hturn(y)$ has the type $\Str{H+q}{m}$ and costs
+$H + q + \omega m$. The inner loop has the invariant $\Str{H + q + id}{m}$ and costs
+$\sum_{i<j-1} (\rho\,(H + q + id) + d + \omega m)$. Its result has the total size
+$H + jd$, and \textsc{S-Forget} gives it the type $\Str{0}{H + jd}$, the invariant at
+$l + 1$. Nothing is lost by this step, since the next turn waits. One block costs
+$(1 + \rho(j-1))\,H + q + (j-1)d + j\omega m + \rho\,((j-1)q + d\,(j-1)(j-2)/2)$, and
+$\sum_{l<n} H = nh + jd\,n(n-1)/2$.
+\end{proof}
+
+In terms of the number of turns $T = nj$, the quadratic term of $C$ is
+\[
+\Bigl(\rho + \frac{1-\rho}{j}\Bigr)\,\frac{d\,T^2}{2} .
+\]
+The cache thus acts with the weaker discount $\rho_j = \rho + (1-\rho)/j$. For $j = 1$, a
+chat in which the person answers every turn, $\rho_1 = 1$ and the cache does nothing. In the
+example $\rho_5 = \exRhoFive$ and $\rho_{20} = \exRhoTwenty$, against $\rho = 0.08$. Seen from
+one turn, a question to a person costs $(1-\rho)P$ more than a message from a tool, where $P$
+is the stored size of the context: with $P = 100{,}000$ this is \exQuestion{} units, the price
+of 23,000 tokens of answer.
+
+The type system is pessimistic here: $\kw{hear}$ stands for an input that may arrive after the
+cache has expired, and a person who answers at once costs no more than a tool. But the worst
+case is the common one for approvals. An agent that stops to ask for permission and is
+answered after lunch pays for its whole context again. An earlier paper in this series argued
+that an agent should ask only when an action is influenced by untrusted
+data~\cite{tpp5}, because attention is scarce. The corollary adds a second reason, in tokens.
+
+\subsection{Compaction: A Square-Root Law}
+\label{sec:compaction}
+
+A compacting agent replaces its context by a summary every $p$ turns. Its state is a pair of
+the system prompt $\sigma$, which stays, and the current summary $z$. Let $\kappa$ be a
+literal of $g$ tokens that asks for a summary of at most $s$ tokens.
+\begin{prog}
+\nm{block}(\sigma, z) \defeq \letin{u}{\recv{q}} & u : \Str{0}{q} \\
+\quad \letin{(\sigma', c, a)}{\call{\sigma}{z \cat u}{m}} & \sigma' : \Str{h}{0},\; c : \Str{h+s+q}{0} \\
+\quad \letin{y}{\iter{p-1}{c \cat a}{i, y}{\turn(y)}} & y : \Str{h + s + q + (p-1)d}{m} \\
+\quad \letin{(\_, \_, z')}{\call{y}{\kappa}{s}} & z' : \Str{0}{s} \\
+\quad (\sigma', z')
+\end{prog}
+The first call sends the system prompt as a part of its own, so that it comes back as a stored
+string. The call for the summary puts the instruction $\kappa$ after the history.
+
+\begin{corollary}
+\label{cor:block}
+If $\Gamma \vdash \sigma : \Str{h}{0}$ and $\Gamma \vdash z : \Str{0}{s}$, then
+$\Gamma \vdash_0 \nm{block}(\sigma, z) : \Str{h}{0} \times \Str{0}{s} \mid U(p)$ with
+\[
+U(p) = (s + pd + g) + \omega\,(pm + s) + \rho\,\bigl(h + p\,(h + s + q) + d\,p(p-1)/2\bigr) .
+\]
+If $\sigma$ has the type $\Str{0}{h}$ instead, the cost is $U(p) + (1-\rho)h$. Hence the
+program that runs one block on a literal system prompt and $n$ more blocks in a loop costs
+$(n+1)\,U(p) + (1-\rho)h$.
+\end{corollary}
+
+\begin{proof}
+The first call costs $\rho h + s + q + \omega m$. The loop has the invariant
+$\Str{h + s + q + id}{m}$ and costs
+$\sum_{i<p-1} (\rho\,(h + s + q + id) + d + \omega m)$ by Lemma~\ref{lem:turn}. The last call
+costs $\rho\,(h + s + q + (p-1)d) + m + g + \omega s$. In the sum, the terms without $\rho$
+and $\omega$ are $s + q + (p-1)d + m + g = s + pd + g$, the terms with $\omega$ are
+$\omega\,(pm + s)$, and the terms with $\rho$ are
+$\rho\,(h + \sum_{i<p} (h + s + q + id))$. If $\sigma$ is not stored, the first call costs
+$h$ in place of $\rho h$.
+\end{proof}
+
+The cost per turn has the form
+\[
+\frac{U(p)}{p} = \frac{E}{p} + \frac{\rho d}{2}\,p + c_0,
+\qquad E = (1+\omega)\,s + g + \rho h,
+\qquad c_0 = d + \omega m + \rho\,(h + s + q) - \rho d/2 .
+\]
+It is linear in the number of turns for every $p$. The fixed cost $E$ of a compaction is
+spread over $p$ turns, and the rent grows with $p$. $E$ consists of the summary, which is
+bought once from the model at the price $\omega$ and once more as a part of the next prompt,
+of the instruction, and of one more reading of the system prompt.
+
+\begin{corollary}[Square-root law]
+\label{cor:sqrt}
+For $\rho > 0$ the cost per turn is least at $p^* = \sqrt{2E/(\rho d)}$, where it is
+$\sqrt{2E\rho d} + c_0$. Over the natural numbers it is least at one of the two neighbors of
+$p^*$.
+\end{corollary}
+
+\begin{proof}
+The function $E/p + \rho dp/2$ is convex on $p > 0$ and its derivative vanishes at $p^*$.
+\end{proof}
+
+This is the formula for the best interval between checkpoints of a long
+computation~\cite{young1974}, with the cost of a compaction in the place of the cost of a
+checkpoint and the rent $\rho d$ in the place of the failure rate. In the example, with
+$s = 2{,}000$ and $g = 100$, we get $E = \text{\exE}$ and $p^* = \exPstar$; the best whole period is
+\exPbest{} turns, at \exPerTurnBest{} units per turn. A harness that compacts only when the
+window of 200,000 tokens is full has $p = \exPfull$ and pays \exPerTurnFull{} units per turn.
+Compacting at the best period costs \exCompShare{} percent of that. Without a cache the best
+period is $\exPstarBare$ turns: the cache makes compaction less urgent.
+
+Two cautions apply. The law minimizes money. A summary loses information, later turns may be
+worse for it, and the formula has no term for that; it says what each compaction costs, so
+that its price can be weighed against its damage. And the corollary assumes that turns have
+equal bounds. For turns of different sizes the same derivation gives a sum in place of
+$pd$, and the best moment to compact depends on the tokens accumulated, not on the number of
+turns.
+
+\subsection{Sliding Windows}
+\label{sec:window}
+
+A harness with a sliding window sends the system prompt and the last $b$ tokens of the
+history. Its state is the pair of the stored system prompt and the window $x$:
+\begin{prog}
+\nm{wturn}(\sigma, x) \defeq \letin{u}{\recv{q}} \\
+\quad \letin{(\sigma', \_, a)}{\call{\sigma}{x \cat u}{m}} & \text{cost } \rho h + b + q + \omega m \\
+\quad \letin{x'}{\tail{b}{(x \cat u \cat a)}}\; (\sigma', x') & x' : \Str{0}{b}
+\end{prog}
+
+\begin{corollary}
+\label{cor:window-cost}
+If $\Gamma \vdash \sigma : \Str{h}{0}$ and $\Gamma \vdash x : \Str{0}{b}$ then
+$\Gamma \vdash_0 \nm{wturn}(\sigma, x) : \Str{h}{0} \times \Str{0}{b} \mid \rho h + b + q + \omega m$.
+A first turn on a literal system prompt followed by $N$ turns in a loop costs
+$(h + b + q + \omega m) + N\,(\rho h + b + q + \omega m)$.
+\end{corollary}
+
+\begin{proof}
+\textsc{Call} with $\sigma : \Str{h}{0}$ and $x \cat u : \Str{0}{b+q}$, then \textsc{Tail}.
+The invariant of the loop is the type of the state, which does not depend on $i$.
+\end{proof}
+
+The cost is linear in the number of turns, and every turn pays the full price for the window:
+the window of one turn is not a prefix of anything sent before, because its first tokens were
+dropped. Compare a turn of the plain loop whose context has the stored size $P$, which costs
+$\rho P + d + \omega m$ by Lemma~\ref{lem:turn}. The plain turn is the cheaper one exactly when
+\[
+\rho\,(P - h) + m < b ,
+\]
+that is, when the stored history without the system prompt is shorter than $(b - m)/\rho$. A
+window saves money only if it is smaller than a fraction $\rho$ of the history that it
+replaces, plus one answer. In the example a window of $b = 20{,}000$ tokens costs \exWinCost{} units per turn,
+and the plain loop reaches that price per turn only at turn \exWinTurn, with a context of
+\exWinContext{} tokens, which no longer fits the context window. Up to the limit of the
+model, keeping everything is cheaper than this window at every single turn.
+
+The loss comes from sliding at every turn. A window that slides in steps keeps the cache
+between the steps. The following block runs $p$ turns on a growing context and then keeps the
+last $b$ tokens of the history, which it carries beside the context as $k$:
+\begin{prog}
+\nm{sblock}(\sigma, x) \defeq \letin{u}{\recv{q}} \\
+\quad \letin{(\sigma', c, a)}{\call{\sigma}{x \cat u}{m}} & c : \Str{h + b + q}{0} \\
+\quad \letx{(y, k)}{\kw{iter}\;p-1\;\kw{from}\;(c \cat a,\; x \cat u \cat a)\;\kw{as}\;i, (y, k).} \\
+\quad\qquad \letin{u}{\recv{q}}\; \letin{(\_, c, a)}{\call{y}{u}{m}} & y : \Str{h + b + q + id}{m} \\
+\quad\qquad (c \cat a,\; k \cat u \cat a)\;\kw{in} & k : \Str{0}{b + d + id} \\
+\quad \letin{x'}{\tail{b}{k}}\; (\sigma', x')
+\end{prog}
+
+\begin{corollary}
+\label{cor:step}
+If $\Gamma \vdash \sigma : \Str{h}{0}$ and $\Gamma \vdash x : \Str{0}{b}$, then
+$\Gamma \vdash_0 \nm{sblock}(\sigma, x) : \Str{h}{0} \times \Str{0}{b} \mid V(p)$ with
+\[
+V(p) = b + q + (p-1)\,d + p\,\omega m + \rho\,\bigl(h + (p-1)(h + b + q) + d\,(p-1)(p-2)/2\bigr) .
+\]
+The cost per turn is $V(p)/p = E'/p + \rho dp/2 + c_0'$ with $E' = (1-\rho)(b - m)$ and
+$c_0' = d + \omega m + \rho\,(h + b + q) - 3\rho d/2$. For $b > m$ and $0 < \rho < 1$ it is
+least at $p = \sqrt{2E'/(\rho d)}$.
+\end{corollary}
+
+\begin{proof}
+The first call costs $\rho h + b + q + \omega m$, and turn $i$ of the loop costs
+$\rho\,(h + b + q + id) + d + \omega m$. Expanding $V(p)$ in powers of $p$ gives the constant
+term $b - m + \rho\,(m - b)$, the linear term $p\,c_0'$, and the quadratic term
+$\rho d\,p^2/2$.
+\end{proof}
+
+For $p = 1$ this is the window that slides at every turn. The fixed cost of a slide is
+$E' = (1-\rho)(b-m)$, the discount lost on the window, and the same square-root law applies.
+In the example $E' = \text{\exStepE}$ and the best period is \exStepBest{} turns, at
+\exStepPerTurn{} units per turn, less than a third of the cost of sliding at every turn.
+Compaction and the stepped window are two instances of one scheme: every $p$ turns the
+context is replaced by a shorter one at a fixed cost.
+
+\subsection{The Order of the Prompt}
+\label{sec:order}
+
+The rule \textsc{Call} gives the reduced price to one term, the stored size of the first part
+of the prompt. A program that puts anything new in front of its history therefore pays the
+full price for the history. We give two instances.
+
+The first is a harness that begins every prompt with a new string $t$ of one token, such as
+the time or a request number:
+\begin{prog}
+\nm{clock}_T \defeq \kw{iter}\;T\;\kw{from}\;w_0\;\kw{as}\;i, y. \\
+\quad \letin{t}{\recv{1}}\; \letin{u}{\recv{q}} & t : \Str{0}{1},\; u : \Str{0}{q} \\
+\quad \letin{(\_, \_, a)}{\call{t}{y \cat u}{m}} & \text{cost } 1 + h + id + q + \omega m \\
+\quad y \cat u \cat a & {} : \Str{0}{h + (i+1)d}
+\end{prog}
+
+\begin{corollary}
+\label{cor:clock}
+With $w_0$ of $h$ tokens,
+$\vdash_0 \nm{clock}_T : \Str{0}{h + Td} \mid T\,(1 + h + q + \omega m) + d\,T(T-1)/2$.
+\end{corollary}
+
+\begin{proof}
+The invariant is $\Str{0}{h + id}$. \textsc{Call} with $t : \Str{0}{1}$ and
+$y \cat u : \Str{0}{h + id + q}$ costs $1 + h + id + q + \omega m$, and
+$y \cat u \cat a$ has the type $\Str{0}{h + (i+1)d}$.
+\end{proof}
+
+This is the cost of the plain loop without a cache, plus $T$. The bound is attained by a
+provider that grants only what it must, when the strings $t$ differ from turn to turn
+(Section~\ref{sec:tests}): no prompt begins with a breakpoint. The documentation of the
+provider warns of exactly this case~\cite{anthropic2026}. In the type system it is visible in
+the type of the context, whose stored size stays $0$.
+
+The second instance is the summary of Section~\ref{sec:compaction} with its instruction
+before the history, $\call{\kappa}{y}{s}$ in place of $\call{y}{\kappa}{s}$. Its cost is
+$g + (h + s + q + (p-1)d) + m + \omega s$, which is more by $(1-\rho)(h + s + q + (p-1)d)$. In
+the example with $p = \exPbest$ this adds \exFirstExtra{} units to every block, \exFirstShare{}
+percent of its cost. A person asked to summarize a text is given the request first. For a
+model with a prefix cache the request belongs at the end.
+
+\subsection{Delegation}
+\label{sec:delegation}
+
+An agent may hand a part of its work to another agent with a context of its own and receive
+only a report. The history of the worker then never enters the context of the manager. We
+analyze uniform hierarchies, and we assume that the work divides into tasks of any size whose
+results fit a report; whether a given piece of work does is not a question of cost. All agents share a system prompt $\sigma$, a literal of $h$
+tokens, and an instruction $\kappa$ of $g$ tokens that asks for a report. A task is a string
+of at most $t$ tokens and a report a string of at most $r$ tokens.
+
+A \emph{leaf} works for $k$ turns on its task $\tau$ and then reports:
+\begin{prog}
+\nm{leaf}_k(\tau) \defeq \letin{u}{\recv{q}} \\
+\quad \letin{(\_, c, a)}{\call{\sigma}{\tau \cat u}{m}} & c : \Str{h + t + q}{0} \\
+\quad \letin{y}{\iter{k-1}{c \cat a}{i, y}{\turn(y)}} & y : \Str{h + t + q + (k-1)d}{m} \\
+\quad \letin{(\_, \_, z)}{\call{y}{\kappa}{r}}\; z & z : \Str{0}{r}
+\end{prog}
+A \emph{manager} with fan-out $J$ asks the model for a task, gives it to an agent
+$\nm{sub}$ one level down, appends the report, and repeats; at the end it reports itself. Its
+state is the pair of its context $y$ and the last report $v$:
+\begin{prog}
+\nm{man}_J(\tau) \defeq \letin{(\_, c, a)}{\call{\sigma}{\tau}{t}} & c : \Str{h+t}{0} \\
+\quad \letin{v}{\nm{sub}(a)} & v : \Str{0}{r} \\
+\quad \letx{(y, v)}{\kw{iter}\;J-1\;\kw{from}\;(c \cat a,\; v)\;\kw{as}\;i, (y, v).} & y : \Str{h + t + ie}{t} \\
+\quad\qquad \letin{(\_, c, a)}{\call{y}{v}{t}}\; \letin{v'}{\nm{sub}(a)}\; (c \cat a,\; v')\;\kw{in} \\
+\quad \letin{(\_, \_, z)}{\call{y}{v \cat \kappa}{r}}\; z & z : \Str{0}{r}
+\end{prog}
+Here $e = t + r$ is the growth of the manager's context per delegation: a task that the model
+wrote and a report that came back.
+
+\begin{lemma}
+\label{lem:agents}
+Let $\Gamma \vdash \tau : \Str{0}{t}$. Then
+$\Gamma \vdash_0 \nm{leaf}_k(\tau) : \Str{0}{r} \mid S_0(k)$ with
+\[
+S_0(k) = (h + t + kd + g) + \omega\,(km + r) + \rho\,\bigl(k\,(h + t + q) + d\,k(k-1)/2\bigr) .
+\]
+If $x : \Str{0}{t} \vdash_0 \nm{sub}(x) : \Str{0}{r} \mid S$, then
+$\Gamma \vdash_0 \nm{man}_J(\tau) : \Str{0}{r} \mid G(J) + J \cdot S$ with
+\[
+G(J) = (h + t + Je + g) + \omega\,(Jt + r) + \rho\,\bigl(J\,(h + t) + e\,J(J-1)/2\bigr) .
+\]
+\end{lemma}
+
+\begin{proof}
+For the leaf, the first call costs $h + t + q + \omega m$, since the literal $\sigma$ has
+nothing stored. Turn $i$ of the loop costs $\rho\,(h + t + q + id) + d + \omega m$, and the
+report costs $\rho\,(h + t + q + (k-1)d) + m + g + \omega r$. For the manager, the first call
+costs $h + t + \omega t$. Turn $i$ of its loop costs
+$\rho\,(h + t + ie) + t + r + \omega t + S$ and takes the invariant
+$\Str{h + t + ie}{t} \times \Str{0}{r}$ to itself at $i + 1$. The report costs
+$\rho\,(h + t + (J-1)e) + t + r + g + \omega r$. Collecting terms as in
+Corollary~\ref{cor:block} gives $S_0$ and $G$.
+\end{proof}
+
+A \emph{uniform hierarchy} of depth $L$ has fan-outs $J_L, \ldots, J_1$ and leaves of $k$
+turns: its agents at level $\ell \ge 1$ are managers with fan-out $J_\ell$ over agents of
+level $\ell - 1$, and its agents at level $0$ are leaves. By the lemma its cost is at most
+$S_L$, where $S_\ell = G(J_\ell) + J_\ell\,S_{\ell-1}$, and it performs
+$k \cdot J_1 \cdots J_L$ turns of work. We call $S_L$ the \emph{cost bound} of the
+hierarchy.
+
+A part of the cost bound is the same for every organization. The coefficient of $k$ in $S_0$
+is $\alpha = d + \omega m + \rho\,(h + t + q)$: a turn buys its message and its answer and
+reads the prompt that every leaf begins with. We call the cost bound of a hierarchy minus
+$\alpha$ times the number of its turns its \emph{overhead}. The overhead is what the organization of the
+work costs, and it is where organizations differ. Let $O_L(T)$ be the least overhead of a
+uniform hierarchy of depth $L$ that performs at least $T$ turns.
+
+\begin{theorem}[Delegation]
+\label{thm:delegation}
+Let $\rho > 0$, $d \ge 1$, $t \ge 1$ and $r \ge 0$. For every $L \ge 0$ there are constants
+$0 < a_L \le b_L$ such that for all $T \ge 1$
+\[
+a_L\,T^{\theta_L} \;\le\; O_L(T) \;\le\; b_L\,T^{\theta_L},
+\qquad \theta_L = 1 + \frac{1}{2^{L+1} - 1} .
+\]
+\end{theorem}
+
+The exponents are $2$, $4/3$, $8/7$, $16/15$ for $L = 0, 1, 2, 3$. Without delegation the
+overhead is quadratic. Every level of management takes the excess of the exponent over $1$
+from $1/n$ to $1/(2n+1)$.
+
+\begin{proof}
+Let $c = h + t + g + \omega r$, which is at least $1$. The overhead of a leaf of $k$ turns is
+$S_0(k) - \alpha k = \rho d\,k(k-1)/2 + c$, which increases with $k$, so
+$O_0(T) = \rho d\,T(T-1)/2 + c$. For $T \ge 1$ this lies between $\min(c, \rho d/4)\,T^2$ and
+$(c + \rho d/2)\,T^2$, which proves the case $L = 0$.
+
+The overhead of a hierarchy of depth $L \ge 1$ is $G(J)$ plus $J$ times the overhead of its
+children, since the numbers of turns add up. The children must perform at least
+$\lceil T/J \rceil$ turns each, and $O_{L-1}$ is nondecreasing, so
+\[
+O_L(T) = \min_{J \ge 1}\; \bigl( G(J) + J \cdot O_{L-1}(\lceil T/J \rceil) \bigr) .
+\]
+The function $G$ is quadratic in $J$ with the leading coefficient $\rho e/2 > 0$ and
+$G(1) > 0$, so there are constants $0 < \beta \le \beta'$ with
+$\beta J^2 \le G(J) \le \beta' J^2$ for all $J \ge 1$. Let $\theta = \theta_{L-1}$, and note
+that $2\theta/(\theta + 1) = \theta_L$: for $\theta = 1 + 1/n$ this is
+$(2n + 2)/(2n + 1)$.
+
+\emph{Lower bound.} For every $J \ge 1$, by the induction hypothesis,
+$G(J) + J\,O_{L-1}(\lceil T/J \rceil) \ge \beta J^2 + a_{L-1}\,T^\theta J^{1-\theta}$. For
+positive reals $A$, $B$ and $x$ and the weights $\lambda = 2/(\theta+1)$ and
+$\mu = (\theta - 1)/(\theta + 1)$, which sum to $1$, the inequality between the weighted
+arithmetic and geometric means gives
+\[
+A\,x^{1-\theta} + B\,x^2 \;\ge\; \Bigl(\frac{A\,x^{1-\theta}}{\lambda}\Bigr)^{\lambda}
+\Bigl(\frac{B\,x^2}{\mu}\Bigr)^{\mu} \;\ge\; A^\lambda B^\mu ,
+\]
+because the exponent of $x$ is $(1-\theta)\lambda + 2\mu = 0$ and
+$\lambda^{-\lambda}\mu^{-\mu} \ge 1$. With $A = a_{L-1}T^\theta$ and $B = \beta$ this is
+$a_{L-1}^{\lambda}\,\beta^{\mu}\,T^{\theta\lambda}$, and $\theta\lambda = \theta_L$.
+
+\emph{Upper bound.} Choose $J = \lceil T^{\theta/(\theta+1)} \rceil$, so that
+$J \le 2\,T^{\theta/(\theta+1)}$ and
+$\lceil T/J \rceil \le T^{1/(\theta+1)} + 1 \le 2\,T^{1/(\theta+1)}$. Then
+$O_L(T) \le \beta' J^2 + J\,b_{L-1}\,(2\,T^{1/(\theta+1)})^{\theta}
+\le (4\beta' + 2^{\theta+1}\,b_{L-1})\,T^{2\theta/(\theta+1)}$.
+\end{proof}
+
+With a cache the cost bound of a hierarchy is not attained, because all agents begin with the
+same system prompt: the worst evaluation costs $(1-\rho)h$ less for every agent after the
+first (Section~\ref{sec:tests}). This replaces $h$ by $\rho h$ in the constant $c$ of the
+proof and lowers $G$ by a constant, and the proof gives the same exponents for the cost of
+the worst evaluation.
+
+\paragraph{What the theorem says at practical sizes.} The exponents describe very long tasks.
+For a hierarchy of depth $1$ that performs $T = Jk$ turns, the overhead per turn is
+\[
+\frac{\rho d}{2}\,(k - 1) \;+\; \frac{c + c_1}{k} \;+\; \frac{\rho e}{2}\Bigl(\frac{T}{k^2} - \frac{1}{k}\Bigr) + \frac{c}{T},
+\qquad c_1 = e + \omega t + \rho\,(h + t) ,
+\]
+where $c + c_1$ is the fixed cost of one more leaf. For moderate $T$ the first two terms
+decide, and the best leaf has about $\sqrt{2(c + c_1)/(\rho d)}$ turns: the square-root law
+once more, with the cost of starting a leaf in the place of the cost of a summary. Only when
+$T$ is so large that the manager's own rent matters does the best leaf grow, as
+$(2eT/d)^{1/3}$. In the example with $t = 1{,}000$ and $r = 2{,}000$ the first formula gives
+26 turns, and the script finds the best leaf at \exTabKHundred{} turns for $T = 100$, at
+\exTabKThousand{} for $T = 1{,}000$, and at \exTabKTenK{} for $T = 10{,}000$. For depth $2$
+the regime of the theorem lies far beyond any real task. Even with small constants
+($h = 50$, $q = m = t = r = 20$, $g = 5$), the exponent fitted to the least overhead between
+$T = 10^{12}$ and $T = 10^{15}$ is \exSlopeTwo{}, against $8/7 \approx 1.143$; the fixed costs
+of the agents hide the limit until then. The theorem states where delegation leads in the
+limit. For a given task the closed form $S_L$ is
+the tool, and it can be minimized by search.
+
+A compacting agent is a special case of this analysis with one worker after the other: the
+block of Section~\ref{sec:compaction} is a leaf whose report is its summary, handed to the
+next leaf. The difference between the two strategies is the manager, which keeps all reports
+and pays rent on them.
+
+\subsection{The Strategies Side by Side}
+
+Table~\ref{tab:strategies} evaluates the closed forms of this section for the example. The
+periods of compaction, of the stepped window and the size of the leaves are the best ones for
+each $T$, found by search. Three things stand out. The cache is worth a factor of eight to
+twelve on the plain loop. Among the strategies that bound the context, compaction is the
+cheapest, delegation and the stepped window follow within a third, and the window that slides
+at every turn costs more than four times as much. And for 100 turns the plain loop with a
+cache is within a factor of $1.5$ of the best strategy, so a short task is not worth
+compacting for money alone. The table compares bills, not results: the six strategies do not
+show the model the same information.
+
+\begin{table}[t]
+\caption{Cost of $T$ turns in millions of units, for $h = 10{,}000$, $q = m = 500$,
+$s = 2{,}000$, $g = 100$, $b = 20{,}000$, $t = 1{,}000$, $r = 2{,}000$, $\rho = 0.08$ and
+$\omega = 4$. The plain loop exceeds a context window of 200,000 tokens after \exFeasible{}
+turns; its costs beyond that are shown in parentheses.}
+\label{tab:strategies}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Strategy & $T = 100$ & $T = 1{,}000$ & $T = 10{,}000$ \\
+\midrule
+plain loop, no cache & \exTabBareHundred & (\exTabBareThousand) & (\exTabBareTenK) \\
+plain loop & \exTabPlainHundred & (\exTabPlainThousand) & (\exTabPlainTenK) \\
+window, sliding at every turn & \exTabWinHundred & \exTabWinThousand & \exTabWinTenK \\
+window, sliding in steps & \exTabStepHundred & \exTabStepThousand & \exTabStepTenK \\
+delegation, one level & \exTabDelHundred & \exTabDelThousand & \exTabDelTenK \\
+compaction & \exTabCompHundred & \exTabCompThousand & \exTabCompTenK \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Testing the Claims}
+\label{sec:tests}
+
+The proofs of this paper are on paper. To guard against errors in them and in the formulas,
+the artifact contains a script, \texttt{cost.py}, of about 700 lines of Python without
+dependencies. It has four parts.
+
+\paragraph{An interpreter for Figure~\ref{fig:semantics}.} Strings are tuples of tokens and the
+cache is a set of tuples. The interpreter has two modes. In the \emph{worst} mode every
+message and every answer has its maximal length and consists of tokens that occur nowhere
+else, the provider bills at the reduced price only the longest breakpoint, and a wait empties
+the cache. In the \emph{random} mode lengths are drawn at random, most tokens are equal so
+that prompts often begin alike, the provider bills a random number of tokens at the reduced
+price above the longest breakpoint, a wait removes a random subset of the cache, and a choice
+takes a random branch.
+
+\paragraph{A checker for Figure~\ref{fig:typing} on closed programs.} A closed program has
+numbers for all its indices. The checker unrolls loops, so the type that it computes for turn
+$i$ is the invariant at $i$, and it joins the branches of a choice by \textsc{S-Widen}. It
+returns the type, the cost, the effect, and the largest prompt.
+
+\paragraph{The tests.} For each of \exPrograms{} random programs, four pairs of prices and
+four evaluations (one in the worst mode and three random ones), the script checks the three
+statements that Theorem~\ref{thm:sound} and Corollary~\ref{cor:window} make about a closed
+program: the cost is within the bound, the result is in the interpretation of its type at the
+final cache, and no call exceeds the largest prompt of the checker. For each of \exExact{}
+random programs without choice and without $\kw{tail}$, at $\rho = 1$, it checks that the
+evaluation in the worst mode costs exactly the bound (Proposition~\ref{prop:attained}). The
+programs are generated from the grammar with nesting depth four and include loops whose
+bodies depend on the turn number, loops over pairs, and waits. All checks pass.
+
+\paragraph{The closed forms.} The programs of Section~\ref{sec:laws} are written as syntax
+trees. For \exCases{} combinations of parameters and prices the script checks that the checker
+computes exactly the closed form of the corresponding corollary and that the evaluation in
+the worst mode stays within it. For the plain loop, the session, compaction, both windows and
+the clock, the worst evaluation costs exactly the closed form, also for $\rho < 1$: these
+bounds are attained. Two bounds are not attained with a cache. With the instruction of the
+summary in front, the instruction itself is a breakpoint from the second block on, which
+saves $(1-\rho)g$ per block; for an empty instruction the two orders send the same prompts,
+and the rule for calls, which discounts only the first part, is loose by the whole discount.
+And in a hierarchy all agents begin with the same system prompt,
+so every agent after the first finds it stored: the worst evaluation costs exactly
+$(1-\rho)h$ less than the bound for each of them. A program that passed the stored system
+prompt down to its workers would have a type that says so. The script also checks the square-root laws against a search over whole periods, and it
+computes the least overhead of hierarchies over a grid of fan-outs, for the small constants
+of Section~\ref{sec:delegation}: between $T = 10^{12}$ and $T = 10^{15}$ the fitted exponents
+are \exSlopeZero, \exSlopeOne{} and \exSlopeTwo{} for
+depths $0$, $1$ and $2$.
+
+A test of this kind shows only that the theorems are not false on the sampled programs. It
+also shaped one statement. A first version of Theorem~\ref{thm:delegation} bounded the cost
+itself, which is true but says little, because the linear part of the cost hides the exponent
+up to very large $T$. The fit showed this, and the theorem now bounds the overhead. The command
+\texttt{make -C artifact check} runs everything in a few seconds and compares the output,
+including all numbers quoted in the text, with the committed copy.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Sizes and costs in types.} Sized types~\cite{hughes1996} and indexed
+types~\cite{xi1999} put bounds on the sizes of data into types. Type systems for resource
+bounds add a cost that is a function of those sizes: Crary and Weirich~\cite{crary2000}
+certify running time with a virtual clock, Danielsson~\cite{danielsson2008} annotates the
+types of lazy data structures with their time complexity, and Dal Lago and
+Gaboardi~\cite{dallago2011} give a system with index terms that is relatively complete for
+the cost of evaluation. Amortized analysis assigns potential to
+data~\cite{hofmann2003,hoffmann2011} and infers polynomial bounds automatically, and
+$\lambda$-amor~\cite{rajani2021} unifies several of these systems. Wegbreit~\cite{wegbreit1975}
+derived closed forms for the cost of programs from recurrences fifty years ago. Our rules
+stand in this tradition, and their treatment of sizes, costs and loops is standard. What is
+specific is the cost model. The cost of a call is the size of the data sent, so costs are
+quadratic where a count of steps would be linear, and the price of a token depends on what
+was sent before.
+
+\paragraph{State that only grows.} The stored part of a string type is a fact about the
+provider's state. It stays true because that state only grows, in the sense of monotonic
+state with witnessed stable predicates~\cite{ahman2018}; ``this string is a breakpoint'' is
+such a predicate. Our setting adds the points where monotonicity fails. The cache forgets
+during a wait, and an effect in the style of effect systems~\cite{lucassen1988} marks the
+expressions after which the witnesses are void. Analyses of processor caches for bounds on
+execution time~\cite{ferdinand1999} compute which memory blocks must be in the cache at a
+program point; the stored size is information of this kind for a cache of prefixes.
+
+\paragraph{Growth of loop programs.} Ben-Amram, Jones and Kristiansen~\cite{benamram2008}
+decide for a language with bounded loops whether the values of variables grow polynomially.
+Our index terms are polynomials, so a typable loop has polynomial cost, and the doubling loop
+has no type. We do not infer invariants; their techniques may apply.
+
+\paragraph{Programs around language models.} ReAct~\cite{yao2022} established the loop of
+calls and tool results that we model. MemGPT~\cite{packer2023} manages the context like
+virtual memory, with eviction and summaries, which are the strategies of
+Sections~\ref{sec:compaction} and~\ref{sec:window}. Reusing the computation for a shared
+prefix of prompts was proposed as Prompt Cache~\cite{gim2023}. Lumer et
+al.~\cite{lumer2026} measure what the caches of three providers save on long agent tasks
+under three caching strategies, and TokenPilot~\cite{xu2026} observes that pruning a context
+changes its layout and invalidates the cache, and manages contexts so that prefixes stay
+stable. These are the trade-offs of Sections~\ref{sec:compaction} to~\ref{sec:order}, found
+by experiment; what we add is closed forms and a proof. FrugalGPT~\cite{chen2023} reduces
+the cost of using models by choosing among them and adapting prompts, and
+LMQL~\cite{lmql2023} shows that a programming language for prompts can save billed tokens.
+There are tools that scan a code base for calls to model interfaces and estimate their price
+during code review~\cite{tokentoll}. We know of no type system, and of no static analysis
+with a proof of soundness, for the token cost of programs that call a model. In this series of papers, an earlier one grades such programs by their probability
+of error~\cite{tpp3}; there a retry divides the error, and here it would multiply the cost.
+
+\paragraph{Checkpoints.} The square-root law of Corollary~\ref{cor:sqrt} has the form of
+Young's formula for the interval between checkpoints~\cite{young1974}, and of the older
+formula of Harris for the size of a production lot, which balances the cost of setting up
+against the cost of holding stock~\cite{harris1990}. In all
+three a fixed cost per event competes with a cost that grows linearly between events.
+
+\section{Limits and Open Problems}
+\label{sec:limits}
+
+\paragraph{Limits.} The bounds are statements about the semantics of
+Figure~\ref{fig:semantics}, and we have not compared them with invoices. Real price lists
+have features outside the model: a cache that looks back over a bounded number of blocks and
+ignores short prompts, prices that depend on the length of the prompt, discounts for batches,
+and tokens for reasoning that are billed and not shown. Strings are sequences of tokens,
+which ignores the seams between strings. The type system bounds the worst case; an agent that
+usually stops after ten turns of a possible hundred is charged for a hundred. The calculus
+has no functions and no recursion, and invariants are not inferred. The laws concern money
+and not the quality of the work. The proofs are not mechanized.
+
+\paragraph{Open problems.} We list the problems that we would work on next, for whoever
+continues, human or model.
+
+\begin{enumerate}
+\item \emph{Time.} With a clock in the semantics, a cache entry would expire after a lifetime
+$\lambda$ and be renewed by every call. A program could then keep its cache alive during a
+wait by calls with an empty answer, at $\rho P$ each. The question is a type system that
+proves a call arrives in time, and the resulting law: keeping the cache alive should pay for
+waits shorter than about $(1-\rho)/\rho$ lifetimes.
+\item \emph{Prefixes.} The types record that a value is stored and not that one value is a
+prefix of another. A program that rebuilds a stored string from its parts gets a loose bound.
+Types that carry the structure of concatenations, as words over variables for segments, would
+make Proposition~\ref{prop:attained} hold with a cache.
+\item \emph{Inference.} The body of a loop without choice maps the sizes of its state by an
+affine function with natural coefficients. The invariant is the solution of a linear
+recurrence, which is polynomial unless the body duplicates its state. An algorithm that
+solves it, in the manner of amortized analysis, would remove the annotations.
+\item \emph{Expected cost.} With a distribution over the lengths of answers and over the turn
+at which the model stops, the type should bound the expected bill. This connects to graded
+types for the reliability of model calls~\cite{tpp3}: a single judgment could give the price
+of a retry and what it buys.
+\item \emph{Quality.} A cost for what a summary loses would turn the square-root law into a
+trade between money and results. We do not know what its unit should be.
+\item \emph{A real harness.} The calculus is close to the core of harnesses written in
+general-purpose languages. A checker for a subset of such a language that reports the cost of
+a loop as a formula, and the lines that forfeit the cache, would test whether these laws
+predict bills.
+\item \emph{Mechanization.} The proof of Theorem~\ref{thm:sound} is a first-order induction
+with a monotone invariant, and it should take a few hundred lines in a proof assistant.
+\end{enumerate}
+
+\section{Conclusion}
+
+The bill of an agent loop is determined by the sizes of the strings that it sends and by which
+of them the provider has stored. Both are static properties of the program. A type system
+with two sizes for each string, a rule for calls that returns what is now stored, and an
+effect for waiting bounds the bill for every behavior of the model, and typing the common
+strategies gives their costs in closed form: rent on the history, the price of a question,
+the best period for compaction, the price of a sliding window, and the exponents of
+delegation.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

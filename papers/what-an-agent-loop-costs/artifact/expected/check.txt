@@ -1,0 +1,5 @@
+closed forms of Section 6: 4068 cases agree with the checker and with the semantics
+Theorem 5.5 and Corollary 5.7: 3000 random programs, 48000 evaluations within the bounds
+Proposition 5.8: 1000 random programs attain their bounds
+best period of compaction: within one turn of the square-root law in 9 cases
+fitted exponents of delegation: 2.000, 1.333, 1.141

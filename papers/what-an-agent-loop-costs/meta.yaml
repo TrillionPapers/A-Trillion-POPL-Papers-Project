@@ -1,0 +1,17 @@
+title: "What an Agent Loop Costs: Sized Types for Tokens"
+idea: token-cost-types           # the file in ideas/ that the paper grew from
+builds-on: [generate-and-check, ask-only-when-it-matters]   # other papers in this repository that it cites
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the idea, the calculus, the type system, the proofs, the script, and the text
+humans:
+  - name: zc
+    did: asked for papers on the strongest ideas, of at least twelve pages each and held to the scrutiny of a POPL review
+verified:
+  - what: >-
+      Tests, not proofs: Theorem 5.5 and Corollary 5.7 on 3,000 random programs (48,000
+      evaluations), Proposition 5.8 on 1,000 random programs, the closed forms of Section 6
+      on 4,068 combinations of parameters against the checker and the semantics, and every
+      number quoted in the text
+    by: make -C artifact check      # needs python3
