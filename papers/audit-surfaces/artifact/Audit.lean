@@ -730,8 +730,8 @@ theorem restrict_noThm {L : Lib} (S : Name → Bool) : ∀ e ∈ restrict S L, e
   | axm _ _ _ => rfl
   | thm _ _ _ _ => simp [Entry.kept] at hk
 
-/-- Theorem 3.4 (audit soundness) for any closed set of names that contains the constants of
-the statement and the axioms the proof uses. -/
+/-- Audit soundness, stated with the axioms of the proof in which every theorem is inlined.
+Theorem 3.4 is `audit_sound_usedAx` below, which follows from this. -/
 theorem audit_sound {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} (hc : Chk L p l r)
     (S : Name → Bool)
     (hl : ∀ d ∈ l.consts, S d = true) (hr : ∀ d ∈ r.consts, S d = true)
@@ -778,6 +778,215 @@ theorem close_cons_neg {e : Entry} {L : Lib} {acc : List Name}
   · rename_i hc
     exact absurd hc h
   · rfl
+
+/-! ## The axioms a proof uses (Section 3) -/
+
+/-- One pass over the library, newest entry first. `lems` holds the theorems reached so far
+and `axs` the axioms collected so far. A reached theorem adds what its proof refers to. -/
+def reach : Lib → List Name → List Name → List Name
+  | [], _, axs => axs
+  | Entry.defn _ _ :: L, lems, axs => reach L lems axs
+  | Entry.axm _ _ _ :: L, lems, axs => reach L lems axs
+  | Entry.thm h _ _ q :: L, lems, axs =>
+    if lems.contains h then reach L (q.lemRefs ++ lems) (q.axRefs ++ axs) else reach L lems axs
+
+/-- The axioms that a proof uses, directly or through the theorems of the library. -/
+def usedAx (L : Lib) (p : Pf) : List Name := reach L p.lemRefs p.axRefs
+
+theorem reach_thm_pos {h : Name} {l r : Tm} {q : Pf} {L : Lib} {lems axs : List Name}
+    (hc : lems.contains h = true) :
+    reach (Entry.thm h l r q :: L) lems axs = reach L (q.lemRefs ++ lems) (q.axRefs ++ axs) := by
+  simp only [reach, hc, ↓reduceIte]
+
+theorem reach_thm_neg {h : Name} {l r : Tm} {q : Pf} {L : Lib} {lems axs : List Name}
+    (hc : ¬ lems.contains h = true) :
+    reach (Entry.thm h l r q :: L) lems axs = reach L lems axs := by
+  simp only [reach]
+  split
+  · rename_i hc'
+    exact absurd hc' hc
+  · rfl
+
+theorem reach_mono (L : Lib) : ∀ (lems lems' axs axs' : List Name),
+    (∀ h ∈ lems, h ∈ lems') → (∀ a ∈ axs, a ∈ axs') →
+    ∀ a ∈ reach L lems axs, a ∈ reach L lems' axs' := by
+  induction L with
+  | nil => intro lems lems' axs axs' _ ha a h; exact ha a h
+  | cons e L ih =>
+    intro lems lems' axs axs' hl ha a h
+    cases e with
+    | defn c u => exact ih lems lems' axs axs' hl ha a h
+    | axm b l r => exact ih lems lems' axs axs' hl ha a h
+    | thm g l r q =>
+      have hl2 : ∀ x ∈ q.lemRefs ++ lems, x ∈ q.lemRefs ++ lems' := by
+        intro x hx
+        rcases List.mem_append.mp hx with hx | hx
+        · exact List.mem_append_left _ hx
+        · exact List.mem_append_right _ (hl x hx)
+      have ha2 : ∀ x ∈ q.axRefs ++ axs, x ∈ q.axRefs ++ axs' := by
+        intro x hx
+        rcases List.mem_append.mp hx with hx | hx
+        · exact List.mem_append_left _ hx
+        · exact List.mem_append_right _ (ha x hx)
+      by_cases hc : lems.contains g = true
+      · have hc' : lems'.contains g = true := contains_of_mem (hl g (mem_of_contains hc))
+        rw [reach_thm_pos hc] at h
+        rw [reach_thm_pos hc']
+        exact ih _ _ _ _ hl2 ha2 a h
+      · rw [reach_thm_neg hc] at h
+        by_cases hc' : lems'.contains g = true
+        · rw [reach_thm_pos hc']
+          exact ih _ _ _ _ (fun x hx => List.mem_append_right _ (hl x hx))
+            (fun x hx => List.mem_append_right _ (ha x hx)) a h
+        · rw [reach_thm_neg hc']
+          exact ih _ _ _ _ hl ha a h
+
+theorem Pf.inlineLem_of_not_mem (h : Name) (q : Pf) :
+    ∀ (p : Pf), h ∉ p.lemRefs → Pf.inlineLem h q p = p := by
+  intro p
+  induction p with
+  | refl t => intro _; rfl
+  | symm p ih => intro hn; simp [Pf.inlineLem, ih hn]
+  | trans p p' ihp ihp' =>
+    intro hn
+    have h1 : h ∉ p.lemRefs := fun m => hn (List.mem_append_left _ m)
+    have h2 : h ∉ p'.lemRefs := fun m => hn (List.mem_append_right _ m)
+    simp [Pf.inlineLem, ihp h1, ihp' h2]
+  | app p p' ihp ihp' =>
+    intro hn
+    have h1 : h ∉ p.lemRefs := fun m => hn (List.mem_append_left _ m)
+    have h2 : h ∉ p'.lemRefs := fun m => hn (List.mem_append_right _ m)
+    simp [Pf.inlineLem, ihp h1, ihp' h2]
+  | lam p ih => intro hn; simp [Pf.inlineLem, ih hn]
+  | beta b a => intro _; rfl
+  | delta c => intro _; rfl
+  | ax a => intro _; rfl
+  | lem g =>
+    intro hn
+    have hne : g ≠ h := fun e => hn (by rw [e]; exact List.Mem.head _)
+    simp [Pf.inlineLem, hne]
+
+theorem Pf.axRefs_inlineLem_sub (h : Name) (q : Pf) :
+    ∀ (p : Pf), ∀ a ∈ (Pf.inlineLem h q p).axRefs, a ∈ p.axRefs ∨ a ∈ q.axRefs := by
+  intro p
+  induction p with
+  | refl t => intro a ha; cases ha
+  | symm p ih => intro a ha; exact ih a ha
+  | trans p p' ihp ihp' =>
+    intro a ha
+    rcases List.mem_append.mp ha with ha | ha
+    · rcases ihp a ha with h1 | h1
+      · exact Or.inl (List.mem_append_left _ h1)
+      · exact Or.inr h1
+    · rcases ihp' a ha with h1 | h1
+      · exact Or.inl (List.mem_append_right _ h1)
+      · exact Or.inr h1
+  | app p p' ihp ihp' =>
+    intro a ha
+    rcases List.mem_append.mp ha with ha | ha
+    · rcases ihp a ha with h1 | h1
+      · exact Or.inl (List.mem_append_left _ h1)
+      · exact Or.inr h1
+    · rcases ihp' a ha with h1 | h1
+      · exact Or.inl (List.mem_append_right _ h1)
+      · exact Or.inr h1
+  | lam p ih => intro a ha; exact ih a ha
+  | beta b a' => intro a ha; cases ha
+  | delta c => intro a ha; cases ha
+  | ax a' => intro a ha; exact Or.inl ha
+  | lem g =>
+    intro a ha
+    by_cases e : g = h
+    · have e1 : Pf.inlineLem h q (Pf.lem g) = q := by simp [Pf.inlineLem, e]
+      rw [e1] at ha
+      exact Or.inr ha
+    · have e1 : Pf.inlineLem h q (Pf.lem g) = Pf.lem g := by simp [Pf.inlineLem, e]
+      rw [e1] at ha
+      cases ha
+
+theorem Pf.lemRefs_inlineLem_sub (h : Name) (q : Pf) :
+    ∀ (p : Pf), ∀ g ∈ (Pf.inlineLem h q p).lemRefs, g ∈ p.lemRefs ∨ g ∈ q.lemRefs := by
+  intro p
+  induction p with
+  | refl t => intro g hg; cases hg
+  | symm p ih => intro g hg; exact ih g hg
+  | trans p p' ihp ihp' =>
+    intro g hg
+    rcases List.mem_append.mp hg with hg | hg
+    · rcases ihp g hg with h1 | h1
+      · exact Or.inl (List.mem_append_left _ h1)
+      · exact Or.inr h1
+    · rcases ihp' g hg with h1 | h1
+      · exact Or.inl (List.mem_append_right _ h1)
+      · exact Or.inr h1
+  | app p p' ihp ihp' =>
+    intro g hg
+    rcases List.mem_append.mp hg with hg | hg
+    · rcases ihp g hg with h1 | h1
+      · exact Or.inl (List.mem_append_left _ h1)
+      · exact Or.inr h1
+    · rcases ihp' g hg with h1 | h1
+      · exact Or.inl (List.mem_append_right _ h1)
+      · exact Or.inr h1
+  | lam p ih => intro g hg; exact ih g hg
+  | beta b a => intro g hg; cases hg
+  | delta c => intro g hg; cases hg
+  | ax a => intro g hg; cases hg
+  | lem g' =>
+    intro g hg
+    by_cases e : g' = h
+    · have e1 : Pf.inlineLem h q (Pf.lem g') = q := by simp [Pf.inlineLem, e]
+      rw [e1] at hg
+      exact Or.inr hg
+    · have e1 : Pf.inlineLem h q (Pf.lem g') = Pf.lem g' := by simp [Pf.inlineLem, e]
+      rw [e1] at hg
+      exact Or.inl hg
+
+/-- The axioms of the proof in which every theorem is inlined are among the axioms that the
+proof uses. So the axioms can be collected without building the inlined proof, which can be
+exponentially larger. -/
+theorem axRefs_unfoldLems_sub : ∀ (L : Lib) (p : Pf),
+    ∀ a ∈ (unfoldLems L p).axRefs, a ∈ usedAx L p := by
+  intro L
+  induction L with
+  | nil => intro p a h; exact h
+  | cons e L ih =>
+    intro p a h
+    cases e with
+    | defn c u => exact ih p a h
+    | axm b l r => exact ih p a h
+    | thm g l r q =>
+      have h' : a ∈ (unfoldLems L (Pf.inlineLem g q p)).axRefs := h
+      have h1 : a ∈ reach L (Pf.inlineLem g q p).lemRefs (Pf.inlineLem g q p).axRefs :=
+        ih _ a h'
+      show a ∈ reach (Entry.thm g l r q :: L) p.lemRefs p.axRefs
+      by_cases hc : p.lemRefs.contains g = true
+      · rw [reach_thm_pos hc]
+        refine reach_mono L _ _ _ _ ?_ ?_ a h1
+        · intro x hx
+          rcases Pf.lemRefs_inlineLem_sub g q p x hx with hx | hx
+          · exact List.mem_append_right _ hx
+          · exact List.mem_append_left _ hx
+        · intro x hx
+          rcases Pf.axRefs_inlineLem_sub g q p x hx with hx | hx
+          · exact List.mem_append_right _ hx
+          · exact List.mem_append_left _ hx
+      · have hn : g ∉ p.lemRefs := fun m => hc (contains_of_mem m)
+        rw [Pf.inlineLem_of_not_mem g q p hn] at h1
+        rw [reach_thm_neg hc]
+        exact h1
+
+/-- Theorem 3.4 (audit soundness) for any closed set of names that contains the constants of
+the statement and the axioms that the proof uses. -/
+theorem audit_sound_usedAx {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} (hc : Chk L p l r)
+    (S : Name → Bool)
+    (hl : ∀ d ∈ l.consts, S d = true) (hr : ∀ d ∈ r.consts, S d = true)
+    (hax : ∀ a ∈ usedAx L p, S a = true)
+    (hcl : ∀ e ∈ L, e.kept S = true → ∀ d ∈ e.consts, S d = true) :
+    Chk (restrict S L) (inlineDefs S (dropThms L) (unfoldLems L p)) l r :=
+  audit_sound hwf hc S hl hr (fun a ha => hax a (axRefs_unfoldLems_sub L p a ha)) hcl
+
+/-! ## Closed sets of names (Section 3) -/
 
 theorem close_sub (L : Lib) : ∀ (acc : List Name) (n : Name), n ∈ acc → n ∈ close L acc := by
   induction L with
@@ -870,7 +1079,7 @@ theorem close_least (L : Lib) : ∀ (acc : List Name) (S : Name → Prop),
 /-- The audit set of a checked proof: the least set of names that contains the constants of
 the statement and the axioms the proof uses, and is closed under bodies and axiom statements. -/
 def auditSet (L : Lib) (p : Pf) (l r : Tm) : List Name :=
-  close L (l.consts ++ r.consts ++ (unfoldLems L p).axRefs)
+  close L (l.consts ++ r.consts ++ usedAx L p)
 
 /-- The audit surface: the definitions and axioms named by the audit set. -/
 def auditLib (L : Lib) (p : Pf) (l r : Tm) : Lib :=
@@ -895,7 +1104,8 @@ theorem audit_surface {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} (hc : Chk L p l
       close_sub _ _ _ (List.mem_append_left _ (List.mem_append_right _ hd))
     exact contains_of_mem this
   · intro a ha
-    have : a ∈ auditSet L p l r := close_sub _ _ _ (List.mem_append_right _ ha)
+    have : a ∈ auditSet L p l r :=
+      close_sub _ _ _ (List.mem_append_right _ (axRefs_unfoldLems_sub L p a ha))
     exact contains_of_mem this
   · intro e he hk d hd
     have hnt : e.isThm = false := by
@@ -1466,6 +1676,19 @@ def L10 : Lib := Entry.thm nDoubleSum doubleSumL doubleSumR pDoubleSum :: L9
 /-- The example library is well formed: the kernel accepts every proof in it. -/
 theorem L10_wf : WF L10 := wfb_sound L10 (by decide)
 
+/-- `comp_double` is checked against `L4`. Its audit surface is `comp` and `double`. -/
+example : (auditLib L4 pCompDouble cdd four).map Entry.name = [nComp, nDouble] := by
+  decide
+
+/-- `quad_comp` is checked against `L6`. Its audit surface is `quad`, `comp`, and `double`. -/
+example : (auditLib L6 pQuadComp (const nQuad) cdd).map Entry.name = [nQuad, nComp, nDouble] := by
+  decide
+
+/-- `add_flip` is checked against `L8`. Its statement mentions only `add`, and its audit
+surface is the axiom `add_comm` with the definition `flip` in that axiom. -/
+example : (auditLib L8 pAddFlip (const nAdd) swapped).map Entry.name = [nAddComm, nFlip] := by
+  decide
+
 /-- `quad_eq` is checked against `L7`. Its audit surface is `quad` and `double`. -/
 example : (auditLib L7 pQuadEq (const nQuad) four).map Entry.name = [nQuad, nDouble] := by
   decide
@@ -1485,8 +1708,8 @@ example : infer (auditLib L9 pDoubleSum doubleSumL doubleSumR)
     (auditPf L9 pDoubleSum doubleSumL doubleSumR) = some (doubleSumL, doubleSumR) := by
   decide
 
-/-- The statement of `double_sum` is not checked by normalization alone: its two sides have
-different normal forms. The kernel rejects the proof that only normalizes. -/
+/-- The kernel rejects the proof of `double_sum` that only normalizes both sides and uses no
+axiom. -/
 example : infer L9 (joinPf L9 32 doubleSumL doubleSumR) = none := by
   decide
 
@@ -1500,7 +1723,8 @@ end Audit
 #print axioms Audit.wfb_sound
 #print axioms Audit.close_closed
 #print axioms Audit.close_least
-#print axioms Audit.audit_sound
+#print axioms Audit.axRefs_unfoldLems_sub
+#print axioms Audit.audit_sound_usedAx
 #print axioms Audit.restrict_wf
 #print axioms Audit.audit_surface
 #print axioms Audit.portable

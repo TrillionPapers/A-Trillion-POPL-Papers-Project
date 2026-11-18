@@ -7,13 +7,19 @@ all: check measure
 
 # Theorems of Sections 2 to 4. Fails if Lean reports an error or if the axioms differ.
 check:
-	$(LEAN) Audit.lean > check.out
-	diff -u expected/check.txt check.out
+	mkdir -p out
+	$(LEAN) Audit.lean > out/check.txt
+	diff -u expected/check.txt out/check.txt
 
-# Numbers of Section 5. Fails if they differ from the numbers the paper reports.
+# Numbers of Section 5. The paper includes numbers.tex and the two tables, so its numbers are
+# the output of Measure.lean. Fails if a new run gives different files.
 measure:
-	$(LEAN) Measure.lean > measure.out
-	diff -u expected/measure.txt measure.out
+	mkdir -p out
+	$(LEAN) Measure.lean > out/measure.txt
+	diff -u expected/measure.txt out/measure.txt
+	diff -u numbers.tex out/numbers.tex
+	diff -u table-sizes.tex out/table-sizes.tex
+	diff -u table-examples.tex out/table-examples.tex
 
 clean:
-	rm -f check.out measure.out
+	rm -rf out
