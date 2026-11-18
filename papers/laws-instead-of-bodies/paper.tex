@@ -1,0 +1,264 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\newcommand{\eqd}{\doteq}
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\chk}[4]{#1 \vdash #2 : #3 \eqd #4}
+\newcommand{\wf}[1]{\vdash #1}
+\newcommand{\consts}{\mathrm{consts}}
+\newcommand{\view}[1]{#1^{T,C}}
+\newcommand{\lean}[1]{\texttt{#1}}
+
+\begin{document}
+
+\title{Reading Laws Instead of Bodies: Audit Surfaces Relative to an Interface}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. It wrote this paper, the proofs, and the artifact at the request of a
+human who asked for a paper that builds on the first paper of this repository. At the time of
+writing nobody has reviewed it.}
+
+\begin{abstract}
+The audit surface of a machine-checked theorem holds the body of every definition that its
+statement mentions. For a theorem about an implementation, the reader therefore reads the
+implementation. We let the reader name some definitions as subjects and some theorems as laws,
+and we define the interface surface, in which the subjects have no body and the laws that the
+proof uses stand as axioms. We prove that the statement is derivable from the interface surface
+whenever the proof, apart from the proofs of the laws, never unfolds a subject. The reader then
+reads laws instead of bodies, and the kernel has checked the laws against the bodies. The result
+is mechanized in Lean~4 on top of the proofs of the paper that it builds on.
+\end{abstract}
+
+\keywords{proof assistants, abstraction, interfaces, definitions, proof libraries}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+A kernel checks the proof of a theorem, and a human who wants to rely on the theorem reads its
+\emph{audit surface}~\citep{tpp1}: the definitions that the statement unfolds to and the axioms
+that the proof uses. The statement is derivable from the audit surface alone, so nothing else in
+the library has to be read.
+
+The audit surface contains the body of every definition that the statement mentions. This is
+right when the definition is vocabulary, such as the notion of a sorted list. It is a burden when
+the definition is an implementation that the theorem is about. In the measurement
+of~\citet{tpp1}, the median audit surface has 217 lines of code for the theorems of Lean's
+\lean{Init} and 1,134 lines for those of \lean{Std}, whose statements mention the operations of
+hash maps and tree maps. That paper calls such definitions the \emph{subjects} of a theorem and
+leaves open how a reader may leave their bodies unread.
+
+This paper closes that point. What a client knows about an abstract type is its
+laws~\citep{mitchell1988}. We apply the same idea to reading. The reader names a set of
+definitions as subjects and a set of theorems as \emph{laws}. The \emph{interface surface} of a
+theorem contains no body of a subject. In their place it contains the laws that the proof uses,
+as axioms. The reader reads the statements of these laws, and the kernel has checked their
+proofs against the bodies.
+
+Our main contributions are as follows:
+\begin{itemize}
+\item The interface surface of a checked proof for given laws and subjects
+  (Section~\ref{sec:iface}).
+\item The theorem that the statement is derivable from the interface surface when the proof,
+  with every theorem outside the laws inlined, unfolds no subject (Theorem~\ref{thm:iface}), and
+  a description of what the surface contains (Proposition~\ref{prop:entries}).
+\item A mechanization in Lean~4~\citep{moura2021} that imports the mechanization
+  of~\citet{tpp1} and reuses its lemmas.
+\end{itemize}
+
+\paragraph{Status of the claims.}
+Theorem~\ref{thm:iface}, Proposition~\ref{prop:entries}, and the two surfaces of the example in
+Section~\ref{sec:example} are mechanized, in about 400 lines that use no axioms beyond the three
+standard axioms of Lean. The command \lean{make} in the artifact checks them. The discussion in
+Section~\ref{sec:reading} is informal. The paper contains no measurement.
+
+\section{Background and Example}
+\label{sec:example}
+
+We use the library calculus of~\citet{tpp1}. Terms are untyped $\lambda$-terms with constants. A
+library $L$ is a sequence of definitions $\kw{def}\;c := u$, axioms
+$\kw{axiom}\;a : s \eqd t$, and theorems $\kw{theorem}\;h : s \eqd t := p$. A proof term $p$
+establishes an equation in a library, written $\chk{L}{p}{s}{t}$. A proof refers to an axiom
+with $\kw{ax}\;a$, to a theorem with $\kw{lem}\;h$, and to the body of a definition with
+$\kw{delta}\;c$. A library is well formed, written $\wf{L}$, when names are fresh, definitions
+are closed and not recursive, and every theorem is checked against the entries before it. A set
+of names is closed for $L$ when it contains the constants of the body of each definition and of
+the statement of each axiom that it names. The audit set of a proof is the least closed set that
+contains the constants of the statement and the axioms that the proof uses, and the audit surface
+consists of the definitions and axioms that the set names.
+
+\begin{figure}
+\[
+\begin{array}{ll}
+\kw{def} & \nm{id} := \lambda x.\,x \\
+\kw{def} & \nm{twice} := \lambda f.\,\lambda x.\,f\;(f\;x) \\
+\kw{theorem} & \nm{twice\_id} : \nm{twice}\;\nm{id} \eqd \nm{id} \\
+\kw{theorem} & \nm{client} : \nm{twice}\;\nm{id}\;(\nm{twice}\;\nm{id}) \eqd \nm{twice}\;\nm{id}
+\end{array}
+\]
+\Description{A library with two definitions and two theorems.}
+\caption{A library with a subject, a law, and a client.}
+\label{fig:example}
+\end{figure}
+
+Figure~\ref{fig:example} shows a library. The theorem $\nm{twice\_id}$ is proved by normalizing
+both sides, which unfolds $\nm{twice}$ and $\nm{id}$. The proof of $\nm{client}$ is
+\[
+\kw{trans}\;(\kw{app}\;(\kw{lem}\;\nm{twice\_id})\;(\kw{refl}\;u))\;
+  (\kw{trans}\;(\kw{app}\;(\kw{delta}\;\nm{id})\;(\kw{refl}\;u))\;(\kw{beta}\;x\;u))
+\qquad\text{with } u = \nm{twice}\;\nm{id} .
+\]
+It rewrites the head $\nm{twice}\;\nm{id}$ to $\nm{id}$ with the theorem, unfolds $\nm{id}$, and
+contracts the redex. It never unfolds $\nm{twice}$.
+
+The audit surface of $\nm{client}$ consists of the definitions of $\nm{twice}$ and $\nm{id}$,
+since the statement mentions both. A reader who takes $\nm{twice}$ as a given artifact would
+rather read that $\nm{twice}\;\nm{id} \eqd \nm{id}$ holds of it, together with the definition of
+$\nm{id}$.
+
+\section{The Interface Surface}
+\label{sec:iface}
+
+Fix a set $T$ of theorem names, the \emph{laws}, and a set $C$ of names of definitions, the
+\emph{subjects}.
+
+The \emph{view} $\view{L}$ of a library $L$ is obtained in three steps. Remove the theorems
+outside $T$. Replace each theorem $\kw{theorem}\;h : s \eqd t := q$ in $T$ by the axiom
+$\kw{axiom}\;h : s \eqd t$. Remove the definitions of the subjects. In the view, a subject is a
+constant without a definition, and a law is an assumption.
+
+For a proof $p$, let $p^T$ be the proof in which every $\kw{lem}\;h$ with $h \notin T$ is
+replaced by the proof of $h$ in $L$, for the theorems of $L$ from the newest to the oldest, and
+every remaining $\kw{lem}\;h$ is read as $\kw{ax}\;h$.
+
+\begin{definition}[Interface surface]
+\label{def:iface}
+Let $\chk{L}{p}{s}{t}$. The \emph{interface set} of $p$ is the least set that is closed for
+$\view{L}$ and contains $\consts(s)$, $\consts(t)$, and the axioms that $p^T$ refers to. The
+\emph{interface surface} of $p$ consists of the definitions and the axioms of $\view{L}$ whose
+names are in the interface set, in the order of $L$.
+\end{definition}
+
+The axioms that $p^T$ refers to are the axioms that $p$ uses outside the proofs of the laws,
+and the laws that it uses. Since $\view{L}$ is well formed when $L$ is, one pass over it computes
+the interface set, by Proposition~3.3 of~\citet{tpp1}.
+
+\begin{theorem}[Interface soundness]
+\label{thm:iface}
+Let $\wf{L}$ and $\chk{L}{p}{s}{t}$. Suppose that the proof obtained from $p$ by inlining the
+theorems outside $T$ refers to the definition of no subject. Then the interface surface of $p$
+is well formed and contains no theorem, and there is a proof $p'$ that establishes $s \eqd t$ in
+it.
+\end{theorem}
+
+\begin{proof}[Proof outline]
+Inline the theorems outside $T$ into $p$, from the newest to the oldest. As in the proof of
+audit soundness~\citep{tpp1}, each step replaces $\kw{lem}\;h$ by a proof of the same equation.
+The result checks in $L$ without the theorems outside $T$. Reading each remaining $\kw{lem}\;h$
+as $\kw{ax}\;h$ gives the proof $p^T$, which checks in the library whose laws are axioms. By
+assumption $p^T$ contains no $\kw{delta}\;c$ for a subject $c$, so it still checks when the
+definitions of the subjects are removed, by the locality of checking. This library is $\view{L}$.
+It is well formed and contains no theorem, and the interface set is closed for it and contains
+the constants of the statement and the axioms that $p^T$ refers to. Definition elimination, the
+second half of the proof of audit soundness, then gives a proof over the interface surface.
+\end{proof}
+
+\begin{proposition}[Contents of the surface]
+\label{prop:entries}
+The interface surface defines no subject. Each of its entries is a definition of $L$, an axiom of
+$L$, or the axiom $\kw{axiom}\;h : s \eqd t$ for a theorem $\kw{theorem}\;h : s \eqd t := q$ of
+$L$ with $h \in T$.
+\end{proposition}
+
+With no law and no subject, the hypothesis of Theorem~\ref{thm:iface} holds for every proof, and
+the theorem states that the statement is derivable from a closed set of definitions and axioms,
+as audit soundness does.
+
+\paragraph{The example.}
+Take $T = \{\nm{twice\_id}\}$ and $C = \{\nm{twice}\}$ in Figure~\ref{fig:example}. The proof of
+$\nm{client}$ refers to the law and to the definition of $\nm{id}$, so the hypothesis of
+Theorem~\ref{thm:iface} holds. The interface surface is
+\[
+\kw{def}\;\nm{id} := \lambda x.\,x, \qquad
+\kw{axiom}\;\nm{twice\_id} : \nm{twice}\;\nm{id} \eqd \nm{id} .
+\]
+The body of $\nm{twice}$ is absent. A second proof of the same statement normalizes both sides.
+It unfolds $\nm{twice}$, so Theorem~\ref{thm:iface} does not apply to it, and its audit surface
+is the right thing to read.
+
+\section{What the Reader Learns}
+\label{sec:reading}
+
+\emph{Two facts.} A reader of the interface surface learns that the statement follows from the
+laws, the vocabulary, and the axioms that are listed. The reader also knows that the library is
+well formed, so the kernel has checked each law against the bodies of the subjects. Together
+these say that the statement holds of the subjects as they are in the library. The reader has
+read no body of a subject.
+
+\emph{The price.} The laws are now part of what is read. Their statements can mention further
+definitions, which the interface set contains through its closure. The interface surface is
+smaller than the audit surface when the laws that a proof uses are shorter than the bodies they
+replace.
+
+\emph{Choosing subjects.} Theorem~\ref{thm:iface} holds for every choice of $T$ and $C$ that
+meets its hypothesis. Two choices deserve care. A definition whose body the proof unfolds
+outside the laws cannot be a subject, and the hypothesis rules it out. A definition that an
+axiom of the surface mentions can formally be a subject, and then the axiom assumes something
+about a constant whose body the reader has not seen. The reader should keep such a definition as
+vocabulary, as~\citet{tpp1} recommends.
+
+\emph{Replacement.} A subject can be given a new body together with new proofs of its laws, and
+its clients stay checked~\citep{tpp1}. The interface surface of a client mentions neither the
+old body nor the old proofs, so we expect it to be the same before and after. We have not
+mechanized this statement.
+
+\section{Limits}
+
+\emph{Explicit unfolding.} The hypothesis of Theorem~\ref{thm:iface} can be read off a proof
+term, because our proofs record each use of a definition with $\kw{delta}$. In a proof assistant
+such as Lean, unfolding happens inside the conversion check of the kernel, and a proof term does
+not show which bodies it relies on. There the system has to enforce the hypothesis, with
+definitions that are opaque or that a module exports without their bodies.
+
+\emph{No measurement.} We do not know how much smaller interface surfaces are than audit surfaces
+in a real library. The two medians quoted in the introduction only suggest that implementations
+account for much of the reading.
+
+\emph{The choice of laws.} The theorem takes the laws as given. It does not say whether a set of
+laws describes a subject well, and a client can only be read through the laws that its proof
+happens to use.
+
+\emph{The calculus.} The calculus is untyped and equational, with the limits that~\citet{tpp1}
+lists.
+
+\section{Related Work}
+
+\citet{mitchell1988} explain abstract types as existential types: a client is checked against
+the operations and never against the representation. Our laws play the role of the operations'
+specification, and Theorem~\ref{thm:iface} is the corresponding statement for reading.
+\citet{leroy1994} distinguishes manifest from abstract components of a module, which is the
+distinction between vocabulary and subjects. \citet{gratzer2022} give a type theory in which the
+unfolding of a definition is controlled, which is one way to enforce our hypothesis.
+\citet{pollack1998} separates checking a proof from understanding what it proves. The audit
+surface~\citep{tpp1} makes the second task precise, and the interface surface adapts it to
+theorems about implementations.
+
+\section{Conclusion}
+
+A theorem about an implementation can be read through the laws of the implementation. The
+interface surface replaces the bodies of the subjects by the laws that the proof uses, and the
+statement is derivable from it when the proof unfolds no subject outside the laws. The next steps
+are a measurement in a library whose modules hide bodies, and the invariance of the interface
+surface under the replacement of a subject.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

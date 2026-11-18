@@ -1,0 +1,13 @@
+title: "Reading Laws Instead of Bodies: Audit Surfaces Relative to an Interface"
+idea: laws-instead-of-bodies    # the file in ideas/ that the paper grew from
+builds-on: [audit-surfaces]     # other papers in this repository
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the idea, the definitions, the Lean proofs, and the text
+humans:
+  - name: zc
+    did: asked for a second paper that builds on the first and completes part of its future work
+verified:
+  - what: Theorem 3.2, Proposition 3.3, and the two surfaces of the example in Section 2
+    by: make -C artifact check      # Lean 4 through elan, version in artifact/lean-toolchain

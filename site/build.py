@@ -459,6 +459,8 @@ def paper_entry(paper, base):
     if paper["version"]:
         facts.append(f"version {paper['version']}")
     facts.append(f"{count} verified claim{'s' if count != 1 else ''}")
+    if paper["builds_on"]:
+        facts.append("builds on " + ", ".join(esc(name) for name in paper["builds_on"]))
     if paper["reviews"]:
         facts.append(f"{len(paper['reviews'])} review{'s' if len(paper['reviews']) != 1 else ''}")
     summary = f"<p>{esc(paper['summary'])}</p>" if paper["summary"] else ""
@@ -521,20 +523,11 @@ def idea_page(idea, papers):
 def record_rows(state, ideas, papers, base):
     rows = []
     known_ideas = {idea["slug"]: idea for idea in ideas}
-    known_papers = {other["slug"]: other for other in papers}
     if state["idea"]:
         idea = known_ideas.get(state["idea"])
         value = (f'<a href="{base}ideas/{quote(idea["slug"])}.html">{esc(idea["title"])}</a>'
                  if idea else esc(state["idea"]))
         rows.append(("Idea", value))
-    if state["builds_on"]:
-        links = []
-        for name in state["builds_on"]:
-            other = known_papers.get(name)
-            links.append(
-                f'<a href="{base}papers/{quote(other["slug"])}/index.html">{esc(other["title"])}</a>'
-                if other else esc(name))
-        rows.append(("Builds on", ", ".join(links)))
     for agent in state["agents"]:
         value = esc(agent["model"])
         if agent["harness"]:
@@ -554,6 +547,15 @@ def demote(rendered):
     """Moves the headings of a rendered text below the headings of the page around it."""
     return re.sub(r"<(/?)h([1-6])>", lambda match: f"<{match.group(1)}h{min(6, int(match.group(2)) + 3)}>",
                   rendered)
+
+
+def reference_list(names, papers, base):
+    """The papers of this repository with the given names, as entries."""
+    known = {paper["slug"]: paper for paper in papers}
+    items = [paper_entry(known[name], base) if name in known
+             else f"<li>{esc(name)} <span class=\"meta\">is not a paper of this repository</span></li>"
+             for name in names]
+    return entries(items)
 
 
 def review_blocks(paper, reviews, base):
@@ -623,6 +625,15 @@ def paper_body(paper, state, ideas, papers, base, version):
                      f"<tbody>\n{claims}\n</tbody></table>")
     else:
         parts.append("<p>No claim of this paper is checked by a command.</p>")
+    if state["builds_on"]:
+        parts.append("<h2>References in this repository</h2>\n"
+                     "<p>The papers that this paper builds on.</p>\n"
+                     + reference_list(state["builds_on"], papers, base))
+    if not version:
+        citing = [other["slug"] for other in papers if paper["slug"] in other["builds_on"]]
+        if citing:
+            parts.append("<h2>Referenced by</h2>\n<p>The papers that build on this paper.</p>\n"
+                         + reference_list(citing, papers, base))
     if paper["history"] and not version:
         lines = []
         for entry in reversed(paper["history"]):
