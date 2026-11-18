@@ -1,0 +1,391 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\ret}{\kw{ret}}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\ite}[3]{\kw{if}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\chk}[2]{\kw{check}\;#1\;#2}
+\newcommand{\orelse}{\mathbin{\kw{orelse}}}
+\newcommand{\retry}[2]{\kw{retry}_{#1}\;#2}
+\newcommand{\rty}[2]{\{#1 \mid #2\}}
+\newcommand{\at}[2]{\mathrel{@}(#1, #2)}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\Bad}{\mathrm{Bad}}
+\newcommand{\Fail}{\mathrm{Fail}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\nm}[1]{\mathit{#1}}
+
+\begin{document}
+
+\title{Turning Errors into Abstentions: Types for Programs That Generate and Check}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. It wrote this paper at the request of a human who asked for papers on
+the strongest ideas of this repository. The proofs are on paper and have not been checked by a
+machine. At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+Programs now call oracles, such as language models, whose answers are right only with some
+probability, and they wrap these calls in checkers and retries. We give a type system for such
+programs. A type carries two bounds: $\varepsilon$ on the probability of returning a wrong value,
+and $\gamma$ on the probability of not returning a right one. An oracle call introduces error. A
+sound checker sets $\varepsilon$ to zero and leaves $\gamma$ unchanged, so it turns errors into
+abstentions. A fallback multiplies $\gamma$. The system is sound against adaptive oracles: the
+bounds hold for every oracle whose failure probability is bounded at each call, whatever it has
+seen before. As consequences, the usual loop that generates and checks has no error and an
+abstention probability that decays geometrically, and the error of a pipeline is at most the sum
+over its unchecked calls.
+\end{abstract}
+
+\keywords{probabilistic programs, refinement types, oracles, language models, checkers}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+A common way to get reliable results from an unreliable source is to check them. A language model
+proposes a proof and a kernel checks it. A model proposes a patch and a test suite runs. A model
+extracts a date and a parser validates its format. When the check fails, the program tries again
+or gives up. We call such programs \emph{generate-and-check} programs.
+
+Their guarantees are usually stated informally, and two different things are confused. A
+\emph{wrong} result is a value that violates the specification. An \emph{abstention} is the
+absence of a result. A checker does not make an oracle more often right. It converts wrong
+results into abstentions, which the caller can see and handle. A retry does not reduce wrong
+results either. It reduces abstentions.
+
+This paper makes the distinction a matter of types. A computation has a type
+$\rty{x}{\varphi} \at{\varepsilon}{\gamma}$: its result satisfies $\varphi$, except that with
+probability at most $\varepsilon$ it is a wrong value, and with probability at most $\gamma$ it
+is not a right value, which includes abstaining. The typing rules say how each construct moves
+the two bounds:
+\begin{itemize}
+\item an oracle call with failure rate $\delta$ has $\varepsilon = \gamma = \delta$;
+\item sequencing adds the bounds, as in a union bound;
+\item a checker that is sound for $\varphi$ sets $\varepsilon$ to $0$ and keeps $\gamma$;
+\item a fallback to a second computation multiplies the $\gamma$ of the first by the bounds of
+  the second.
+\end{itemize}
+
+Our main contributions are as follows:
+\begin{itemize}
+\item A small language with oracles, checkers, and fallbacks, and a semantics in which an oracle
+  is an adaptive adversary with a bounded failure rate (Section~\ref{sec:lang}).
+\item The type system and its soundness theorem (Sections~\ref{sec:types}
+  and~\ref{sec:soundness}).
+\item Three consequences: the bounds of the generate-and-check loop, the fact that the error of
+  a program is at most the sum over its unchecked oracle calls, and an example showing that
+  retries need the bound to hold at each call (Section~\ref{sec:consequences}).
+\end{itemize}
+
+The result that a checked computation has error zero is the quantitative form of an old
+principle: a proof checker makes the prover irrelevant to trust. What stays is the specification
+that the checker enforces, which a human has to read~\citep{tpp1}, and the calls that nothing
+checks.
+
+\paragraph{Status of the claims.}
+The proofs in this paper are written out and have not been mechanized.
+
+\section{Language}
+\label{sec:lang}
+
+Values $v$ are data. An outcome $r$ is a value or the abstention $\bot$. Expressions are
+\[
+e ::= \ret\;v \mid \letin{x}{e}{e} \mid \ite{b}{e}{e} \mid f(v) \mid o(v) \mid \chk{p}{e} \mid
+  e \orelse e .
+\]
+Here $b$ is a Boolean test on values, $f$ ranges over total deterministic functions, $o$ over
+oracle names, and $p$ over total deterministic predicates, which we call \emph{checkers}. The
+expression $\chk{p}{e}$ runs $e$ and abstains unless the result is a value that $p$ accepts. The
+expression $e_1 \orelse e_2$ runs $e_1$ and runs $e_2$ if $e_1$ abstains. Abstention propagates
+through $\kw{let}$. We write $\retry{n}{e}$ for $e \orelse \cdots \orelse e$ with $n$ copies of
+$e$. The language has no recursion, so every program makes a bounded number of oracle calls.
+
+\paragraph{Oracles.}
+A \emph{history} $h$ is the sequence of oracle calls made so far, with their inputs and outputs.
+An \emph{environment} $E$ assigns to each oracle $o$, input $v$, and history $h$ a distribution
+$E(o, v, h)$ over values with finite support. The answer of an oracle may thus depend on
+everything that happened before, including its own earlier answers.
+
+Each oracle $o$ comes with a specification: a relation $\psi_o(v, u)$ between inputs and right
+outputs, and a failure rate $\delta_o \in [0, 1]$. The class $\cO$ consists of the environments
+that satisfy, for every $o$, $v$, and $h$,
+\[
+\Pr_{u \sim E(o, v, h)}[\neg \psi_o(v, u)] \le \delta_o .
+\]
+The bound is required at each call and for each history. It is not an assumption of
+independence. An environment in $\cO$ may choose its distributions adversarially.
+
+\paragraph{Semantics.}
+For a closed expression $e$, an environment $E$, and a history $h$, the semantics $\sem{e}_E(h)$
+is a distribution over pairs of an outcome and a history. It is defined by recursion on $e$ in
+the usual way~\citep{kozen1981}. The expression $\ret\;v$ yields $(v, h)$. The call $o(v)$ draws
+$u$ from $E(o, v, h)$ and yields $u$ with the history extended by this call. The expression
+$\letin{x}{e_1}{e_2}$ draws $(r_1, h_1)$ from $\sem{e_1}_E(h)$ and yields $(\bot, h_1)$ if
+$r_1 = \bot$, and otherwise continues with $\sem{e_2[r_1/x]}_E(h_1)$. The expression $\chk{p}{e}$
+draws $(r, h_1)$ from $\sem{e}_E(h)$ and yields $(r, h_1)$ if $r$ is a value with $p(r)$, and
+$(\bot, h_1)$ otherwise. The expression $e_1 \orelse e_2$ draws $(r_1, h_1)$ from
+$\sem{e_1}_E(h)$, yields it if $r_1 \neq \bot$, and otherwise continues with
+$\sem{e_2}_E(h_1)$.
+
+\section{Types}
+\label{sec:types}
+
+A type $\rty{x}{\varphi}$ is a predicate on values. A context $\Phi$ is a set of predicates on
+the free variables. We write $\Phi \models \varphi$ when every valuation that satisfies $\Phi$
+satisfies $\varphi$. A grade is a pair $(\varepsilon, \gamma)$ of numbers in $[0, 1]$, and sums
+of grades are capped at $1$. The judgment
+\[
+\Phi \vdash e : \rty{x}{\varphi} \at{\varepsilon}{\gamma}
+\]
+is defined in Figure~\ref{fig:rules}. Each pure function $f$ has a specification $\varphi_f$ with
+$\varphi_f(v, f(v))$ for all $v$.
+
+\begin{figure}
+\begin{mathpar}
+\inferrule[Ret]{\Phi \models \varphi[v/x]}{\Phi \vdash \ret\;v : \rty{x}{\varphi} \at{0}{0}}
+\and
+\inferrule[Fun]{ }{\Phi \vdash f(v) : \rty{x}{\varphi_f(v, x)} \at{0}{0}}
+\and
+\inferrule[Oracle]{ }{\Phi \vdash o(v) : \rty{x}{\psi_o(v, x)} \at{\delta_o}{\delta_o}}
+\and
+\inferrule[Let]
+  {\Phi \vdash e_1 : \rty{x}{\varphi_1} \at{\varepsilon_1}{\gamma_1} \\
+   \Phi, \varphi_1 \vdash e_2 : \rty{y}{\varphi_2} \at{\varepsilon_2}{\gamma_2} \\
+   x \notin \mathrm{fv}(\varphi_2)}
+  {\Phi \vdash \letin{x}{e_1}{e_2} : \rty{y}{\varphi_2}
+    \at{\varepsilon_1 + \varepsilon_2}{\gamma_1 + \gamma_2}}
+\and
+\inferrule[Check]
+  {\Phi \vdash e : \rty{x}{\chi} \at{\varepsilon}{\gamma} \\
+   \Phi, p(x) \models \varphi \\ \Phi, \chi \models p(x)}
+  {\Phi \vdash \chk{p}{e} : \rty{x}{\varphi} \at{0}{\gamma}}
+\and
+\inferrule[OrElse]
+  {\Phi \vdash e_1 : \rty{x}{\varphi} \at{\varepsilon_1}{\gamma_1} \\
+   \Phi \vdash e_2 : \rty{x}{\varphi} \at{\varepsilon_2}{\gamma_2}}
+  {\Phi \vdash e_1 \orelse e_2 : \rty{x}{\varphi}
+    \at{\varepsilon_1 + \gamma_1 \varepsilon_2}{\varepsilon_1 + \gamma_1 \gamma_2}}
+\and
+\inferrule[If]
+  {\Phi, b \vdash e_1 : \rty{x}{\varphi} \at{\varepsilon}{\gamma} \\
+   \Phi, \neg b \vdash e_2 : \rty{x}{\varphi} \at{\varepsilon}{\gamma}}
+  {\Phi \vdash \ite{b}{e_1}{e_2} : \rty{x}{\varphi} \at{\varepsilon}{\gamma}}
+\and
+\inferrule[Sub]
+  {\Phi \vdash e : \rty{x}{\varphi} \at{\varepsilon}{\gamma} \\
+   \Phi, \varphi \models \varphi' \\ \varepsilon \le \varepsilon' \\ \gamma \le \gamma'}
+  {\Phi \vdash e : \rty{x}{\varphi'} \at{\varepsilon'}{\gamma'}}
+\end{mathpar}
+\Description{Eight typing rules.}
+\caption{Typing rules.}
+\label{fig:rules}
+\end{figure}
+
+The rule \textsc{Check} has two side conditions. The first says that the checker is \emph{sound}:
+what it accepts satisfies $\varphi$. It alone gives $\varepsilon = 0$. The second says that the
+checker accepts the values that the computation was supposed to produce. It is needed for
+$\gamma$ only. Without it the rule would hold with $\gamma = 1$: a checker that rejects everything
+is sound.
+
+In the rule \textsc{OrElse}, the second computation runs only when the first abstains, which has
+probability at most $\gamma_1$. A wrong value of the first computation is returned as it is,
+which is why $\varepsilon_1$ appears in both bounds.
+
+\section{Soundness}
+\label{sec:soundness}
+
+For a closed expression $e$ and a closed type $\rty{x}{\varphi}$, an outcome is \emph{bad} when
+it is a value that violates $\varphi$, and it is a \emph{failure} when it is bad or $\bot$. The
+judgment $\Phi \vdash e : \rty{x}{\varphi} \at{\varepsilon}{\gamma}$ is \emph{valid} when, for
+every substitution $\theta$ of values for the free variables that satisfies $\Phi$, every
+$E \in \cO$, and every history $h$,
+\[
+\Pr_{\sem{e\theta}_E(h)}[\Bad] \le \varepsilon
+\qquad\text{and}\qquad
+\Pr_{\sem{e\theta}_E(h)}[\Fail] \le \gamma .
+\]
+
+\begin{theorem}[Soundness]
+\label{thm:sound}
+Every derivable judgment is valid.
+\end{theorem}
+
+\begin{proof}
+By induction on the derivation. Fix $\theta$, $E$, and $h$, and write $\Pr$ for the probability
+under the semantics of the expression in the conclusion.
+
+\textsc{Ret} and \textsc{Fun}: the outcome is a value that satisfies the type, so both
+probabilities are $0$.
+
+\textsc{Oracle}: the outcome is a value $u$ drawn from $E(o, v, h)$. It is bad when
+$\neg\psi_o(v, u)$, which has probability at most $\delta_o$ because $E \in \cO$.
+
+\textsc{Let}: let $(r_1, h_1)$ be the outcome of $e_1$. If the final outcome is bad, then either
+$r_1$ is bad for $\varphi_1$, or $r_1$ is a value $v$ that satisfies $\varphi_1$ and the outcome
+of $e_2[v/x]$ from $h_1$ is bad. The first event has probability at most $\varepsilon_1$ by the
+induction hypothesis. For the second, the substitution $\theta$ extended with $v$ for $x$
+satisfies $\Phi, \varphi_1$, so the induction hypothesis for $e_2$ bounds the conditional
+probability by $\varepsilon_2$ for each such $v$ and $h_1$. Averaging over $(v, h_1)$ gives at
+most $\varepsilon_2$. Hence $\Pr[\Bad] \le \varepsilon_1 + \varepsilon_2$. The same argument with
+failures in place of bad outcomes gives $\Pr[\Fail] \le \gamma_1 + \gamma_2$, since the final
+outcome is $\bot$ when $r_1 = \bot$.
+
+\textsc{Check}: the final outcome is a value only if $p$ accepts it, and then it satisfies
+$\varphi$ by the first side condition, so $\Pr[\Bad] = 0$. The final outcome is a failure only
+if the outcome $r$ of $e$ is $\bot$ or a value that $p$ rejects. By the second side condition a
+rejected value violates $\chi$. So the event is contained in the failure of $e$ for $\chi$, which
+has probability at most $\gamma$.
+
+\textsc{OrElse}: let $(r_1, h_1)$ be the outcome of $e_1$, let $q$ be the probability that $r_1$
+is bad, and let $a$ be the probability that $r_1 = \bot$. Then $q \le \varepsilon_1$ and
+$q + a \le \gamma_1$. The final outcome is bad when $r_1$ is bad, or $r_1 = \bot$ and the outcome
+of $e_2$ from $h_1$ is bad. The induction hypothesis for $e_2$ holds for every $h_1$, so
+\[
+\Pr[\Bad] \le q + a\,\varepsilon_2 \le q + (\gamma_1 - q)\,\varepsilon_2
+  = q\,(1 - \varepsilon_2) + \gamma_1 \varepsilon_2 \le \varepsilon_1 + \gamma_1 \varepsilon_2 .
+\]
+In the same way $\Pr[\Fail] \le q + a\,\gamma_2 \le \varepsilon_1 + \gamma_1 \gamma_2$.
+
+\textsc{If}: the test is closed after substitution, so one branch runs, and $\theta$ satisfies
+the context of that branch.
+
+\textsc{Sub}: a value that violates $\varphi'$ violates $\varphi$, so the bad outcomes and the
+failures for $\varphi'$ are among those for $\varphi$.
+\end{proof}
+
+The proof uses the bound on the oracle at one place, the rule \textsc{Oracle}, and it uses it for
+the history at hand. This is why the theorem holds for adaptive oracles. The rules
+\textsc{Let} and \textsc{OrElse} use that the induction hypothesis holds for every history.
+
+\section{Consequences}
+\label{sec:consequences}
+
+\subsection{The Generate-and-Check Loop}
+
+\begin{corollary}
+\label{cor:loop}
+Let $o$ be an oracle with specification $\psi_o$ and failure rate $\delta$, and let $p$ be a
+checker with $p(x) \models \varphi$ and $\psi_o(v, x) \models p(x)$. Then
+\[
+\vdash \retry{n}{(\chk{p}{o(v)})} : \rty{x}{\varphi} \at{0}{\delta^n} .
+\]
+\end{corollary}
+
+\begin{proof}
+By \textsc{Oracle} and \textsc{Check}, $\chk{p}{o(v)}$ has grade $(0, \delta)$. By
+\textsc{OrElse} and induction on $n$, the grade of $n$ copies is $(0 + \delta \cdot 0,\;
+0 + \delta \cdot \delta^{n-1})$.
+\end{proof}
+
+The loop never returns a wrong value, for any $n$ and any $\delta$, including $\delta = 1$. The
+failure rate of the oracle affects only how often the loop gives up. To give up with probability
+at most $\eta$, it suffices to take $n \ge \log \eta / \log \delta$.
+
+\subsection{Error Comes from Unchecked Calls}
+
+Let $U(e)$ be the multiset of oracle calls in $e$ that are not inside a $\kw{check}$.
+
+\begin{proposition}
+\label{prop:unchecked}
+If $\Phi \vdash e : \rty{x}{\varphi} \at{\varepsilon}{\gamma}$ is derived without the rule
+\textsc{Sub}, then $\varepsilon \le \sum_{o \in U(e)} \delta_o$. In particular, a program whose
+oracle calls are all inside checks has $\varepsilon = 0$.
+\end{proposition}
+
+\begin{proof}
+By induction on the derivation. \textsc{Oracle} contributes $\delta_o$ for a call in $U(e)$.
+\textsc{Check} gives $0$. \textsc{Let} adds the bounds of its parts, and $U$ is the union.
+\textsc{OrElse} gives $\varepsilon_1 + \gamma_1 \varepsilon_2 \le \varepsilon_1 +
+\varepsilon_2$. \textsc{If} gives the common bound of its branches, which is at most the sum
+over both.
+\end{proof}
+
+Consider a pipeline that turns an informal claim into a checked theorem. An oracle
+$\nm{formalize}$ with failure rate $\delta_f$ writes a formal statement $s$. An oracle
+$\nm{prove}$ with failure rate $\delta_p$ writes a proof, and a kernel checks it:
+\[
+\letin{s}{\nm{formalize}(c)}{\;\letin{\pi}{\retry{n}{(\chk{\nm{kernel}_s}{\nm{prove}(s)})}}
+  {\;\ret\;(s, \pi)}} .
+\]
+Its grade is $(\delta_f,\; \delta_f + \delta_p^n)$ for the specification that $s$ states $c$ and
+$\pi$ proves $s$. The kernel removes $\delta_p$ from the error, however poor the prover is.
+Nothing removes $\delta_f$: no checker accepts exactly the statements that say what was meant.
+The error of the pipeline is the error of its unchecked step, and that step is the one a human
+has to read. For a machine-checked library, what there is to read is the audit surface of the
+statement~\citep{tpp1}.
+
+\subsection{Retries Need the Bound at Each Call}
+
+The class $\cO$ bounds the failure of an oracle for every history. A weaker assumption bounds
+only the probability that a given call fails. The rule \textsc{OrElse} is unsound for it.
+
+\begin{proposition}
+\label{prop:repeat}
+Let $E$ answer the first call to $o$ with a value that $p$ rejects with probability $\delta$
+and with a right value otherwise, and let it repeat its first answer at every later call. Then
+every call to $o$ fails with probability $\delta$, and $\retry{n}{(\chk{p}{o(v)})}$ abstains
+with probability $\delta$ for every $n \ge 1$.
+\end{proposition}
+
+\begin{proof}
+All calls return the first answer. With probability $\delta$ the checker rejects it $n$ times,
+and the loop abstains. Otherwise the first copy returns it.
+\end{proof}
+
+A deterministic oracle behaves like this: a language model at temperature zero gives the same
+answer to the same question. Such an oracle is not in $\cO$ unless $\delta_o$ is $0$ or $1$ for
+the inputs concerned. A retry helps only when each attempt has a fresh chance to succeed, by new
+randomness or by a changed input, for example one that includes the checker's report.
+
+\section{Limits}
+
+\emph{Where the rates come from.} The failure rates $\delta_o$ are assumptions about the world.
+The type system does not justify them. It says what follows from them.
+
+\emph{Checkers are trusted.} A checker is a deterministic predicate, and the rule \textsc{Check}
+assumes that it is sound for $\varphi$. A checker that is itself an oracle is an oracle call
+followed by a test, and \textsc{Check} does not apply to it.
+
+\emph{Entailment.} The side conditions $\Phi \models \varphi$ are semantic. A checker for these
+types needs a logic for them, as refinement type systems do.
+
+\emph{Total programs.} The language has no recursion. With recursion, the number of calls is a
+random quantity, and the sums in \textsc{Let} have to be replaced by expectations.
+
+\section{Related Work}
+
+\citet{carbin2013} verify quantitative reliability for programs on unreliable hardware. Their
+judgments bound the probability that a value is correct, and operations fail independently. We
+separate wrong values from abstentions and allow adaptive failures. \citet{barthe2016} give a
+program logic whose proofs compose failure probabilities with the union bound, which is the
+content of our rule \textsc{Let}. Our rules \textsc{Check} and \textsc{OrElse} are not union
+bounds: one removes error and the other multiplies.
+
+Checking results instead of trusting their producer is an old idea. \citet{blum1995} design
+programs that check their work, \citet{mcconnell2011} survey algorithms that return certificates,
+and proof-carrying code checks the proofs of an untrusted producer~\citep{necula1997}. In these
+works the checked result is correct outright. Our grades say what a checker does to a
+probabilistic producer, and what remains when some steps have no checker. In classification, the
+option to reject trades errors for abstentions~\citep{chow1970}. Our rule \textsc{Check} is that
+trade with a sound test, where the error drops to zero.
+
+\section{Conclusion}
+
+A sound checker turns the errors of an oracle into abstentions, and a retry turns abstentions
+into delay. The type system states this with two numbers and proves it for oracles that adapt to
+the past. The error that remains in a program is the error of its unchecked calls. The next
+steps are recursion, a logic for the side conditions, and a mechanized proof of the soundness
+theorem.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
