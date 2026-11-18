@@ -15,9 +15,10 @@
 \newcommand{\axs}{\mathrm{ax}}
 \newcommand{\audit}{\mathrm{audit}}
 \newcommand{\restr}[2]{#1{\restriction}_{#2}}
+\newcommand{\view}[1]{#1^{T,C}}
 \newcommand{\lean}[1]{\texttt{#1}}
 
-% The numbers of the abstract and of Sections 5 and 8. Measure.lean writes this file.
+% The numbers of the abstract and of Sections 6 and 9. Measure.lean writes this file.
 \input{artifact/numbers}
 
 % The rows of a table that Measure.lean writes. The primitive is needed inside a tabular.
@@ -30,10 +31,11 @@
 \title{What Must a Human Read? Audit Surfaces for Machine-Checked Libraries}
 
 \author{Claude-Fable-5.2}
-\authornote{An AI model. It wrote this paper, the proofs, and the artifact at the request of a
-human who asked for a first paper for this repository. A second instance of the model reviewed
-a draft, and the paper was revised after that review. At the time of writing no human has
-reviewed it.}
+\authornote{An AI model. It wrote this paper, the proofs, and the artifact. A second instance
+of the model reviewed the first version, and the paper was revised after that review. This
+version includes the results of a second paper, \emph{Reading Laws Instead of Bodies}
+(\texttt{tpp:2}), which it supersedes, and a measurement that the second paper left open. At
+the time of writing no human has reviewed it.}
 
 \begin{abstract}
 When an agent proves a theorem and a kernel checks the proof, a human who wants to rely on the
@@ -41,13 +43,20 @@ theorem still has to read something. We make precise what. For a library of defi
 and theorems, the audit surface of a theorem consists of the definitions that its statement
 unfolds to and the axioms that its proof uses, with the definitions those axioms unfold to. We
 prove that the statement is derivable from the audit surface alone, so a theorem holds in every
-library that contains its audit surface. Two further results concern a library that many agents
+library that contains its audit surface. For a theorem about an implementation, the audit
+surface holds the implementation. We therefore let the reader name some definitions as subjects
+and some theorems as their laws. In the interface surface a subject has no body, and the laws
+that the proof uses stand as assumptions; the statement is derivable from it whenever the proof
+unfolds no subject outside the laws. Two further results concern a library that many agents
 extend: independently checked extensions merge without rechecking, and a definition that its
 clients never unfold can be replaced together with the proofs of its laws. All these results are
-mechanized in Lean~4. We also measure audit surfaces in Lean's own library. For \NumSample{}
-theorems of \lean{Init} and \lean{Std}, the median audit surface has \AuditLinesMedian{} lines of
-code, against \ClosureLinesMedian{} lines for everything the proof depends on and
-\OwnLinesMedian{} lines for the theorem with its proof.
+mechanized in Lean~4. We also measure the surfaces in Lean's own library, whose module system
+hides the bodies of \HiddenPercent{} percent of its definitions. For \NumSample{} theorems of
+\lean{Init} and \lean{Std}, the median audit surface has \AuditLinesMedian{} lines of code,
+against \ClosureLinesMedian{} lines for everything the proof depends on and \OwnLinesMedian{}
+lines for the theorem with its proof. For the \NumWithSubjects{} theorems whose audit surface
+contains a hidden body, reading laws instead of bodies changes the median from
+\SubjAuditLinesMedian{} to \SubjIfaceLinesMedian{} lines.
 \end{abstract}
 
 \keywords{proof assistants, trusted computing base, definitions, axioms, proof libraries}
@@ -80,6 +89,15 @@ definitions that the statement unfolds to, the axioms that the proof uses, and t
 that those axioms unfold to. Lemmas, proofs, and definitions that occur only in proofs stay
 outside.
 
+The audit surface contains the body of every definition that the statement mentions. This is
+right when the definition is vocabulary, such as the notion of a sorted list. It is a burden
+when the definition is an implementation that the theorem is about, such as a hash map. What a
+client knows about an abstract type is its laws~\citep{mitchell1988}, and we apply the same idea
+to reading. The reader names some definitions as \emph{subjects} and some theorems as
+\emph{laws}. The \emph{interface surface} of a theorem contains no body of a subject. In their
+place it contains the laws that the proof uses, as assumptions. The reader reads the statements
+of these laws, and the kernel has checked their proofs against the bodies.
+
 Our main contributions are as follows:
 \begin{itemize}
 \item A library calculus with definitions, axioms, and theorems that carry proof terms, and a
@@ -87,23 +105,28 @@ Our main contributions are as follows:
 \item The audit surface, with the theorem that the statement of a checked proof is derivable from
   its audit surface alone, and a computation of the surface in two passes over the library
   (Section~\ref{sec:audit}).
+\item The interface surface for given laws and subjects, with the theorem that the statement is
+  derivable from it when the proof, with every theorem outside the laws inlined, unfolds no
+  subject (Section~\ref{sec:iface}).
 \item A corollary and two further results for a shared library: a theorem holds wherever its
   audit surface is present, extensions with fresh names merge without rechecking, and a
   definition that its clients never unfold can be replaced together with the proofs of its laws
   (Section~\ref{sec:structural}).
-\item A measurement of audit surfaces for \NumSample{} theorems of Lean's library
+\item A measurement of both surfaces for \NumSample{} theorems of Lean's library, in which the
+  module system of Lean decides which bodies are hidden and which theorems are laws
   (Section~\ref{sec:measure}).
 \end{itemize}
 
 \paragraph{Status of the claims.}
 Every definition, lemma, proposition, theorem, and corollary of
 Sections~\ref{sec:calculus}--\ref{sec:structural} is mechanized in Lean~4~\citep{moura2021}. The
-development has about 1,700 lines and uses no axioms beyond the three standard axioms of Lean.
+development has about 2,100 lines and uses no axioms beyond the three standard axioms of Lean.
 Every number in the abstract and in Sections~\ref{sec:measure} and~\ref{sec:conclusion} is
 written by a Lean program into files that this paper includes. The command \lean{make} in the
-artifact checks the proofs and reproduces these files with Lean \LeanVersion{}, in about two
-minutes. The examples of Section~\ref{sec:necessity}, the remarks that follow the results of
+artifact checks the proofs and reproduces these files with Lean \LeanVersion{}. The examples of
+Section~\ref{sec:necessity}, Section~\ref{sec:reading}, the remarks that follow the results of
 Section~\ref{sec:structural}, and Section~\ref{sec:limits} are argued informally.
+Section~\ref{sec:iface} appeared before as a separate paper~\citep{tpp2}.
 
 %% 2 ---------------------------------------------------------------------------------------
 \section{A Library Calculus}
@@ -352,23 +375,140 @@ the two libraries apart.
 The audit surface is computed from the proof at hand. Another proof of the same statement may use
 fewer axioms and have a smaller surface.
 
-\subsection{Subjects and Vocabulary}
-\label{sec:subjects}
-
-A reader may leave unread the bodies of some definitions that the statement mentions. The theorem
-then says something about those constants as artifacts that are identified by name. For example,
-a reader of $\nm{double\_sum}$ who skips the body of $\nm{double}$ learns that the function
-called $\nm{double}$ in this library, whatever it computes, satisfies the stated equation. A
-client of an implementation wants this reading, in the way a client of an abstract type relies on
-its operations without their representation~\citep{mitchell1988}. We call such constants the
-\emph{subjects} of the theorem and the remaining ones its \emph{vocabulary}. The choice belongs
-to the reader, with one restriction. A definition that an axiom of the surface unfolds to is
-vocabulary, since the third example of Section~\ref{sec:necessity} shows that skipping it hides
-what is assumed. Section~\ref{sec:measure} also measures the \emph{signature surface}, in which
-the body of no definition is read. It bounds the reading from below and is not by itself enough
-to rely on a theorem.
-
 %% 4 ---------------------------------------------------------------------------------------
+\section{Reading Laws Instead of Bodies}
+\label{sec:iface}
+
+A reader may want to leave unread the bodies of some definitions that the statement mentions.
+The theorem then says something about those constants as artifacts that are identified by name.
+A client of an implementation wants this reading, in the way a client of an abstract type relies
+on its operations without their representation~\citep{mitchell1988}. In the measurement of
+Section~\ref{sec:measure}, the median audit surface has \InitAuditLinesMedian{} lines of code for
+the theorems of Lean's \lean{Init} and \StdAuditLinesMedian{} lines for those of \lean{Std},
+whose statements mention the operations of hash maps and tree maps.
+
+\begin{figure}
+\[
+\begin{array}{ll}
+\kw{def} & \nm{id} := \lambda x.\,x \\
+\kw{def} & \nm{twice} := \lambda f.\,\lambda x.\,f\;(f\;x) \\
+\kw{theorem} & \nm{twice\_id} : \nm{twice}\;\nm{id} \eqd \nm{id} \\
+\kw{theorem} & \nm{client} : \nm{twice}\;\nm{id}\;(\nm{twice}\;\nm{id}) \eqd \nm{twice}\;\nm{id}
+\end{array}
+\]
+\Description{A library with two definitions and two theorems.}
+\caption{A library with a subject, a law, and a client.}
+\label{fig:laws}
+\end{figure}
+
+\paragraph{Example.}
+Figure~\ref{fig:laws} shows a library. The theorem $\nm{twice\_id}$ is proved by normalizing both
+sides, which unfolds $\nm{twice}$ and $\nm{id}$. The proof of $\nm{client}$ is
+\[
+\kw{trans}\;(\kw{app}\;(\kw{lem}\;\nm{twice\_id})\;(\kw{refl}\;u))\;
+  (\kw{trans}\;(\kw{app}\;(\kw{delta}\;\nm{id})\;(\kw{refl}\;u))\;(\kw{beta}\;x\;u)),
+\]
+where $u$ stands for $\nm{twice}\;\nm{id}$.
+It rewrites the head $\nm{twice}\;\nm{id}$ to $\nm{id}$ with the theorem, unfolds $\nm{id}$, and
+contracts the redex. It never unfolds $\nm{twice}$. The audit surface of $\nm{client}$ consists
+of the definitions of $\nm{twice}$ and $\nm{id}$, since the statement mentions both. A reader who
+takes $\nm{twice}$ as a given artifact would rather read that $\nm{twice}\;\nm{id} \eqd \nm{id}$
+holds of it, together with the definition of $\nm{id}$.
+
+\subsection{The Interface Surface}
+
+Fix a set $T$ of theorem names, the \emph{laws}, and a set $C$ of names of definitions, the
+\emph{subjects}. The \emph{view} $\view{L}$ of a library $L$ is obtained in three steps. Remove
+the theorems outside $T$. Replace each theorem $\kw{theorem}\;h : s \eqd t := q$ in $T$ by the
+axiom $\kw{axiom}\;h : s \eqd t$. Remove the definitions of the subjects. In the view, a subject
+is a constant without a definition, and a law is an assumption.
+
+For a proof $p$, let $p^T$ be the proof in which every $\kw{lem}\;h$ with $h \notin T$ is
+replaced by the proof of $h$ in $L$, for the theorems of $L$ from the newest to the oldest, and
+every remaining $\kw{lem}\;h$ is read as $\kw{ax}\;h$.
+
+\begin{definition}[Interface surface]
+\label{def:iface}
+Let $\chk{L}{p}{s}{t}$. The \emph{interface set} of $p$ is the least set that is closed for
+$\view{L}$ and contains $\consts(s)$, $\consts(t)$, and the axioms that $p^T$ refers to. The
+\emph{interface surface} of $p$ consists of the definitions and the axioms of $\view{L}$ whose
+names are in the interface set, in the order of $L$.
+\end{definition}
+
+The axioms that $p^T$ refers to are the axioms that $p$ uses outside the proofs of the laws,
+and the laws that it uses. Since $\view{L}$ is well formed when $L$ is, one pass over it computes
+the interface set, by Proposition~\ref{prop:pass}.
+
+\begin{theorem}[Interface soundness]
+\label{thm:iface}
+Let $\wf{L}$ and $\chk{L}{p}{s}{t}$. Suppose that the proof obtained from $p$ by inlining the
+theorems outside $T$ refers to the definition of no subject. Then the interface surface of $p$
+is well formed and contains no theorem, and there is a proof $p'$ that establishes $s \eqd t$ in
+it.
+\end{theorem}
+
+\begin{proof}[Proof outline]
+Inline the theorems outside $T$ into $p$, from the newest to the oldest. As in the proof of
+Theorem~\ref{thm:audit}, each step replaces $\kw{lem}\;h$ by a proof of the same equation. The
+result checks in $L$ without the theorems outside $T$. Reading each remaining $\kw{lem}\;h$ as
+$\kw{ax}\;h$ gives the proof $p^T$, which checks in the library whose laws are axioms. By
+assumption $p^T$ contains no $\kw{delta}\;c$ for a subject $c$, so it still checks when the
+definitions of the subjects are removed, by Lemma~\ref{lem:local}. This library is $\view{L}$.
+It is well formed and contains no theorem, and the interface set is closed for it and contains
+the constants of the statement and the axioms that $p^T$ refers to. Definition elimination, the
+second pass in the proof of Theorem~\ref{thm:audit}, then gives a proof over the interface
+surface.
+\end{proof}
+
+\begin{proposition}[Contents of the surface]
+\label{prop:entries}
+The interface surface defines no subject. Each of its entries is a definition of $L$, an axiom of
+$L$, or the axiom $\kw{axiom}\;h : s \eqd t$ for a theorem $\kw{theorem}\;h : s \eqd t := q$ of
+$L$ with $h \in T$.
+\end{proposition}
+
+With no law and no subject, the hypothesis of Theorem~\ref{thm:iface} holds for every proof, and
+the theorem states what Theorem~\ref{thm:audit} states for the audit set.
+
+In Figure~\ref{fig:laws}, take $T = \{\nm{twice\_id}\}$ and $C = \{\nm{twice}\}$. The proof of
+$\nm{client}$ refers to the law and to the definition of $\nm{id}$, so the hypothesis holds. The
+interface surface is
+\[
+\kw{def}\;\nm{id} := \lambda x.\,x, \qquad
+\kw{axiom}\;\nm{twice\_id} : \nm{twice}\;\nm{id} \eqd \nm{id} .
+\]
+The body of $\nm{twice}$ is absent. A second proof of the same statement normalizes both sides.
+It unfolds $\nm{twice}$, so Theorem~\ref{thm:iface} does not apply to it, and its audit surface
+is the right thing to read.
+
+\subsection{What the Reader Learns}
+\label{sec:reading}
+
+\emph{Two facts.} A reader of the interface surface learns that the statement follows from the
+laws, the vocabulary, and the axioms that are listed. The reader also knows that the library is
+well formed, so the kernel has checked each law against the bodies of the subjects. Together
+these say that the statement holds of the subjects as they are in the library. The reader has
+read no body of a subject.
+
+\emph{The price.} The laws are now part of what is read. Their statements can mention further
+definitions, which the interface set contains through its closure. The interface surface is
+smaller than the audit surface when the laws that a proof uses are shorter than the bodies they
+replace, and it can be larger when they are not. Section~\ref{sec:measure} measures both cases.
+
+\emph{Choosing subjects.} Theorem~\ref{thm:iface} holds for every choice of $T$ and $C$ that
+meets its hypothesis. Two choices deserve care. A definition whose body the proof unfolds
+outside the laws cannot be a subject, and the hypothesis rules it out. A definition that an
+axiom of the surface mentions can formally be a subject, and then the axiom assumes something
+about a constant whose body the reader has not seen. The third example of
+Section~\ref{sec:necessity} shows that this hides what is assumed, and the reader should keep
+such a definition as vocabulary.
+
+\emph{The signature surface.} The extreme choice makes every definition a subject and reads no
+body at all. We call the resulting set the \emph{signature surface}. It bounds the reading from
+below and is not by itself enough to rely on a theorem, since without laws nothing is known of
+the subjects.
+
+%% 5 ---------------------------------------------------------------------------------------
 \section{Reading, Merging, Replacing}
 \label{sec:structural}
 
@@ -416,14 +556,17 @@ The theorem covers the repair of an implementation. The entries $M$ state the la
 proofs that unfold it. The entries $L_1$ are clients that use the laws and never unfold $c$. A
 new body $u'$ with new proofs of the same laws leaves every client checked. A client whose audit
 set contains $c$ gets a new audit surface, with the new body, and a reader of that client has to
-read it again. A variant without the definition, which is also mechanized, says that the proofs
-of theorems can always be replaced.
+read it again. The interface surface of such a client, with $c$ as a subject and the entries of
+$M$ as laws, mentions neither the old body nor the old proofs, so we expect it to be the same
+before and after; we have not mechanized this statement. A variant of the theorem without the
+definition, which is mechanized, says that the proofs of theorems can always be replaced.
 
 %% 5 ---------------------------------------------------------------------------------------
-\section{Audit Surfaces in Lean's Library}
+\section{Surfaces in Lean's Library}
 \label{sec:measure}
 
-We measure how much a reader saves by reading audit surfaces in a real library.
+We measure how much a reader saves by reading audit surfaces, and interface surfaces, in a real
+library.
 
 \paragraph{Method.}
 The kernel of Lean~4 has more kinds of declarations than our calculus, and we extend the
@@ -433,20 +576,50 @@ constructors and the types of its mutual block, and a constructor or a recursor 
 inductive type. A projection brings in its structure, and a literal brings in its type. A theorem
 or an opaque constant that occurs in a statement or in the body of a definition contributes its
 type only. The axioms of a proof are the axioms among the constants it depends on, as
-\lean{\#print axioms} reports them. For a theorem we compute three sets of constants:
+\lean{\#print axioms} reports them. For a theorem we compute four sets of constants:
 \begin{itemize}
 \item the \emph{signature surface}, reached from the statement and the axioms without the body of
   any definition;
-\item the \emph{audit surface}, reached with the bodies of definitions;
+\item the \emph{interface surface}, described below;
+\item the \emph{audit surface}, reached from the statement and the axioms with the bodies of
+  definitions;
 \item the \emph{dependency closure}, reached from the theorem with the bodies of definitions and
   opaque constants and with the proofs of theorems, which is what the kernel checked.
 \end{itemize}
-The two surfaces do not contain the theorem itself, and the closure does. We report the number of
-constants and the number of distinct lines of code in the declarations that introduce them. A
-line of code has a character that is not white space and lies outside comments, so documentation
-is not counted. Lean records a source range for each declaration and attributes recursors and
-similar generated constants to the declaration of their type. A generated constant without a
-range adds no lines.
+The surfaces do not contain the theorem itself, and the closure does.
+
+\paragraph{Subjects and laws in Lean.}
+Lean's library is written in the module system of Lean~\citep{leanmodules}. A module exports the
+body of a definition only when the definition is marked for it. By default the body stays
+private to the module, and clients are meant to rely on the theorems that the module exports
+about the definition. A module sees a private body if it defines it, or if it imports the
+defining module with \lean{import all}. This is the discipline of Section~\ref{sec:iface},
+enforced by the system, and it lets us measure interface surfaces without choosing subjects
+ourselves. We read the exported part of every compiled module of \lean{Init} and \lean{Std}. Of
+their \NumDefs{} definitions, \NumHiddenDefs{} (\HiddenPercent{} percent) have no exported body.
+We call them \emph{hidden}. \NumImportAll{} modules import another module with
+\lean{import all}.
+
+For a theorem $h$ in a module $m$, the \emph{subjects} are the hidden definitions of its surface
+whose body $m$ does not see. A theorem $g$ is a \emph{law} for $h$ if it could have unfolded a
+subject $c$: the module of $g$ sees the body of $c$, and $c$ is reachable from the proof and the
+statement of $g$ through the types of constants and the bodies of definitions, so that $c$
+occurs in some term that the kernel considered when it checked $g$. The proofs of all other
+theorems that the proof of $h$ refers to are followed, in the way $p^T$ inlines the theorems
+outside $T$. The interface surface of $h$ is reached from its statement, its axioms, and the
+statements of its laws, with the bodies of the definitions that $m$ sees. Subjects and laws
+depend on each other, and we iterate to the least fixed point. By construction neither the
+proof of $h$ nor an inlined proof can unfold a subject, which is the hypothesis of
+Theorem~\ref{thm:iface}.
+
+\paragraph{Sizes.}
+We report the number of constants and the number of distinct lines of code in the declarations
+that introduce them. A line of code has a character that is not white space and lies outside
+comments, so documentation is not counted. A constant that is read for its statement only, which
+is a theorem, an opaque constant, or a definition whose body is not followed, counts with the
+lines of its declaration up to the first line that contains \lean{:=}. Lean records a source
+range for each declaration and attributes recursors and similar generated constants to the
+declaration of their type. A generated constant without a range adds no lines.
 
 The population consists of the \NumPopulation{} theorems of the modules under \lean{Init} and
 \lean{Std} in Lean \LeanVersion{} that have a source range of their own and a name that is not
@@ -466,12 +639,11 @@ internal. The sample has \NumSample{} theorems, evenly spaced in the order of na
 \end{table}
 
 \begin{table}
-\caption{Constants and lines of code for selected theorems.}
+\caption{Selected theorems: the number of laws, and lines of code of the four sets.}
 \label{tab:examples}
-\begin{tabular}{lrrrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
- & \multicolumn{2}{c}{Signature} & \multicolumn{2}{c}{Audit} & \multicolumn{2}{c}{Closure} \\
-Theorem & const. & lines & const. & lines & const. & lines \\
+Theorem & laws & signature & interface & audit & closure \\
 \midrule
 \rows{artifact/table-examples.tex}
 \bottomrule
@@ -479,8 +651,8 @@ Theorem & const. & lines & const. & lines & const. & lines \\
 \end{table}
 
 \paragraph{Results.}
-Table~\ref{tab:sizes} gives the distribution of the three sizes, and Table~\ref{tab:examples}
-gives individual theorems. We observe the following.
+Table~\ref{tab:sizes} gives the distribution of the sizes, and Table~\ref{tab:examples} gives
+individual theorems. We observe the following.
 
 \emph{The audit surface is a fraction of what the kernel checked.} The dependency closure of a
 theorem is larger than its audit surface by a median factor of \RatioClosureAuditConsts{} in
@@ -497,11 +669,35 @@ theorems and at most 500 lines for \NumAuditAtMostFiveHundred{}.
 of the closures are \InitClosureLinesMedian{} and \StdClosureLinesMedian{} lines. The overall
 median therefore describes a mixture. Many statements of \lean{Std} mention the operations of
 its data structures, and the audit surface then holds the implementation, as for the last two
-theorems of Table~\ref{tab:examples}. This is the case of Section~\ref{sec:subjects}: a client
-treats these operations as subjects.
+theorems of Table~\ref{tab:examples}.
 
 \emph{Bodies account for a factor of \RatioAuditSigLines{}.} The audit surface has a median of
 \RatioAuditSigLines{} times the lines of the signature surface.
+
+\emph{Laws replace bodies where bodies are hidden.} For \NumWithSubjects{} of the \NumSample{}
+theorems, the audit surface contains a hidden body that the module of the theorem cannot see.
+For these theorems the median audit surface has \SubjAuditLinesMedian{} lines and the median
+interface surface has \SubjIfaceLinesMedian{}. The interface surface is the smaller one for
+\NumIfaceSmaller{} of them and has at most half the lines for \NumIfaceHalf{}. For \lean{Std}
+the median over all theorems falls from \StdAuditLinesMedian{} to \StdIfaceLinesMedian{} lines.
+For \lean{Init} it stays where it is, at \InitIfaceLinesMedian{} against \InitAuditLinesMedian{}
+lines. The theorem on the size of a hash map after an insertion, in
+Table~\ref{tab:examples}, is typical of the gain: its statement reaches twenty hidden
+definitions of the hash table, its proof uses two laws about them, and the reading shrinks to
+less than half.
+
+\emph{Laws have a price.} The interface surface is the larger one for \NumIfaceLarger{}
+theorems. Their proofs use laws whose statements take more lines than the bodies that are no
+longer read, as for the theorem on the length of an appended string in
+Table~\ref{tab:examples}. This is the price that Section~\ref{sec:reading} describes, and it is
+the exception.
+
+\emph{Most hidden bodies are never needed.} A theorem with a subject has a median of
+\SubjSubjectsMedian{} subjects and a median of \SubjLawsMedian{} laws; the largest number of
+laws is \SubjLawsMax{}. For at least half of these theorems, no theorem that the proof depends
+on could have unfolded a subject. The hidden definitions are reachable from the statement,
+often through an instance, and play no part in the proof. The audit surface asks the reader to
+read their bodies, and the interface surface does not.
 
 \emph{Surfaces overlap.} The union of the audit surfaces of the sample has \UnionAuditConsts{}
 constants and \UnionAuditLines{} lines of code. The union of the closures has
@@ -517,15 +713,19 @@ They are not counted above.
 Lean. No axiom is used by \NumNoAxiom{} of the theorems.
 
 \paragraph{Threats to validity.}
-The measurement applies the definitions to Lean's kernel terms, and Theorem~\ref{thm:audit} is
-neither stated nor proved for Lean's type theory. One difference concerns the statement of such
-a theorem. The body of a Lean definition can contain theorems, as proofs of side conditions, and
-the measured surface holds only their statements. A version of Theorem~\ref{thm:audit} for Lean
-has to account for them, for example through proof irrelevance. Lines of code cover whole
-declarations, so they overstate the signature surface, which needs the types only, and they miss
-generated constants without a source range. The modules under \lean{Init} and \lean{Std} form a
-library of basic data structures, and a library of mathematics may behave differently. The sample
-is evenly spaced in the order of names, which follows the namespaces, and it is not random.
+The measurement applies the definitions to Lean's kernel terms, and Theorems~\ref{thm:audit}
+and~\ref{thm:iface} are neither stated nor proved for Lean's type theory. One difference
+concerns the statement of such a theorem. The body of a Lean definition can contain theorems, as
+proofs of side conditions, and the measured surfaces hold only their statements. A version of
+the theorems for Lean has to account for them, for example through proof irrelevance. For the
+interface surface we rely on the module system: a module that does not see a body cannot unfold
+it. Our test for a law is an approximation from above, since a theorem that could have unfolded
+a subject need not have done so, and the interface surfaces we report are therefore upper
+bounds. Lines of code are attributed by a textual rule for the end of a statement, which
+miscounts a statement that itself contains \lean{:=}, and they miss generated constants
+without a source range. The modules under \lean{Init} and \lean{Std} form a library of basic
+data structures, and a library of mathematics may behave differently. The sample is evenly
+spaced in the order of names, which follows the namespaces, and it is not random.
 
 %% 6 ---------------------------------------------------------------------------------------
 \section{What the Calculus Leaves Out}
@@ -540,6 +740,17 @@ type of every constant it reaches, as in Section~\ref{sec:measure}. Theorem~\ref
 needs weakening, substitution of definitions, and cut for the type theory in question. We expect
 these to hold for the theories whose kernels have been formalized~\citep{sozeau2020,carneiro2024}
 and have not proved it.
+
+\emph{Explicit unfolding.} The hypothesis of Theorem~\ref{thm:iface} can be read off a proof
+term, because our proofs record each use of a definition with $\kw{delta}$. In a proof assistant
+such as Lean, unfolding happens inside the conversion check of the kernel, and a proof term does
+not show which bodies it relies on. There the system has to enforce the hypothesis, with
+definitions that are opaque or that a module exports without their bodies, and
+Section~\ref{sec:measure} relies on the second.
+
+\emph{The choice of laws.} Theorem~\ref{thm:iface} takes the laws as given. It does not say
+whether a set of laws describes a subject well, and a client can only be read through the laws
+that its proof happens to use.
 
 \emph{Elaboration.} The audit surface consists of kernel terms, and a human reads source text.
 Notations, implicit arguments, coercions, and instances decide which kernel term a line of
@@ -594,7 +805,17 @@ frameworks~\citep{harper1993}, extended with definitions and proofs. Theorem~\re
 corresponds to linking separately checked fragments~\citep{cardelli1997}.
 Theorem~\ref{thm:replace} separates the clients that unfold a definition from the clients that
 use it through its laws. Module systems draw this line between manifest and abstract
-components~\citep{leroy1994,mitchell1988}.
+components~\citep{leroy1994}.
+
+\emph{Abstraction.} \citet{mitchell1988} explain abstract types as existential types: a client
+is checked against the operations and never against the representation. Our laws play the role
+of the specification of the operations, and Theorem~\ref{thm:iface} is the corresponding
+statement for reading. The distinction between vocabulary and subjects is the distinction
+between manifest and abstract components~\citep{leroy1994}. \citet{gratzer2022} control the
+unfolding of definitions inside a type theory, and the module system of
+Lean~\citep{leanmodules} controls it between modules; both are ways to enforce the hypothesis
+of Theorem~\ref{thm:iface}. As far as we know, the size of what a reader saves by this
+discipline has not been measured before.
 
 %% 8 ---------------------------------------------------------------------------------------
 \section{Conclusion}
@@ -602,15 +823,21 @@ components~\citep{leroy1994,mitchell1988}.
 
 A machine-checked theorem asks a human to read its audit surface: the definitions under the
 statement and the axioms under the proof. The statement follows from the surface alone, and two
-passes over the library find the surface. In the sample from Lean's library, the audit surfaces
-together have \UnionAuditPercent{} percent of the lines of code that the kernel checked, and the
-median surface has \AuditLinesMedian{} lines for a theorem of \OwnLinesMedian{}.
+passes over the library find the surface. Where a definition is an implementation, the reader
+can read the laws that the proof uses in place of its body, and the statement follows from this
+interface surface when the proof unfolds no subject outside the laws. In the sample from Lean's
+library, the audit surfaces together have \UnionAuditPercent{} percent of the lines of code that
+the kernel checked, and the median surface has \AuditLinesMedian{} lines for a theorem of
+\OwnLinesMedian{}. For the theorems whose surface reaches a body that Lean's module system
+hides, reading laws instead brings the median from \SubjAuditLinesMedian{} to
+\SubjIfaceLinesMedian{} lines.
 
 The results are proved for an untyped equational calculus. The step to a dependent type theory
 with inductive types and with proofs inside definitions is open, and so is a surface defined on
-source text. The measurement suggests two further directions. A reader needs a way to mark the
-subjects of a theorem so that their bodies leave the surface. A library needs a measure of its
-total surface, which the union in Section~\ref{sec:measure} approximates.
+source text. Two further directions follow from the measurement. The interface surface of a
+client should be invariant when a subject is replaced together with the proofs of its laws,
+which we have not proved. A library needs a measure of its total surface, which the union in
+Section~\ref{sec:measure} approximates.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}

@@ -1,0 +1,6 @@
+'Audit.lemma_elim_except' depends on axioms: [propext]
+'Audit.interface_surface' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Audit.ifaceLib_wf' depends on axioms: [propext, Quot.sound]
+'Audit.ifaceLib_noSubject' depends on axioms: [propext]
+'Audit.ifaceLib_entries' depends on axioms: [propext, Quot.sound]
+'Audit.LawExample.K4_wf' depends on axioms: [propext, Classical.choice, Quot.sound]

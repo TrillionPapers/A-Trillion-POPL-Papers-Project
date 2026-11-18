@@ -1,17 +1,25 @@
 /-
-  Audit surfaces in Lean's own library (Section 5).
+  Surfaces in Lean's own library (Section 6).
 
-  For a sample of the theorems in `Init` and `Std`, this file measures three sets of
+  For a sample of the theorems in `Init` and `Std`, this file measures four sets of
   constants:
 
   * the signature surface: the statement, the axioms the proof uses, and the types of all
     constants they mention, without the body of any definition;
-  * the audit surface: the same, with the body of every definition that is reached;
+  * the interface surface: the bodies of the definitions that the module of the theorem can
+    see, and, for the other definitions, the laws that the proof uses about them;
+  * the audit surface: the statement and the axioms with the body of every definition that
+    is reached;
   * the dependency closure: everything the kernel checked, proofs included.
+
+  The module system of Lean decides which bodies a module can see. A definition whose body is
+  not in the exported part of its module is hidden. A module sees a hidden body if it defines
+  it or imports the defining module with `import all`.
 
   Sizes are numbers of constants and numbers of distinct source lines of code. A line of code
   has a character that is not white space and lies outside comments, so documentation does
-  not count.
+  not count. A constant that is read for its statement only counts with the lines of its
+  declaration up to the first line that contains `:=`.
 
   Run it with `make measure`. It prints a report and writes the numbers and the tables that
   the paper includes into the directory `out`. The numbers depend on the Lean version in
@@ -124,6 +132,18 @@ structure Cache where
   range : Std.HashMap Name (Option (Nat × Nat × Nat)) := {}
   /-- per module, the lines of code of its source file -/
   code : Std.HashMap Nat (Array Bool) := {}
+  /-- per module, the lines of its source file -/
+  text : Std.HashMap Nat (Array String) := {}
+  /-- the definitions whose body is not in the exported part of their module -/
+  hidden : Std.HashSet Name := {}
+  /-- the pairs of a module and a module that it imports with `import all` -/
+  seesAll : Std.HashSet (Name × Name) := {}
+  /-- the module of a constant -/
+  mods : Std.HashMap Name Name := {}
+  /-- the names in the proof of a theorem -/
+  proofNames : Std.HashMap Name (Array Name) := {}
+  /-- the hidden definitions that the checking of a theorem could have unfolded -/
+  hiddenReach : Std.HashMap Name (Std.HashSet Name) := {}
 
 abbrev M := StateT Cache MetaM
 
@@ -167,17 +187,33 @@ def codeOf (moduleIdx : Nat) : M (Array Bool) := do
   if let some flags := (← get).code[moduleIdx]? then return flags
   let name := (← getEnv).header.moduleNames[moduleIdx]!
   let path ← findLean (← getSrcSearchPath) name
-  let flags := codeLines (← IO.FS.readFile path)
-  modify fun c => { c with code := c.code.insert moduleIdx flags }
+  let source ← IO.FS.readFile path
+  let flags := codeLines source
+  modify fun c => { c with code := c.code.insert moduleIdx flags,
+                           text := c.text.insert moduleIdx (source.splitOn "\n").toArray }
   return flags
+
+/-- The source range of the statement of a declaration: its lines up to the first line of
+code that contains `:=`, and the whole range if there is none. -/
+def stmtRangeOf (n : Name) : M (Option (Nat × Nat × Nat)) := do
+  let some (m, first, len) ← rangeOf n | return none
+  let flags ← codeOf m
+  let lines := (← get).text.getD m #[]
+  for i in [0:len] do
+    let line := first + i
+    if flags.getD (line - 1) false && ((lines.getD (line - 1) "").splitOn ":=").length > 1 then
+      return some (m, first, i + 1)
+  return some (m, first, len)
 
 /-- The distinct source lines covered by the declarations that introduce the constants of a
 set: the lines of code, and all lines. Ranges may nest, as for a constructor inside its
 inductive type. -/
-def sourceLines (s : Std.HashSet Name) : M (Nat × Nat) := do
+def sourceLines (s : Std.HashSet Name) (stmtOnly : Name → M Bool := fun _ => pure false) :
+    M (Nat × Nat) := do
   let mut ranges : Std.HashSet (Nat × Nat × Nat) := {}
   for n in s do
-    if let some r := ← rangeOf n then ranges := ranges.insert r
+    let r ← if ← stmtOnly n then stmtRangeOf n else rangeOf n
+    if let some r := r then ranges := ranges.insert r
   let mut lines : Std.HashSet (Nat × Nat) := {}
   let mut code := 0
   for (m, first, len) in ranges do
@@ -189,6 +225,147 @@ def sourceLines (s : Std.HashSet Name) : M (Nat × Nat) := do
         if flags.getD (line - 1) false then code := code + 1
   return (code, lines.size)
 
+/-- The module that declares a constant. -/
+def moduleOf (n : Name) : M Name := do
+  if let some m := (← get).mods[n]? then return m
+  let env ← getEnv
+  let m := match env.getModuleIdxFor? n with
+    | some idx => env.header.moduleNames[idx.toNat]!
+    | none => .anonymous
+  modify fun c => { c with mods := c.mods.insert n m }
+  return m
+
+/-- Whether the module `m` sees the body of the definition `c`. -/
+def sees (m c : Name) : M Bool := do
+  let cache ← get
+  if !cache.hidden.contains c then return true
+  let mc ← moduleOf c
+  return mc == m || cache.seesAll.contains (m, mc)
+
+/-- 0 for a definition, 1 for a theorem or an opaque constant, 2 for everything else. -/
+def kindOf (n : Name) : M Nat := do
+  match (← getEnv).find? n with
+  | some (.defnInfo _) => return 0
+  | some (.thmInfo _) => return 1
+  | some (.opaqueInfo _) => return 1
+  | _ => return 2
+
+/-- All constants reachable from the seeds when the body of a definition is followed only if
+the module `m` sees it. Theorems and opaque constants contribute their types. -/
+def closureIn (m : Name) (seeds : Array Name) : M (Std.HashSet Name) := do
+  let env ← getEnv
+  let mut seen : Std.HashSet Name := {}
+  let mut todo : List Name := seeds.toList
+  repeat
+    match todo with
+    | [] => break
+    | n :: rest =>
+      todo := rest
+      unless seen.contains n do
+        seen := seen.insert n
+        if let some ci := env.find? n then
+          let mode ← match ci with
+            | .defnInfo _ => do pure (if ← sees m n then Mode.stmt else Mode.sig)
+            | _ => pure Mode.stmt
+          for d in directDeps ci mode do
+            unless seen.contains d do
+              todo := d :: todo
+  return seen
+
+/-- The subjects of a surface for the module `m`: its definitions whose body `m` cannot see. -/
+def subjectsOf (m : Name) (s : Std.HashSet Name) : M (Array Name) := do
+  let mut out : Array Name := #[]
+  for n in s do
+    if (← kindOf n) == 0 then
+      unless ← sees m n do out := out.push n
+  return out
+
+/-- The names that occur in the proof of a theorem. -/
+def proofNamesOf (g : Name) : M (Array Name) := do
+  if let some ns := (← get).proofNames[g]? then return ns
+  let ns := match (← getEnv).find? g with
+    | some (.thmInfo v) => exprNames v.value
+    | _ => #[]
+  modify fun c => { c with proofNames := c.proofNames.insert g ns }
+  return ns
+
+/-- The hidden definitions that the kernel could have unfolded when it checked a theorem:
+those reachable from its proof and its statement through the types of constants and the
+bodies of definitions. A definition outside this set does not occur in any term that the
+check considers. -/
+def hiddenReachOf (g : Name) : M (Std.HashSet Name) := do
+  if let some s := (← get).hiddenReach[g]? then return s
+  let statement := match (← getEnv).find? g with
+    | some ci => exprNames ci.type
+    | none => #[]
+  let all ← closure .stmt ((← proofNamesOf g) ++ statement)
+  let hidden := (← get).hidden
+  let s := all.fold (init := ({} : Std.HashSet Name)) fun acc n =>
+    if hidden.contains n then acc.insert n else acc
+  modify fun c => { c with hiddenReach := c.hiddenReach.insert g s }
+  return s
+
+/-- The laws that the proof of a theorem uses about the subjects: the theorems that the proof
+refers to, directly or through theorems that are not laws, and that could have unfolded a
+subject. A theorem could have unfolded a subject if its module sees the body of the subject
+and the subject is among the hidden definitions that its check could reach. The proofs of the
+other theorems are followed, as if they were inlined. -/
+def lawsOf (thm : Name) (subjects : Array Name) : M (Std.HashSet Name) := do
+  let env ← getEnv
+  let cache ← get
+  let mut subjectModules : Std.HashSet Name := {}
+  let mut located : Array (Name × Name) := #[]
+  for c in subjects do
+    let mc ← moduleOf c
+    subjectModules := subjectModules.insert mc
+    located := located.push (c, mc)
+  let mut lawModule : Std.HashMap Name Bool := {}
+  let mut laws : Std.HashSet Name := {}
+  let mut seen : Std.HashSet Name := {}
+  let mut todo : List Name := [thm]
+  repeat
+    match todo with
+    | [] => break
+    | g :: rest =>
+      todo := rest
+      unless seen.contains g do
+        seen := seen.insert g
+        if let some (.thmInfo _) := env.find? g then
+          for d in ← proofNamesOf g do
+            if let some (.thmInfo _) := env.find? d then
+              let md ← moduleOf d
+              let seeing ← match lawModule[md]? with
+                | some b => pure b
+                | none => do
+                  let b := subjectModules.contains md ||
+                    subjectModules.any fun mc => cache.seesAll.contains (md, mc)
+                  lawModule := lawModule.insert md b
+                  pure b
+              let mut isLaw := false
+              if seeing then
+                let reach ← hiddenReachOf d
+                isLaw := located.any fun (c, mc) =>
+                  reach.contains c && (mc == md || cache.seesAll.contains (md, mc))
+              if isLaw then laws := laws.insert d
+              else unless seen.contains d do todo := d :: todo
+  return laws
+
+/-- The interface surface of a theorem, with the numbers of its laws and of its subjects. -/
+def interface (thm : Name) (ci : ConstantInfo) (axioms : Array Name) :
+    M (Std.HashSet Name × Nat × Nat) := do
+  let m ← moduleOf thm
+  let base := exprNames ci.type ++ axioms
+  let mut laws : Std.HashSet Name := {}
+  let mut surface ← closureIn m base
+  let mut subjects ← subjectsOf m surface
+  repeat
+    let more ← lawsOf thm subjects
+    if more.size == laws.size then break
+    laws := more
+    surface ← closureIn m (base ++ laws.toArray)
+    subjects ← subjectsOf m surface
+  return (surface, laws.size, subjects.size)
+
 structure Row where
   name : Name
   /-- `Init` or `Std` -/
@@ -198,6 +375,10 @@ structure Row where
   dep : Std.HashSet Name
   sigConsts : Nat
   sigLines : Nat
+  ifaceConsts : Nat
+  ifaceLines : Nat
+  laws : Nat
+  subjects : Nat
   auditConsts : Nat
   auditLines : Nat
   depConsts : Nat
@@ -220,12 +401,21 @@ def measure (thm : Name) : M Row := do
   let seeds := exprNames ci.type ++ axioms
   let sig ← closure .sig seeds
   let audit ← closure .stmt seeds
+  let m ← moduleOf thm
+  let (iface, laws, subjects) ← interface thm ci axioms
   return {
     name := thm, root, sig, audit, dep
     sigConsts := sig.size
-    sigLines := (← sourceLines sig).1
+    sigLines := (← sourceLines sig fun n => return (← kindOf n) != 2).1
+    ifaceConsts := iface.size
+    ifaceLines := (← sourceLines iface fun n => do
+      match ← kindOf n with
+      | 0 => return !(← sees m n)
+      | 1 => return true
+      | _ => return false).1
+    laws, subjects
     auditConsts := audit.size
-    auditLines := (← sourceLines audit).1
+    auditLines := (← sourceLines audit fun n => return (← kindOf n) == 1).1
     depConsts := dep.size
     depLines := (← sourceLines dep).1
     ownLines := (← sourceLines (({} : Std.HashSet Name).insert thm)).1
@@ -284,8 +474,42 @@ def texName (n : Name) : String :=
 def texMacro (name value : String) : String :=
   "\\newcommand{\\" ++ name ++ "}{" ++ value ++ "}\n"
 
+/-- The definitions of `Init` and `Std` whose body is not in the exported part of their
+module, the number of all their definitions, and the imports with `import all`. -/
+def visibility (env : Environment) :
+    IO (Std.HashSet Name × Std.HashSet (Name × Name) × Array (Name × Nat × Nat) × Nat) := do
+  let mut exposed : Std.HashSet Name := {}
+  let mut seesAll : Std.HashSet (Name × Name) := {}
+  let mut importers := 0
+  for i in [0:env.header.moduleNames.size] do
+    let m := env.header.moduleNames[i]!
+    unless m.getRoot == `Init || m.getRoot == `Std do continue
+    let (data, _) ← readModuleData (← findOLean m)
+    for ci in data.constants do
+      if ci matches .defnInfo _ then exposed := exposed.insert ci.name
+    let mut any := false
+    for imp in env.header.moduleData[i]!.imports do
+      if imp.importAll then
+        seesAll := seesAll.insert (m, imp.module)
+        any := true
+    if any then importers := importers + 1
+  let mut hidden : Std.HashSet Name := {}
+  let mut counts : Array (Name × Nat × Nat) := #[(`Init, 0, 0), (`Std, 0, 0)]
+  for (n, ci) in env.constants.toList do
+    let .defnInfo _ := ci | continue
+    let some idx := env.getModuleIdxFor? n | continue
+    let root := env.header.moduleNames[idx.toNat]!.getRoot
+    unless root == `Init || root == `Std do continue
+    let isHidden := !exposed.contains n
+    if isHidden then hidden := hidden.insert n
+    unless n.isInternalDetail do
+      counts := counts.map fun (r, all, hid) =>
+        if r == root then (r, all + 1, if isHidden then hid + 1 else hid) else (r, all, hid)
+  return (hidden, seesAll, counts, importers)
+
 def run (sampleSize : Nat) (examples tableExamples : Array Name) : MetaM Unit := do
   let env ← getEnv
+  let (hidden, seesAll, defCounts, importers) ← visibility env
   let mut names : Array Name := #[]
   for (n, ci) in env.constants.toList do
     if ← isSampled env n ci then names := names.push n
@@ -311,8 +535,18 @@ def run (sampleSize : Nat) (examples tableExamples : Array Name) : MetaM Unit :=
       if (← getEnv).contains n then
         let r ← measure n
         exRows := exRows.push { r with sig := {}, audit := {}, dep := {} }
-    return (rows, exRows, unions) : M _).run' {}
+    return (rows, exRows, unions) : M _).run' { hidden, seesAll }
   let sigC := rows.map (·.sigConsts)
+  let ifC := rows.map (·.ifaceConsts)
+  let ifL := rows.map (·.ifaceLines)
+  let withSubjects := rows.filter (·.subjects > 0)
+  let ifSmaller := (rows.filter fun r => r.ifaceLines < r.auditLines).size
+  let ifLarger := (rows.filter fun r => r.ifaceLines > r.auditLines).size
+  let ifHalf := (rows.filter fun r => r.ifaceLines * 2 ≤ r.auditLines).size
+  let ratioIf := median (withSubjects.map fun r => tenths r.auditLines r.ifaceLines)
+  let allDefs := defCounts.foldl (init := 0) fun acc (_, all, _) => acc + all
+  let allHidden := defCounts.foldl (init := 0) fun acc (_, _, hid) => acc + hid
+  let percent (a b : Nat) : Nat := if b == 0 then 0 else (200 * a + b) / (2 * b)
   let audC := rows.map (·.auditConsts)
   let depC := rows.map (·.depConsts)
   let sigL := rows.map (·.sigLines)
@@ -338,7 +572,21 @@ def run (sampleSize : Nat) (examples tableExamples : Array Name) : MetaM Unit :=
   IO.println s!"theorems written by hand in Init and Std: {sorted.size}"
   IO.println s!"sample: {sample.size} theorems, evenly spaced in the order of names"
   IO.println s!"  of these in Init: {initRows.size}, in Std: {stdRows.size}"
+  IO.println s!"definitions of Init and Std (name, all, hidden): {defCounts.toList}"
+  IO.println s!"modules that import another with import all: {importers}"
   IO.println (summary "signature surface, constants" sigC)
+  IO.println (summary "interface surface, constants" ifC)
+  IO.println (summary "interface surface, lines of code" ifL)
+  IO.println (summary "Init only: interface surface, lines of code" (initRows.map (·.ifaceLines)))
+  IO.println (summary "Std only: interface surface, lines of code" (stdRows.map (·.ifaceLines)))
+  IO.println s!"theorems with a subject: {withSubjects.size}"
+  IO.println (summary "  their audit surface, lines of code" (withSubjects.map (·.auditLines)))
+  IO.println (summary "  their interface surface, lines of code" (withSubjects.map (·.ifaceLines)))
+  IO.println (summary "  their laws" (withSubjects.map (·.laws)))
+  IO.println (summary "  their subjects" (withSubjects.map (·.subjects)))
+  IO.println s!"  median of audit/interface, lines of code: {decimal ratioIf}"
+  IO.println (s!"interface surface smaller than, larger than, at most half of the audit " ++
+    s!"surface, in lines: {ifSmaller}, {ifLarger}, {ifHalf}")
   IO.println (summary "audit surface, constants" audC)
   IO.println (summary "dependency closure, constants" depC)
   IO.println (summary "signature surface, lines of code" sigL)
@@ -360,10 +608,11 @@ def run (sampleSize : Nat) (examples tableExamples : Array Name) : MetaM Unit :=
   IO.println ("union over the sample, constants, lines of code, all lines: " ++
     s!"signature {uSigC} {uSigL.1} {uSigL.2}, audit {uAudC} {uAudL.1} {uAudL.2}, " ++
     s!"closure {uDepC} {uDepL.1} {uDepL.2}")
-  IO.println ("examples: name, signature constants and lines, audit constants and lines, " ++
-    "closure constants and lines, axioms")
+  IO.println ("examples: name, signature constants and lines, interface constants and lines, " ++
+    "laws, subjects, audit constants and lines, closure constants and lines, axioms")
   for r in exRows do
-    IO.println (s!"  {r.name}, {r.sigConsts}, {r.sigLines}, {r.auditConsts}, {r.auditLines}, " ++
+    IO.println (s!"  {r.name}, {r.sigConsts}, {r.sigLines}, {r.ifaceConsts}, {r.ifaceLines}, " ++
+      s!"{r.laws}, {r.subjects}, {r.auditConsts}, {r.auditLines}, " ++
       s!"{r.depConsts}, {r.depLines}, {r.axiomNames.size}")
   -- the files that the paper includes
   let numbers := String.join [
@@ -374,6 +623,23 @@ def run (sampleSize : Nat) (examples tableExamples : Array Name) : MetaM Unit :=
     texMacro "NumInit" (commas initRows.size),
     texMacro "NumStd" (commas stdRows.size),
     texMacro "SigLinesMedian" (commas (median sigL)),
+    texMacro "IfaceLinesMedian" (commas (median ifL)),
+    texMacro "InitIfaceLinesMedian" (commas (median (initRows.map (·.ifaceLines)))),
+    texMacro "StdIfaceLinesMedian" (commas (median (stdRows.map (·.ifaceLines)))),
+    texMacro "NumWithSubjects" (commas withSubjects.size),
+    texMacro "SubjAuditLinesMedian" (commas (median (withSubjects.map (·.auditLines)))),
+    texMacro "SubjIfaceLinesMedian" (commas (median (withSubjects.map (·.ifaceLines)))),
+    texMacro "SubjLawsMedian" (commas (median (withSubjects.map (·.laws)))),
+    texMacro "SubjLawsMax" (commas (pct (withSubjects.map (·.laws)) 100)),
+    texMacro "SubjSubjectsMedian" (commas (median (withSubjects.map (·.subjects)))),
+    texMacro "RatioAuditIfaceLines" (decimal ratioIf),
+    texMacro "NumIfaceSmaller" (commas ifSmaller),
+    texMacro "NumIfaceLarger" (commas ifLarger),
+    texMacro "NumIfaceHalf" (commas ifHalf),
+    texMacro "NumDefs" (commas allDefs),
+    texMacro "NumHiddenDefs" (commas allHidden),
+    texMacro "HiddenPercent" (toString (percent allHidden allDefs)),
+    texMacro "NumImportAll" (commas importers),
     texMacro "AuditLinesMedian" (commas (median audL)),
     texMacro "ClosureLinesMedian" (commas (median depL)),
     texMacro "OwnLinesMedian" (commas (median ownL)),
@@ -398,16 +664,18 @@ def run (sampleSize : Nat) (examples tableExamples : Array Name) : MetaM Unit :=
     texMacro "CommentPercent" (toString ((200 * (uAudL.2 - uAudL.1) + uAudL.2) / (2 * uAudL.2)))]
   let sizes := String.intercalate "\n" [
     tableRow "Constants & signature surface" sigC,
+    tableRow " & interface surface" ifC,
     tableRow " & audit surface" audC,
     tableRow " & dependency closure" depC,
     "\\midrule",
     tableRow "Lines of code & signature surface" sigL,
+    tableRow " & interface surface" ifL,
     tableRow " & audit surface" audL,
     tableRow " & dependency closure" depL] ++ "\n"
   let exampleRows := exRows.filter fun r => tableExamples.contains r.name
   let exampleTable := String.intercalate "\n" (exampleRows.toList.map fun r =>
-    s!"{texName r.name} & {commas r.sigConsts} & {commas r.sigLines} & {commas r.auditConsts} & " ++
-      s!"{commas r.auditLines} & {commas r.depConsts} & {commas r.depLines} \\\\") ++ "\n"
+    s!"{texName r.name} & {commas r.laws} & {commas r.sigLines} & {commas r.ifaceLines} & " ++
+      s!"{commas r.auditLines} & {commas r.depLines} \\\\") ++ "\n"
   IO.FS.createDirAll "out"
   IO.FS.writeFile "out/numbers.tex" numbers
   IO.FS.writeFile "out/table-sizes.tex" ("% Written by Measure.lean. Do not edit.\n" ++ sizes)

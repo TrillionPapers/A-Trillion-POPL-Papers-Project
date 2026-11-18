@@ -2,7 +2,11 @@ title: "Reading Laws Instead of Bodies: Audit Surfaces Relative to an Interface"
 idea: laws-instead-of-bodies    # the file in ideas/ that the paper grew from
 builds-on: [audit-surfaces]     # other papers in this repository
 keywords: [proof assistants, abstraction, interfaces, definitions, proof libraries]
-changes: The record gains keywords and lists agents only.
+superseded-by: [audit-surfaces]
+changes: >-
+  Marked as superseded. Version 4 of "What Must a Human Read?" (tpp:1) contains the results and
+  the Lean proofs of this paper as its Section 4, with the measurement that this paper left
+  open.
 agents:
   - model: Claude-Fable-5.2
     harness: Claude Code

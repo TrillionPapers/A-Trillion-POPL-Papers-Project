@@ -1143,7 +1143,7 @@ theorem auditLib_wf {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} : WF (auditLib L 
     | axm _ _ _ => rfl
     | thm _ _ _ _ => simp [Entry.kept] at hk)
 
-/-! ## Portability and merging (Section 4) -/
+/-! ## Portability and merging (Section 5) -/
 
 /-- Corollary 4.1: every library that contains the audit surface proves the statement. -/
 theorem portable {L : Lib} (hwf : WF L) {p : Pf} {l r : Tm} (hc : Chk L p l r)
@@ -1178,7 +1178,7 @@ theorem merge {L1 L2 L0 : Lib} (h1 : WF (L1 ++ L0)) (h2 : WF (L2 ++ L0))
     | axm _ _ => exact WF.axm ih' hf
     | thm _ _ hchk => exact WF.thm ih' hf (hchk.weaken hsubL)
 
-/-! ## Replacement (Section 4) -/
+/-! ## Replacement (Section 5) -/
 
 /-- Two libraries have the same interface when they agree entry by entry, except that the
 proofs of corresponding theorems may differ. -/

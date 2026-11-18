@@ -2,35 +2,48 @@ Lean 4.36.0
 theorems written by hand in Init and Std: 46992
 sample: 2000 theorems, evenly spaced in the order of names
   of these in Init: 1102, in Std: 898
+definitions of Init and Std (name, all, hidden): [(Init, (10741, 2367)), (Std, (9474, 2371))]
+modules that import another with import all: 165
 signature surface, constants: min 2, p25 31, median 59, p75 154, p90 184, max 256, mean 87
+interface surface, constants: min 2, p25 106, median 247, p75 509, p90 748, max 1372, mean 319
+interface surface, lines of code: min 2, p25 131, median 376, p75 813, p90 1156, max 2477, mean 480
+Init only: interface surface, lines of code: min 2, p25 69, median 205, p75 329, p90 518, max 1572, mean 244
+Std only: interface surface, lines of code: min 7, p25 433, median 893, p75 1137, p90 1210, max 2477, mean 770
+theorems with a subject: 1154
+  their audit surface, lines of code: min 32, p25 494, median 1079, p75 1180, p90 1281, max 3265, mean 889
+  their interface surface, lines of code: min 24, p25 429, median 595, p75 1123, p90 1197, max 2477, mean 731
+  their laws: min 0, p25 0, median 0, p75 2, p90 6, max 67, mean 3
+  their subjects: min 1, p25 2, median 3, p75 9, p90 22, max 35, mean 7
+  median of audit/interface, lines of code: 1.1
+interface surface smaller than, larger than, at most half of the audit surface, in lines: 989, 102, 217
 audit surface, constants: min 2, p25 114, median 246, p75 653, p90 762, max 1725, mean 360
 dependency closure, constants: min 3, p25 338, median 1783, p75 3556, p90 3904, max 6131, mean 1914
-signature surface, lines of code: min 2, p25 43, median 81, p75 336, p90 372, max 520, mean 162
-audit surface, lines of code: min 2, p25 141, median 374, p75 1118, p90 1246, max 3369, mean 577
+signature surface, lines of code: min 2, p25 40, median 77, p75 206, p90 258, max 363, mean 119
+audit surface, lines of code: min 2, p25 140, median 371, p75 1110, p90 1235, max 3265, mean 571
 dependency closure, lines of code: min 3, p25 517, median 3593, p75 7566, p90 8023, max 12902, mean 3891
 the theorem's own declaration, lines of code: min 1, p25 2, median 3, p75 5, p90 7, max 43, mean 4
-Init only: audit surface, lines of code: min 2, p25 71, median 217, p75 334, p90 533, max 1574, mean 252
+Init only: audit surface, lines of code: min 2, p25 70, median 215, p75 329, p90 526, max 1545, mean 249
 Init only: dependency closure, lines of code: min 3, p25 227, median 937, p75 3498, p90 4646, max 12902, mean 2063
-Std only: audit surface, lines of code: min 7, p25 910, median 1134, p75 1228, p90 1320, max 3369, mean 975
+Std only: audit surface, lines of code: min 7, p25 900, median 1126, p75 1218, p90 1309, max 3265, mean 966
 Std only: dependency closure, lines of code: min 10, p25 5103, median 7542, p75 7888, p90 8175, max 12325, mean 6134
 median of closure/audit, constants: 5.0
-median of closure/audit, lines of code: 6.1
-median of audit/signature, lines of code: 3.3
-theorems whose audit surface is at most half of the closure, in lines: 1716
-theorems whose audit surface is at most 100, 200, 500 lines of code: 413, 595, 1126
+median of closure/audit, lines of code: 6.2
+median of audit/signature, lines of code: 4.5
+theorems whose audit surface is at most half of the closure, in lines: 1719
+theorems whose audit surface is at most 100, 200, 500 lines of code: 414, 603, 1135
 axioms that occur: [Classical.choice, Quot.sound, propext]
 theorems that use no axiom: 201
 union over the sample, constants, lines of code, all lines: signature 3798 9649 20778, audit 8196 16698 32042, closure 30117 78501 95854
-examples: name, signature constants and lines, audit constants and lines, closure constants and lines, axioms
-  Nat.add_comm, 13, 16, 26, 25, 47, 52, 0
-  Nat.mul_comm, 13, 16, 33, 34, 73, 89, 0
-  Nat.gcd_comm, 12, 22, 138, 201, 487, 877, 2
-  List.length_append, 27, 35, 57, 55, 77, 83, 1
-  List.reverse_reverse, 9, 12, 21, 20, 37, 45, 1
-  List.map_map, 10, 15, 23, 22, 39, 43, 1
-  Array.size_push, 27, 38, 54, 56, 68, 78, 1
-  Option.map_map, 10, 16, 17, 20, 28, 33, 1
-  String.length_append, 71, 97, 445, 792, 3490, 7397, 3
-  Std.HashMap.size_insert, 162, 354, 621, 1079, 3371, 7615, 3
-  Std.HashMap.getElem?_insert, 161, 357, 677, 1221, 3393, 7671, 3
-  Std.TreeMap.contains_insert, 180, 361, 726, 1111, 3743, 7228, 3
+examples: name, signature constants and lines, interface constants and lines, laws, subjects, audit constants and lines, closure constants and lines, axioms
+  Nat.add_comm, 13, 16, 26, 25, 0, 0, 26, 25, 47, 52, 0
+  Nat.mul_comm, 13, 16, 33, 34, 0, 0, 33, 34, 73, 89, 0
+  Nat.gcd_comm, 12, 16, 138, 199, 0, 0, 138, 199, 487, 877, 2
+  List.length_append, 27, 35, 57, 55, 0, 0, 57, 55, 77, 83, 1
+  List.reverse_reverse, 9, 11, 21, 20, 0, 0, 21, 20, 37, 45, 1
+  List.map_map, 10, 14, 23, 22, 0, 0, 23, 22, 39, 43, 1
+  Array.size_push, 27, 37, 54, 56, 0, 0, 54, 56, 68, 78, 1
+  Option.map_map, 10, 15, 17, 20, 0, 0, 17, 20, 28, 33, 1
+  String.length_append, 71, 94, 476, 809, 18, 3, 445, 780, 3490, 7397, 3
+  Std.HashMap.size_insert, 162, 220, 324, 458, 2, 20, 621, 1073, 3371, 7615, 3
+  Std.HashMap.getElem?_insert, 161, 221, 336, 481, 2, 23, 677, 1211, 3393, 7671, 3
+  Std.TreeMap.contains_insert, 180, 251, 722, 1084, 0, 2, 726, 1103, 3743, 7228, 3
