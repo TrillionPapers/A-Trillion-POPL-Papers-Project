@@ -1,0 +1,55 @@
+6000 random runs: 84119 requests received by layers, and what the layer sent on for each is within what Table 1 says it does
+4000 random replies: Redact removes every secret and breaks same, short; Trim cuts to the size, keeps a reply free of secrets, and breaks same
+three layers: with Retry at the bottom one grant and a budget of one meet three requests at the world; the correct orders are the two with Retry on top
+allowed survives: drop, repeat, invent
+covered survives: drop
+granted survives: drop, repeat
+within survives: drop, rewrite
+exact survives: nothing
+decided by automata, with the same result: allowed (2 states), within (4 states), granted (17 states)
+patterns: allowed [('s',)]; within: the 64 streams of 3 requests; gate [('u', 'w')]; 500 random sets of patterns over two letters, 283 of which survive repeating
+eight layers: 40320 orders, prediction and battery agree on every guarantee; hold in allowed 20160, covered 10080, within 13440, exact 5040; all four in 364
+eight layers: must be above: Budget > Audit, Cache > Audit, Format > Audit, Format > Budget, Format > Once, Guard > Audit, Norm > Audit, Norm > Guard, Norm > Once, Once > Audit, Retry > Audit, Retry > Budget, Retry > Once
+with Always in the place of Once: 427 orders
+five of ten: 30240 stacks, 104160 guarantees, agree with the log in both forms; 3000 random orders of all ten, 24000 guarantees, agree
+20000 random runs of random stacks: 51456 guarantees that the theory says hold, and each holds
+ten layers: 0 orders keep every guarantee with a log of requests and replies, 12012 of 3628800 with a log of requests
+Guard above Norm: client read b/../s []: world ['read s']: breaks allowed
+Once above Retry: client write a ['the first call fails', 'budget 1']: world ['write a', 'write a']: breaks covered
+Once above Norm: client read A []: world ['read a']: breaks covered
+Once above Format: client write a ['budget 1']: world ['write a', 'fmt']: breaks covered
+Budget above Retry: client write a ['the first call fails', 'budget 1']: world ['write a', 'write a']: breaks within
+Budget above Format: client write a ['budget 1']: world ['write a', 'fmt']: breaks within
+Audit above Guard: client read s []: world []: breaks exact
+Audit above Once: client write a ['the user says no']: world []: breaks exact
+Audit above Budget: client write a ['budget 0']: world []: breaks exact
+Audit above Retry: client write a ['the first call fails', 'budget 1']: world ['write a', 'write a']: breaks exact
+Audit above Norm: client read A []: world ['read a']: breaks exact
+Audit above Cache: client read a read a []: world ['read a']: breaks exact
+Audit above Format: client write a ['budget 1']: world ['write a', 'fmt']: breaks exact
+Audit above Redact: client read s []: world ['read s']: breaks exact
+Audit above Trim: client fetch u []: world ['fetch u']: breaks exact
+Redact above Audit: client read s []: world ['read s']: breaks clean log
+Redact above Cache: client read s []: world ['read s']: breaks clean cache
+Redact above Trim: client read s []: world ['read s']: breaks short
+variant, the allow-list is closed under normalization: 12 pairs, 588 orders; on the stacks of five, 0 guarantees hold although the relation says that they can fail, and none fails against it
+variant, the formatter is outside the allow-list: 14 pairs, 308 orders; on the stacks of five, 582 guarantees hold although the relation says that they can fail, and none fails against it
+variant, a normal form can cost more: 14 pairs, 336 orders; on the stacks of five, 0 guarantees hold although the relation says that they can fail, and none fails against it
+variant, \ly{Always} in the place of \ly{Once}: 12 pairs, 427 orders; on the stacks of five, 0 guarantees hold although the relation says that they can fail, and none fails against it
+395 questions, 185 wasted: 8 orders, such as ('Retry', 'Norm', 'Format', 'Budget', 'Guard', 'Cache', 'Once', 'Audit')
+398 questions, 184 wasted: 8 orders, such as ('Norm', 'Format', 'Retry', 'Budget', 'Guard', 'Cache', 'Once', 'Audit')
+401 questions, 159 wasted: 6 orders, such as ('Retry', 'Norm', 'Cache', 'Format', 'Budget', 'Guard', 'Once', 'Audit')
+404 questions, 158 wasted: 6 orders, such as ('Norm', 'Cache', 'Format', 'Retry', 'Budget', 'Guard', 'Once', 'Audit')
+411 questions, 157 wasted: 9 orders, such as ('Cache', 'Norm', 'Format', 'Retry', 'Budget', 'Guard', 'Once', 'Audit')
+442 questions, 70 wasted: 6 orders, such as ('Retry', 'Norm', 'Guard', 'Format', 'Budget', 'Cache', 'Once', 'Audit')
+446 questions, 42 wasted: 20 orders, such as ('Retry', 'Norm', 'Guard', 'Cache', 'Format', 'Budget', 'Once', 'Audit')
+722 questions, 0 wasted: 20 orders, such as ('Retry', 'Norm', 'Guard', 'Cache', 'Format', 'Once', 'Budget', 'Audit')
+Once above Retry above Budget: covered can fail, and with a budget of one it never does in 3000 runs
+1 Retry layers of 2 tries: 2 calls of the world, 2 above a budget of 4
+1 Retry layers of 3 tries: 3 calls of the world, 3 above a budget of 4
+2 Retry layers of 2 tries: 4 calls of the world, 4 above a budget of 4
+2 Retry layers of 3 tries: 9 calls of the world, 4 above a budget of 4
+3 Retry layers of 2 tries: 8 calls of the world, 4 above a budget of 4
+3 Retry layers of 3 tries: 27 calls of the world, 4 above a budget of 4
+9 deliberate mistakes, each noticed: retry-quiet, cache-quiet, guard-rewrite, budget-repeat, once-invent, redact-short, log-clean, upside-down, budget-twice
+21 sentences of the paper checked: all-noticed, always-more, blocks-within, conflict, decided, eight-agree, eight-orders, eight-pairs, fives-agree, frontier, masked, one-in-hundred, overview, pattern-sets, patterns, replies, retries-multiply, sound, survive-table, variants, witnesses

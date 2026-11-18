@@ -1,0 +1,11 @@
+% written by layers.py; do not edit
+Guard & Forwards a request only if its spelling is allowed. & drops & -- \\
+Once & Asks the user about every request and forwards it only on a yes: allow once. & drops & -- \\
+Budget & Forwards a request only while the cost of what it has forwarded stays within the bound. & drops & -- \\
+Audit & Writes every request that it forwards and the reply that it gets into a log. & -- & -- \\
+Retry & Forwards a request again while it fails, up to a number of tries. & repeats & -- \\
+Norm & Forwards the normal form of a request. & rewrites & -- \\
+Cache & Answers a read that it has seen from its table, and empties the table on a write. & drops & -- \\
+Format & After a write that succeeds, runs the formatter: a request of its own. & invents & -- \\
+Redact & Replaces every secret in a reply by a placeholder, which is longer. & -- & establishes clean; breaks short; changes replies \\
+Trim & Cuts a reply to the size that the context allows. & -- & establishes short; changes replies \\

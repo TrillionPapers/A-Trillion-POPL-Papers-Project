@@ -1,0 +1,19 @@
+% written by layers.py; do not edit
+\ly{Guard} above \ly{Norm} & \texttt{read b/../s} & \texttt{read s} & allowed \\
+\ly{Once} above \ly{Retry} & \texttt{write a} (the first call fails, budget 1) & \texttt{write a}, \texttt{write a} & covered \\
+\ly{Once} above \ly{Norm} & \texttt{read A} & \texttt{read a} & covered \\
+\ly{Once} above \ly{Format} & \texttt{write a} (budget 1) & \texttt{write a}, \texttt{fmt} & covered \\
+\ly{Budget} above \ly{Retry} & \texttt{write a} (the first call fails, budget 1) & \texttt{write a}, \texttt{write a} & within \\
+\ly{Budget} above \ly{Format} & \texttt{write a} (budget 1) & \texttt{write a}, \texttt{fmt} & within \\
+\ly{Audit} above \ly{Guard} & \texttt{read s} & nothing & exact \\
+\ly{Audit} above \ly{Once} & \texttt{write a} (the user says no) & nothing & exact \\
+\ly{Audit} above \ly{Budget} & \texttt{write a} (budget 0) & nothing & exact \\
+\ly{Audit} above \ly{Retry} & \texttt{write a} (the first call fails, budget 1) & \texttt{write a}, \texttt{write a} & exact \\
+\ly{Audit} above \ly{Norm} & \texttt{read A} & \texttt{read a} & exact \\
+\ly{Audit} above \ly{Cache} & \texttt{read a}, \texttt{read a} & \texttt{read a} & exact \\
+\ly{Audit} above \ly{Format} & \texttt{write a} (budget 1) & \texttt{write a}, \texttt{fmt} & exact \\
+\ly{Audit} above \ly{Redact} & \texttt{read s} & \texttt{read s} & exact \\
+\ly{Audit} above \ly{Trim} & \texttt{fetch u} & \texttt{fetch u} & exact \\
+\ly{Redact} above \ly{Audit} & \texttt{read s} & \texttt{read s} & clean log \\
+\ly{Redact} above \ly{Cache} & \texttt{read s} & \texttt{read s} & clean cache \\
+\ly{Redact} above \ly{Trim} & \texttt{read s} & \texttt{read s} & short \\

@@ -1,0 +1,18 @@
+title: "What a Guarantee Survives: The Order of the Layers of a Harness"
+idea: layer-order                # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource, what-an-agent-loop-costs, an-injection-is-a-choice, a-crash-is-a-lost-reply, a-number-is-a-claim, a-report-is-a-residue]   # other papers in this repository that it cites
+keywords: [middleware, layers, structural rules, runtime enforcement, well-quasi-orders, retries, agents, tool calls]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the model, the proofs, the layers, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: the prediction of Definition 6.1 against runs on all 40,320 orders of
+      eight layers, on all orders of every five of ten layers, and on random orders of the
+      ten; Theorems 3.3 and 5.2 on random runs of random stacks; Table 2 by trying every move
+      on every short view, and Proposition 3.5 on the three regular guarantees; Proposition 4.1
+      on random sets of patterns; Proposition 6.3 on stacks of layers that retry; nine planted
+      mistakes, each noticed; the rows of Tables 1 to 6; every number quoted in the text and
+      every sentence marked as a claim
+    by: make -C artifact check      # needs python3
