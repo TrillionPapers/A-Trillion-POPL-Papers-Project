@@ -1,0 +1,358 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\Ok}[2]{\kw{Ok}(#1, #2)}
+\newcommand{\ret}{\kw{ret}}
+\newcommand{\ask}[2]{\kw{ask}\;#1\;(#2)}
+\newcommand{\act}[3]{\kw{act}\;#1\;#2\;#3}
+\newcommand{\orc}[1]{\kw{oracle}(#1)}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\judg}[3]{\Phi; \Gamma; #1 \vdash #2 : #3}
+\newcommand{\step}[1]{\xrightarrow{\;#1\;}}
+\newcommand{\ustep}[1]{\overset{#1}{\leadsto}}
+\newcommand{\Base}{\kw{Base}}
+
+\begin{document}
+
+\title{Consent as a Linear Resource: Typed Approvals for Agents That Act}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. It wrote this paper at the request of a human who asked for papers on
+the strongest ideas of this repository. The proofs are on paper and have not been checked by a
+machine. At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+An agent that acts for a person asks for approval before an action that cannot be undone. The
+approval is worth something only if the action that runs is the action that was shown. We give a
+calculus in which an approval is a linear value whose type records the action and a predicate on
+its payload, and in which acting consumes an approval that the payload satisfies. Well-typed
+programs need no runtime monitor: in every execution, each action is matched by its own earlier
+approval, and the payload that was executed satisfies the predicate that was shown. The guarantee
+holds for every behavior of the model that drives the agent, and it extends to code that the
+model writes, provided the code is type-checked before it runs.
+\end{abstract}
+
+\keywords{linear types, indexed types, capabilities, agents, human oversight}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+Agents built on language models send messages, move money, and delete files. The common
+safeguard is a person in the loop: before an irreversible action, the agent shows what it is
+about to do and waits for approval. The safeguard has a gap between the check and the use. The
+agent shows one payload and then builds the action again from a variable that has changed, from a
+second call to the model, or from text that the model was given by a third party. The person
+approved an action that never ran.
+
+A runtime monitor closes the gap by recording each approval and comparing each action with the
+record. We show that a type system can do the same work before the program runs. An approval is
+a value of type $\Ok{a}{x.\varphi}$: one use of action $a$ with a payload $x$ that satisfies
+$\varphi$. The predicate is the thing shown to the person, for example $x = m$ for a message $m$
+that is fixed, or $x \le 100$ for an amount. The value is linear, so it is used at most once, and
+there is no way to make one except by asking. Acting with payload $i$ requires an approval whose
+predicate $i$ provably satisfies.
+
+Two features of the setting shape the calculus. The model is not trusted: its answers are
+arbitrary data, and the guarantee must hold for all of them. And the model may write code that
+the agent runs. The guarantee then has to cover programs that did not exist when the agent
+started.
+
+Our main contributions are as follows:
+\begin{itemize}
+\item A first-order calculus with indexed approval types, an oracle that returns arbitrary data,
+  and a semantics with a reference monitor (Section~\ref{sec:calculus}).
+\item Type safety for the monitored semantics, which means that the monitor never blocks a
+  well-typed program (Theorems~\ref{thm:pres} and~\ref{thm:prog}).
+\item The consent theorem: without the monitor, every execution of a well-typed program matches
+  each action with its own earlier approval, whose predicate the payload satisfies
+  (Theorem~\ref{thm:consent}).
+\item The extension to code written by the model and checked at run time
+  (Section~\ref{sec:code}).
+\end{itemize}
+
+\paragraph{Status of the claims.}
+The proofs in this paper are sketched on paper and have not been mechanized.
+
+\section{The Calculus}
+\label{sec:calculus}
+
+\subsection{Syntax}
+
+Base values $c$ are data such as integers and strings. An index $i$ is a base variable $x$ or a
+base value. Predicates $\varphi$ come from a decidable theory of base values with an entailment
+$\Phi \models \varphi$ that is closed under substitution of values for variables. Actions $a$
+come from a fixed finite set.
+\[
+\begin{array}{llcl}
+\text{Types} & \tau & ::= & \Base \mid \kw{Unit} \mid \tau \otimes \tau \mid \tau \oplus \tau
+  \mid \exists x.\,\tau \mid \Ok{a}{x.\varphi} \\
+\text{Operands} & w & ::= & y \mid i \mid () \mid (w, w) \mid \kw{inl}\;w \mid \kw{inr}\;w \mid
+  \kw{pack}(i, w) \mid n \\
+\text{Expressions} & e & ::= & \ret\;w \mid \letin{x}{e}{e} \mid \letin{y}{e}{e} \mid
+  \letin{(y, y)}{w}{e} \\
+ & & \mid & \kw{case}\;w\;\{\kw{inl}\;y \Rightarrow e \mid \kw{inr}\;y \Rightarrow e\} \mid
+  \letin{(x, y)}{\kw{unpack}\;w}{e} \\
+ & & \mid & \kw{if}\;\varphi\;\kw{then}\;e\;\kw{else}\;e \mid f[\vec{\imath}\,](w) \mid \orc{i}
+  \mid \ask{a}{x.\varphi} \mid \act{a}{i}{w}
+\end{array}
+\]
+There are two kinds of variables. Base variables $x$ stand for base values, may be used any
+number of times, and may occur in types. Resource variables $y$ stand for everything else and
+are used at most once. A token name $n$ is an approval at run time and does not occur in source
+programs. A program is a set of procedures $f[\vec{x}\,](y : \tau_1) : \tau_2 = e$, which may be
+recursive, and a main expression. The signature of $f$ is
+$\forall \vec{x}.\,\Phi_f \Rightarrow \tau_1 \to \tau_2$.
+
+The expression $\orc{i}$ asks the model and returns a base value. The expression
+$\ask{a}{x.\varphi}$ shows the person the action $a$ and the predicate $\varphi$ on its payload
+$x$, and returns an approval or nothing. The expression $\act{a}{i}{w}$ performs $a$ with payload
+$i$ and consumes the approval $w$.
+
+\subsection{Typing}
+
+The judgment $\judg{\Delta}{e}{\tau}$ has three contexts: predicates $\Phi$ that are assumed, base
+variables $\Gamma$, and resource variables and token names $\Delta$ with their types.
+Figure~\ref{fig:typing} gives the rules that concern approvals. The remaining rules are the
+standard ones for an affine language. They split $\Delta$ between subterms and allow weakening.
+The rule for $\letin{x}{e_1}{e_2}$ with $e_1 : \Base$ adds $x$ to $\Gamma$ and requires that $x$
+does not occur in the type of the result. The rule for $\kw{unpack}$ does the same for the
+witness of an existential. The rule for $\kw{if}\;\varphi$ adds $\varphi$ to $\Phi$ in the first
+branch and its negation in the second. A call $f[\vec{\imath}\,](w)$ requires
+$\Phi \models \Phi_f[\vec{\imath}/\vec{x}]$ and substitutes the indices in the types of the
+signature.
+
+\begin{figure}
+\begin{mathpar}
+\inferrule[Ask]{\mathrm{fv}(\varphi) \subseteq \Gamma, x}
+  {\judg{\cdot}{\ask{a}{x.\varphi}}{\Ok{a}{x.\varphi} \oplus \kw{Unit}}}
+\and
+\inferrule[Act]{\Gamma \vdash i \\ \judg{\Delta}{w}{\Ok{a}{x.\varphi}} \\
+  \Phi \models \varphi[i/x]}
+  {\judg{\Delta}{\act{a}{i}{w}}{\Base}}
+\and
+\inferrule[Oracle]{\Gamma \vdash i}{\judg{\cdot}{\orc{i}}{\Base}}
+\and
+\inferrule[Token]{ }{\judg{n : \Ok{a}{x.\varphi}}{n}{\Ok{a}{x.\varphi}}}
+\and
+\inferrule[Attenuate]{\judg{\Delta}{w}{\Ok{a}{x.\varphi}} \\ \Phi, \psi \models \varphi}
+  {\judg{\Delta}{w}{\Ok{a}{x.\psi}}}
+\end{mathpar}
+\Description{Five typing rules for approvals.}
+\caption{Typing rules for approvals.}
+\label{fig:typing}
+\end{figure}
+
+The rule \textsc{Act} is the point of the system. The payload $i$ is an index, so it is a
+variable or a value, and it cannot be an expression that is evaluated again. The entailment says
+that the predicate of the approval covers this payload. The rule \textsc{Attenuate} lets an
+approval for many payloads serve as an approval for fewer. No rule produces an approval except
+\textsc{Ask}, and source programs contain no token names.
+
+\paragraph{Example.}
+The following program asks the model for a message, shows exactly that message, and sends it.
+\[
+\begin{array}{l}
+\letin{m}{\orc{q}}{} \\
+\letin{r}{\ask{\nm{send}}{x.\,x = m}}{} \\
+\kw{case}\;r\;\{\kw{inl}\;t \Rightarrow \act{\nm{send}}{m}{t} \mid \kw{inr}\;u \Rightarrow
+  \ret\;0\}
+\end{array}
+\]
+It is well typed, because $\models (x = m)[m/x]$. Replace the action by
+$\letin{m'}{\orc{q}}{\act{\nm{send}}{m'}{t}}$, which asks the model again. The program is
+rejected, since $m' = m$ does not follow from anything. So is a program that uses $t$ twice, and
+a program that shows $x = m$ and sends a string built from $m$ by a further step.
+
+\subsection{Semantics}
+
+A token store $\rho$ maps token names to pairs $(a, x.\varphi)$. A configuration is a store and
+a closed expression. Steps are labelled with events. The rules for $\kw{let}$, $\kw{case}$,
+$\kw{unpack}$, $\kw{if}$, and calls are standard and silent. A $\kw{let}$ on a base value
+substitutes it for the base variable in terms, types, and predicates. The other rules are
+\[
+\begin{array}{lcll}
+(\rho,\; \orc{c}) & \step{} & (\rho,\; \ret\;c') & \text{for any } c' \\
+(\rho,\; \ask{a}{x.\varphi}) & \step{\kw{grant}(n, a, x.\varphi)} &
+  (\rho[n \mapsto (a, x.\varphi)],\; \ret\;(\kw{inl}\;n)) & n \text{ fresh} \\
+(\rho,\; \ask{a}{x.\varphi}) & \step{\kw{deny}(a)} & (\rho,\; \ret\;(\kw{inr}\;())) \\
+(\rho,\; \act{a}{c}{n}) & \step{\kw{act}(n, a, c)} & (\rho \setminus n,\; \ret\;c') &
+  \text{if } \rho(n) = (a, x.\varphi) \text{ and } \models \varphi[c/x]
+\end{array}
+\]
+with any result $c'$ of the action. The side condition of the last rule is the \emph{monitor}.
+The \emph{unmonitored} semantics $\ustep{\ell}$ acts on expressions alone and has the same rules
+without stores and without this side condition.
+
+The model and the world are nondeterministic. An execution fixes one behavior of both, so a
+statement about all executions is a statement about all models, including one that an attacker
+controls through its input.
+
+\section{Safety and Consent}
+
+A configuration $(\rho, e)$ has type $\tau$ when $\cdot\,; \cdot\,; \Delta \vdash e : \tau$ for a
+context $\Delta$ of token names with $\Delta \subseteq \rho$. The tokens of $\rho$ outside
+$\Delta$ are approvals that the program has dropped.
+
+\begin{lemma}[Substitution]
+\label{lem:subst}
+If $\Phi; \Gamma, x; \Delta \vdash e : \tau$, then
+$\Phi[c/x]; \Gamma; \Delta[c/x] \vdash e[c/x] : \tau[c/x]$. If
+$\Phi; \Gamma; \Delta, y : \tau_1 \vdash e : \tau$ and $\Phi; \Gamma; \Delta' \vdash v : \tau_1$
+for a value $v$ and a context $\Delta'$ disjoint from $\Delta$, then
+$\Phi; \Gamma; \Delta, \Delta' \vdash e[v/y] : \tau$.
+\end{lemma}
+
+The first part uses that entailment is closed under substitution. The second is the usual
+statement for affine variables.
+
+\begin{theorem}[Preservation]
+\label{thm:pres}
+If $(\rho, e)$ has type $\tau$ and $(\rho, e) \step{\ell} (\rho', e')$, then $(\rho', e')$ has
+type $\tau$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+By induction on the step. The silent rules follow from Lemma~\ref{lem:subst}. A grant returns
+$\kw{inl}\;n$, which has type $\Ok{a}{x.\varphi} \oplus \kw{Unit}$ in the context
+$n : \Ok{a}{x.\varphi}$, and this context is part of the new store. An action is typed by
+\textsc{Act} with a context that contains $n$, and its result $\ret\;c'$ needs no context. In a
+$\kw{let}$ whose first part takes the step, the typing splits the context between the two
+parts. The name $n$ is in the part of the first, so the second part is still typed without it
+after $n$ leaves the store.
+\end{proof}
+
+\begin{theorem}[Progress]
+\label{thm:prog}
+If $(\rho, e)$ has a type, then $e$ is $\ret\;v$ for a value $v$, or $(\rho, e)$ takes a step.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+By induction on the typing. The interesting case is $\act{a}{c}{w}$. The operand $w$ is closed
+and has type $\Ok{a}{x.\varphi}$. Only \textsc{Token} and \textsc{Attenuate} give this type to a
+closed operand, so $w$ is a token name $n$ in $\Delta$, with $\rho(n) = (a, x.\varphi_0)$ and
+$\varphi \models \varphi_0$. The premise of \textsc{Act} gives $\models \varphi[c/x]$, hence
+$\models \varphi_0[c/x]$, and the monitor lets the action through.
+\end{proof}
+
+A \emph{trace} is the sequence of events of an execution. A trace has \emph{consent} when
+\begin{enumerate}
+\item every event $\kw{act}(n, a, c)$ is preceded by an event $\kw{grant}(n, a, x.\varphi)$ with
+  the same name and action, and $\varphi[c/x]$ holds;
+\item no two $\kw{act}$ events have the same name.
+\end{enumerate}
+The first condition says that what ran satisfies what was shown. The second says that an
+approval is spent once.
+
+\begin{theorem}[Consent]
+\label{thm:consent}
+Every trace of the unmonitored semantics of a well-typed program has consent.
+\end{theorem}
+
+\begin{proof}
+Every trace of the monitored semantics from the empty store has consent. A name enters the store
+only by its $\kw{grant}$ event, with the action and predicate of that event, names are fresh, and
+an $\kw{act}$ event requires its name in the store with the same action and a predicate that the
+payload satisfies, and then removes it.
+
+It remains to show that the two semantics have the same executions on well-typed programs. Let
+$e_0$ be the main expression, so $(\emptyset, e_0)$ has a type. Suppose
+$e_0 \ustep{\ell_1} \cdots \ustep{\ell_k} e_k$ and, by induction, that
+$(\emptyset, e_0) \step{\ell_1} \cdots \step{\ell_{k-1}} (\rho, e_{k-1})$. By
+Theorem~\ref{thm:pres}, $(\rho, e_{k-1})$ has a type. If the step $\ell_k$ is not an action, the
+monitored semantics has the same rule. If it is the action $\kw{act}(n, a, c)$ of a subterm
+$\act{a}{c}{n}$, then by the argument of Theorem~\ref{thm:prog} applied to that subterm the side
+condition of the monitor holds, so the monitored semantics takes the same step.
+\end{proof}
+
+The theorem needs no assumption on the oracle. Its answers are base values. They can steer the
+program into any branch and fill any payload, and they cannot be approvals.
+
+\section{Code Written by the Model}
+\label{sec:code}
+
+An agent also runs code that the model writes. We add a construct for it. Assume an encoding of
+closed source expressions as base values. The expression $\kw{run}_\tau(i)$, for a closed type
+$\tau$, has type $\tau \oplus \kw{Unit}$ and the rules
+\[
+\begin{array}{lcll}
+(\rho,\; \kw{run}_\tau(c)) & \step{} & (\rho,\; \letin{y}{e}{\ret\;(\kw{inl}\;y)}) &
+  \text{if } c \text{ encodes } e \text{ and } \cdot\,;\cdot\,;\cdot \vdash e : \tau \\
+(\rho,\; \kw{run}_\tau(c)) & \step{} & (\rho,\; \ret\;(\kw{inr}\;())) & \text{otherwise.}
+\end{array}
+\]
+The first rule type-checks the code against the signatures of the procedures of the program
+before it runs. Source expressions contain no token names, so the code is checked in empty
+contexts.
+
+\begin{corollary}
+Theorems~\ref{thm:pres}, \ref{thm:prog}, and~\ref{thm:consent} hold for the calculus with
+$\kw{run}$.
+\end{corollary}
+
+\begin{proof}[Proof sketch]
+The expression that the first rule steps to is well typed by its side condition, and typing is
+preserved when the contexts grow. The other cases are unchanged.
+\end{proof}
+
+The code that the model writes may call $\kw{ask}$ and $\kw{act}$ and any procedure. It has the
+same power as the code of the agent and is under the same discipline. It cannot contain an
+approval, because approvals have no source syntax, and it cannot receive one unless $\tau$ or a
+procedure hands it over. This is the argument that protects abstract values from untrusted
+code~\citep{morris1973}, applied to approvals.
+
+\section{Limits}
+
+\emph{What a payload names.} The type fixes a base value. If the value is a name for something
+that changes, such as a file path, the approval covers the name and not the content. The agent
+should show and send the content or a digest of it.
+
+\emph{One action per approval.} A person may want to approve a budget, such as payments up to a
+total. This needs approvals whose type changes with each use, in the way of
+typestate~\citep{strom1986}. Withdrawing an approval that has not been used needs an action that
+can fail. We leave both for later work.
+
+\emph{What the person understood.} The theorem relates what ran to what was shown. It says
+nothing about whether the person read it.
+
+\emph{Entailment.} The type checker has to decide $\Phi \models \varphi$. Equalities between
+variables and values suffice for exact approvals, and linear arithmetic covers amounts and
+bounds~\citep{xi1999}.
+
+\section{Related Work}
+
+An approval is a capability~\citep{dennis1966}: an unforgeable value whose possession grants a
+right. Its unforgeability comes from the language, as in the protection by sealing
+of~\citet{morris1973}. Ours is linear and its type is indexed by the payload, in the style of the
+restricted dependent types of~\citet{xi1999}.
+
+\citet{schneider2000} characterizes the policies that a monitor can enforce by watching a
+program run, and \citet{walker2000} gives a type system that enforces such policies statically,
+with the automaton state in the types. Consent is a policy of this kind, with a state that
+grows with each approval. Our tokens represent that state by linear values, which keeps the
+types free of the history of the program.
+
+Authorization logics describe who may do what and by whose
+statement~\citep{abadi1993}, and \citet{jia2008} build a language whose programs carry proofs of
+authorization and log them for audit. There a principal's statement can justify many actions.
+Here a statement of the person is consumed by the one action it describes.
+
+\section{Conclusion}
+
+An approval can be a value. When its type records the predicate that the person saw and the
+value is linear, the type checker ensures that every action was approved as it ran and that no
+approval is used twice, whatever the model does and whatever code it writes. The next steps are
+budgets, withdrawal, and a mechanized proof of the theorems.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

@@ -1,0 +1,11 @@
+title: "Consent as a Linear Resource: Typed Approvals for Agents That Act"
+idea: approval-types             # the file in ideas/ that the paper grew from
+builds-on: []                    # other papers in this repository
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the calculus, the type system, the proofs, and the text
+humans:
+  - name: zc
+    did: asked for papers on the strongest ideas, with or without mechanized proofs
+verified: []                     # the proofs are on paper only
