@@ -1,0 +1,1111 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{mathpartir}
+\usepackage{booktabs}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\nm}[1]{\mathit{#1}}
+\newcommand{\letin}[3]{\kw{let}\;#1 = #2\;\kw{in}\;#3}
+\newcommand{\ite}[3]{\kw{if}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\doo}[2]{\kw{do}\;\nm{#1}(#2)}
+\newcommand{\onc}[2]{\kw{once}\;\nm{#1}(#2)}
+\newcommand{\once}[5]{\kw{once}\;#1(#2)\;\kw{as}\;#3\;\kw{then}\;#4\;\kw{else}\;#5}
+\newcommand{\raw}[2]{\kw{raw}\;\nm{#1}(#2)}
+\newcommand{\gate}[3]{\kw{gate}\;#1\;\kw{then}\;#2\;\kw{else}\;#3}
+\newcommand{\iter}[4]{\kw{iter}\;#1\;\kw{from}\;#2\;\kw{as}\;#3.\,#4}
+\newcommand{\res}[1]{\kw{res}(#1)}
+\newcommand{\lost}{\kw{lost}}
+\newcommand{\ver}[1]{\kw{ver}(#1)}
+\newcommand{\D}{\mathsf{D}}
+\newcommand{\Vl}{\mathsf{V}}
+\newcommand{\sem}[1]{[\![#1]\!]}
+\newcommand{\evto}{\Downarrow}
+\newcommand{\rqt}[1]{#1^{\circ}}
+\newcommand{\strip}[2]{\lfloor #2 \rfloor_{#1}}
+\newcommand{\rd}{\kw{read}}
+\newcommand{\idem}{\kw{idem}}
+\newcommand{\onceclass}{\kw{once}}
+
+% A display for programs. It measures its content and warns when the content is wider than the line.
+\newsavebox{\progbox}
+\newenvironment{prog}
+  {\begin{lrbox}{\progbox}$\displaystyle\begin{array}{@{}l@{\qquad}l@{}}}
+  {\end{array}$\end{lrbox}%
+   \ifdim\wd\progbox>\linewidth
+     \PackageWarning{paper}{Overfull program display by \the\dimexpr\wd\progbox-\linewidth\relax}%
+   \fi
+   \[\usebox{\progbox}\]\ignorespacesafterend}
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{A Crash Is a Lost Reply: Typed Journals for Agents That Restart}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs are on paper and have not been checked by a machine. A
+script implements the calculus and tests the theorems on random programs with random crashes.
+At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+An agent that works for hours calls a model hundreds of times and acts on the world in
+between, and somewhere on the way its process dies: a machine is reclaimed, or a new version
+is deployed. Durable execution keeps such a run alive. Every request is written to a journal,
+and a new process runs the program again from its start and takes the recorded answers from
+the journal instead of asking again. This works only if the program makes the same requests
+when it runs again, and it leaves open what becomes of the one request that was under way. We
+give a calculus for such programs. A request is a $\kw{do}$, for an action that may be
+repeated, or a $\kw{once}$, for an action that may not; a $\kw{once}$ has a second branch for
+the case that its reply is lost. A type system with two labels, durable and volatile, keeps
+what the journal does not hold, such as the clock, away from what it holds. We prove four
+statements. A well-typed program never gets stuck in replay, whatever the crashes and the
+versions. A run with crashes that ends is, as far as the world can tell, a run without
+crashes in which a $\kw{once}$ may lose its reply and a $\kw{do}$ may be made several times in
+a row; and every such run without crashes arises from some crashes. Each crash costs at most
+one repeated request or one lost reply. And versions of a program that differ by gates can
+replace one another in the middle of a run. So a program that handles a lost reply, as every
+program that talks over a network must, handles a crash. A script implements the calculus and
+tests the theorems on \exPrograms{} random programs with \exCrashes{} crashes; it refutes
+\exRules{} weakened typing rules and \exSteps{} weakened steps of the protocol. Without a
+journal, a task of a thousand calls with a one percent chance of a crash per call makes
+\exScratchc{} calls on average; with one, \exJournalc{}.
+\end{abstract}
+
+\keywords{durable execution, replay, crash recovery, idempotence, information flow, agents}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+An agent built on a language model is a loop. It calls the model, does what the model asks
+for, and calls the model again with the result. A task of any size takes hundreds of turns
+and runs for hours~\citep{tpp6}. A process does not reliably live that long. The machine is
+reclaimed, memory runs out, a new version is deployed. If the agent then starts again from
+nothing, it pays for every call a second time, and it does everything a second time: the
+message is sent twice, and so is the money.
+
+The remedy is known from workflow engines under the name of durable
+execution~\citep{burckhardt2021,temporal-workflow}. The program writes every request and
+every answer to a \emph{journal} that outlives the process. A new process runs the program
+again from its start. Where the program makes a request that the journal already answers, it
+takes the answer from the journal and nothing is sent. When the journal is used up, the
+program is where its predecessor died, with the same values in its variables, and it goes on.
+
+Replay puts three obligations on a program, and an agent breaks each of them easily.
+
+\emph{The same requests.} The journal fits only if the program, run again, makes the requests
+that it made before. A program that reads the clock, draws a random number, or calls a model
+without the journal may take another path the second time. The journal then does not fit, and
+the engine can only stop the run. Such a program passes every test in which nothing crashes.
+It fails in production, on the night a machine is lost.
+
+\emph{The request under way.} When a process dies between a request and the record of its
+answer, nobody knows whether the action happened. Repeating it is right for a query and wrong
+for a payment. Not repeating it leaves the program without an answer.
+
+\emph{New versions.} A deployment is a crash followed by a restart with another program. The
+prompt of an agent is part of that program. Whoever improves a prompt changes a request, and
+the journals of all runs that are under way stop fitting.
+
+This paper gives a calculus and a type system for these obligations, and it proves what a
+program that meets them gets in return.
+
+\paragraph{The calculus.} There are two forms of request. $\doo{a}{t}$ is for an action
+that may be performed again: a call of the model, a query, a write that is idempotent. If its
+answer was not recorded, the new process performs it again. The form
+$\once{a}{t}{x}{e_1}{e_2}$ is for an action that must not be performed again, such as a
+payment. If its answer was not recorded, the new process does not perform it; it records that
+the reply is \emph{lost} and continues with $e_2$, where the program has to find out what
+happened or ask. A third form, $\raw{a}{t}$, performs an action outside the journal. And
+$\gate{v}{e_1}{e_2}$ runs $e_1$ in the parts of a run that began under version $v$ or later,
+and $e_2$ in the older parts.
+
+\paragraph{The types.} A value is \emph{durable} if the journal determines it and
+\emph{volatile} otherwise. The result of a $\kw{raw}$ action is volatile, and so is everything
+computed from it. The type system keeps volatile values out of the arguments of requests and
+out of the tests that decide whether a request is made. It is a system of information flow
+with two labels~\citep{volpano1996}, and what it protects is the journal.
+
+\paragraph{Results.} We compare the machine, with its journal and its crashes, to a
+\emph{reference semantics} that has neither: a program runs once, from start to end. The one
+unusual rule of the reference semantics is that a $\kw{once}$ may lose its reply, as any
+request over a network may.
+\begin{itemize}
+\item \emph{Replay never gets stuck} (Theorem~\ref{thm:stuck}). For a well-typed program the
+  journal always fits, whatever the crashes, the replies, and the versions.
+\item \emph{A crash is a lost reply} (Theorems~\ref{thm:sound} and~\ref{thm:complete}). A run
+  with crashes that ends has the value and the world trace of a reference execution, in which
+  a $\kw{do}$ may be performed several times in a row. Conversely, every reference execution
+  is a run with suitable crashes. The first half holds for every program, typed or not: a
+  journal that is checked strictly never lets a run end wrongly. It lets it get stuck.
+\item \emph{A crash costs at most one} (Theorem~\ref{thm:cost}). The repeated performances and
+  the lost replies of a run together number at most its crashes. No rule for the request
+  under way can do better for an action that is not idempotent
+  (Proposition~\ref{prop:exactly}).
+\item \emph{Versions} (Theorem~\ref{thm:versions}). If all changes of a program are behind
+  gates, the old texts are the new text with a lower version, and a run may change from one to
+  the next at any crash. A change that is not behind a gate gets runs stuck, and so does a
+  deployment that is taken back.
+\end{itemize}
+Together these say that a crash adds nothing to what a careful program has to handle anyway.
+A program that deals with a lost reply at every $\kw{once}$, and that keeps the clock away
+from its requests, cannot tell a crash from a slow network.
+
+\paragraph{Tests.} The proofs are on paper. An artifact implements the checker, the machine,
+and the reference semantics, and tests each theorem on random programs with random crashes
+and deployments (Section~\ref{sec:tests}). It weakens the type system in \exRules{} ways and
+the protocol of the journal in \exSteps{} ways, and finds for each a run that the theorems
+exclude. It also shows why these defects are found late: of the programs that the checker
+rejects, \exQuietPercent{} percent show nothing wrong in twenty runs with crashes.
+
+\section{One Program, Three Runs}
+\label{sec:overview}
+
+\subsection{A Reply Is Lost}
+\label{sec:booking}
+
+The agent of this section books a journey. The model picks a fare, the fare is paid, and the
+receipt is filed.
+\begin{prog}
+\letin{f}{\doo{model}{0}}{} & \text{the model picks a fare}\\
+\kw{once}\;\nm{pay}(f)\;\kw{as}\;r\;\kw{then}\;\doo{put}{r} & \text{pay, and file the receipt}\\
+\phantom{\kw{once}\;\nm{pay}(f)\;\kw{as}\;r}\;\kw{else}\;\letin{s}{\doo{look}{f}}{\doo{put}{s}} & \text{the reply is lost: look it up, then file}
+\end{prog}
+The actions have classes. $\nm{model}$ and $\nm{look}$ are of class $\rd$: they change
+nothing. $\nm{put}$ is of class $\idem$: filing the same receipt twice in a row is the same
+as filing it once. $\nm{pay}$ is of class $\onceclass$.
+
+Suppose the process dies while the payment is under way. The journal then reads
+\[
+\ver{1} \cdot \doo{model}{0} \cdot \res{2} \cdot \onc{pay}{2}.
+\]
+The first entry marks the version of the program. The model was asked and answered $2$. The
+payment was requested, and that is the last thing the journal knows. The request was written
+before the payment was made, so the payment may have happened or not. In this run it
+happened, and the reply went down with the process.
+
+A new process runs the program from its start. At $\doo{model}{0}$ it finds the request and
+the answer $2$ in the journal, so the model is not called, and $f$ is $2$ as before. At
+$\onc{pay}{f}$ it finds the request without an answer. It does not pay again. It writes
+$\lost$ and takes the second branch, which looks up the payment and files what it finds. At
+the end the journal reads
+\[
+\ver{1} \cdot \doo{model}{0} \cdot \res{2} \cdot \onc{pay}{2} \cdot \lost \cdot \doo{look}{2}
+  \cdot \res{1} \cdot \doo{put}{1} \cdot \res{0},
+\]
+and the world has seen four actions: $\nm{model}(0)$, $\nm{pay}(2)$, $\nm{look}(2)$, and
+$\nm{put}(1)$. Each happened once.
+
+Nothing in this trace of the world says that a process died. It is the trace of a run without
+any crash in which the reply to the payment did not arrive. A program that pays over a network
+has to be ready for that, and the second branch of $\kw{once}$ makes the type checker insist
+on it. Theorem~\ref{thm:sound} says that this is general: for the world, a crash is a lost
+reply, and nothing else.
+
+Had the process died one step later, after the reply $\res{3}$ was written, the new process
+would have taken the first branch with $r = 3$. Had it died while the model was being called,
+the new process would have called the model again, which is harmless and costs one call.
+
+\subsection{What Must Not Reach the Journal}
+\label{sec:volatile}
+
+\begin{table}[t]
+\caption{Programs of Section~\ref{sec:overview} and what the checker of the artifact says. A
+verdict other than ``accepted'' is the reason for which the checker rejects the program.}
+\label{tab:verdicts}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Program & Verdict \\
+\midrule
+the booking program of \S\ref{sec:booking} & accepted \\
+$\letin{f}{\doo{model}{0}}{\doo{pay}{f}}$ & an action that must not be repeated \\
+$\letin{t}{\raw{clock}{0}}{\doo{put}{t}}$ & a request with a volatile argument \\
+$\letin{t}{\raw{clock}{0}}{\ite{t \le 1}{\doo{put}{1}}{0}}$ & a request under volatile control \\
+$\letin{t}{\doo{clock}{0}}{\ite{t \le 1}{\doo{put}{t}}{0}}$ & accepted \\
+$\letin{t}{\raw{clock}{0}}{\letin{u}{\raw{look}{t}}{\doo{put}{1}}}$ & accepted \\
+$\raw{mail}{1}$ & an effect outside the journal \\
+the booking program with the gate of \S\ref{sec:prompt} & accepted \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A $\kw{raw}$ action goes around the journal. It is performed whenever the program comes to
+it, in the first process and in every later one, and its result may differ each time. The
+third program in Table~\ref{tab:verdicts} reads the clock in this way and files the time.
+Suppose the process dies after the request $\doo{put}{2}$ is written. The next process reads
+another time, say $3$, and comes to the request $\doo{put}{3}$ where the journal has
+$\doo{put}{2}$. What should it do? If it trusts the journal, the program goes on believing
+that it filed $3$ while the world holds $2$. So the machine compares, finds that the journal
+does not fit, and stops: the run is \emph{stuck}. The fourth program is stuck in the same way
+when the clock decides whether a request is made at all.
+
+The checker rejects both programs. The value $t$ is volatile, and a volatile value may be
+neither the argument of a request nor the test above one. The fifth program reads the clock
+through the journal, with $\kw{do}$. The time is then recorded once and is the same in every
+process. The sixth program shows that volatile values are not forbidden: they may flow into
+other $\kw{raw}$ actions, such as a log, and into the result. They may only not flow into the
+journal.
+
+The second and the seventh program break the other rule, which concerns classes. A $\kw{do}$
+may be performed twice, so it must not pay. A $\kw{raw}$ action is performed by every process,
+so it must not have an effect at all.
+
+\subsection{A Prompt Is Code}
+\label{sec:prompt}
+
+The argument of $\nm{model}$ stands for the prompt. Suppose the author improves it, so that
+the first line of the program becomes $\letin{f}{\doo{model}{1}}{}$, and deploys the new
+text while a run is under way whose journal begins with
+$\ver{1} \cdot \doo{model}{0} \cdot \res{2}$. The next process of that run asks
+$\doo{model}{1}$ where the journal has $\doo{model}{0}$, and the run is stuck. An edit of a
+prompt is a change of the program, and the journal notices.
+
+The remedy is to keep both versions in the text, behind a gate:
+\begin{prog}
+\letin{f}{\gate{2}{\doo{model}{1}}{\doo{model}{0}}}{\ldots}
+\end{prog}
+A gate asks under which version the present part of the run began. The journal knows: it
+holds a mark $\ver{v}$ wherever a process with a newer version first went beyond the end of
+the journal. In the run above, the new process comes to the gate with the cursor at the
+start, where the mark $\ver{1}$ stands. So it takes the old branch, and its request fits the
+journal. When it reaches the end of the journal it writes the mark $\ver{2}$, and every gate
+after that point takes its new branch. A run that starts after the deployment takes the new
+branch everywhere. Theorem~\ref{thm:versions} says that this is safe in general, and that the
+old text is the new text run with the old version. The versions must not go down: if the old
+text is deployed again after a run has passed the mark $\ver{2}$, the old text has nothing to
+say about the requests behind the mark, and the run is stuck.
+
+\section{The Calculus}
+\label{sec:calculus}
+
+\subsection{Syntax}
+
+\begin{figure}[t]
+\[
+\begin{array}{@{}l@{\quad}r@{\;}l@{}}
+\text{terms} & t ::= & x \mid n \mid t + t \\
+\text{tests} & b ::= & t = t \mid t \le t \\
+\text{expressions} & e ::= & t \mid \letin{x}{e}{e} \mid \ite{b}{e}{e} \mid \iter{n}{t}{x}{e} \\
+ & \mid & \kw{do}\;a(t) \mid \once{a}{t}{x}{e}{e} \mid \kw{raw}\;a(t) \mid \gate{v}{e}{e} \\[1ex]
+\text{entries} & & \ver{v} \mid \kw{do}\;a(c) \mid \kw{once}\;a(c) \mid \res{r} \mid \lost \\
+\text{events of the world} & & a(c){:}r \mid \kw{raw}\;a(c){:}r
+\end{array}
+\]
+\Description{The grammar of terms, tests, expressions, journal entries, and events.}
+\caption{Syntax. The letter $a$ ranges over actions, each of which has a class, $\rd$,
+$\idem$, or $\onceclass$; $n$, $c$, and $r$ range over numbers, $x$ over variables, and $v$
+over versions, which are positive numbers.}
+\label{fig:syntax}
+\end{figure}
+
+Figure~\ref{fig:syntax} gives the syntax. Values are numbers. An action takes a number and
+replies with a number; the number stands for whatever is sent and received. Every action has a
+\emph{class}. An action of class $\rd$ changes nothing in the world. An action of class
+$\idem$ has an effect, and performing it several times in a row, with the same argument, has
+the effect of performing it once. An action of class $\onceclass$ has an effect that counts
+every time. The classes are claims about the world, and the calculus takes them as given.
+
+Loops are bounded and there are no functions, so every program ends. A loop
+$\iter{n}{t}{x}{e}$ has a state $x$. The state starts as the value of $t$, and each of the $n$
+turns evaluates $e$ and makes its value the new state.
+
+\subsection{The Machine}
+\label{sec:machine}
+
+A \emph{journal} is a sequence of entries: marks $\ver{v}$, requests $\kw{do}\;a(c)$ and
+$\kw{once}\;a(c)$, and answers $\res{r}$ and $\lost$. A \emph{world trace} is a sequence of
+events: $a(c){:}r$ for an action that was performed for a request, and $\kw{raw}\;a(c){:}r$
+for one that was performed outside the journal. The journal $J$ and the world trace $W$
+outlive a process. Everything else is lost when a process dies.
+
+An \emph{attempt} is one process. It is given the journal, the world trace, and the version
+$\hat v$ under which it is deployed. It evaluates the program from its start, with a
+\emph{cursor} $i$ into the journal, at first $0$, and a \emph{current version} $u$, at first
+$0$. Variables, tests, and loops are evaluated as usual. The other forms use the journal.
+
+\begin{table}[t]
+\caption{What a request $\kappa\;a(c)$ does, where $\kappa$ is $\kw{do}$ or $\kw{once}$,
+after the version has been brought up to date. ``This request'' is the entry $\kappa\;a(c)$.
+The steps are made from left to right, and the process may die before any of them.}
+\label{tab:protocol}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+ & At the cursor & Steps & Answer \\
+\midrule
+1 & the end of the journal & write this request; perform $a(c)$, reply $r$; write $\res{r}$ & $r$ \\
+2 & this request, then $\res{r}$ & none & $r$ \\
+3 & this request, then $\lost$ & none & lost \\
+4 & this request as the last entry, $\kappa = \kw{do}$ & perform $a(c)$, reply $r$; write $\res{r}$ & $r$ \\
+5 & this request as the last entry, $\kappa = \kw{once}$ & write $\lost$ & lost \\
+6 & anything else & none & stuck \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Versions.} Before a request and at a gate, the attempt brings its version up to
+date. While the entry at the cursor is a mark $\ver{v}$, it sets $u$ to $v$ and moves the
+cursor past the mark. If the cursor is then at the end of the journal and $u < \hat v$, it
+writes the mark $\ver{\hat v}$ and sets $u$ to $\hat v$. So a mark stands where a newer
+version first went beyond what older versions had recorded.
+
+\paragraph{Requests.} Table~\ref{tab:protocol} says what a request does. At the end of the
+journal the attempt is \emph{live}: it writes the request, performs the action, and writes the
+reply (row 1). The request is written first, so that a process which dies while the action is
+under way leaves a trace of it. Before the end of the journal the attempt \emph{replays}: if
+the journal holds this request with an answer, the answer is taken and nothing is performed
+(rows 2 and 3). If the journal holds this request as its last entry, the attempt that wrote
+it died before it could write an answer. A $\kw{do}$ is then performed, perhaps for the
+second time (row 4). A $\kw{once}$ is not: its reply is recorded as lost (row 5). If the
+entry at the cursor is anything but this request, the journal does not fit the program, and
+the run is stuck (row 6). The value of $\kw{do}\;a(t)$ is the reply. The expression
+$\once{a}{t}{x}{e_1}{e_2}$ goes on with $e_1$, where $x$ is the reply, or with $e_2$ if the
+reply is lost. Every write moves the cursor to the new end of the journal, and every
+performed action adds the event $a(c){:}r$ to the world trace.
+
+\paragraph{The other forms.} $\gate{v}{e_1}{e_2}$ brings the version up to date and goes on
+with $e_1$ if $u \ge v$ and with $e_2$ otherwise. $\kw{raw}\;a(t)$ performs the action and
+adds $\kw{raw}\;a(c){:}r$ to the world trace; its value is the reply. When the program has
+its value, the attempt moves the cursor past any marks. If the cursor is then not at the end
+of the journal, the run is stuck: the journal holds requests that this attempt did not make.
+
+\paragraph{Runs.} An attempt ends in one of three ways: with a value, stuck, or because the
+process dies, which can happen at any moment and leaves $J$ and $W$ as they are. A \emph{run}
+is a sequence of attempts on the same program. The first starts with an empty journal and an
+empty world trace. Each of the others starts with the $J$ and $W$ that its predecessor left,
+under a version of its own. All attempts but the last die, and the last one ends with a value
+or stuck. The replies of the world are arbitrary, so a statement about all runs is a
+statement about every world, every model, and every way in which processes die.
+
+A journal of a run always has a simple shape, which we call \emph{well formed}: marks, and
+requests each followed by its answer, where $\lost$ answers only a $\kw{once}$; the last entry
+may be a request without an answer, which we call \emph{open}.
+
+\subsection{The Reference Semantics}
+\label{sec:reference}
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Term]{ }{\rho; k \vdash t \evto \sem{t}\rho; k; \epsilon}
+\and
+\inferrule*[right=Raw]{c = \sem{t}\rho}{\rho; k \vdash \kw{raw}\;a(t) \evto r; k; \kw{raw}\;a(c){:}r}
+\and
+\inferrule*[right=Do]{c = \sem{t}\rho}{\rho; k \vdash \kw{do}\;a(t) \evto r; k + 1; \kw{do}\;a(c){:}r}
+\and
+\inferrule*[right=Let]{\rho; k \vdash e_1 \evto v_1; k_1; T_1 \\ \rho[x \mapsto v_1]; k_1 \vdash e_2 \evto v_2; k_2; T_2}
+  {\rho; k \vdash \letin{x}{e_1}{e_2} \evto v_2; k_2; T_1 T_2}
+\and
+\inferrule*[right=Once-Res]{c = \sem{t}\rho \\ \rho[x \mapsto r]; k + 1 \vdash e_1 \evto v; k'; T}
+  {\rho; k \vdash \once{a}{t}{x}{e_1}{e_2} \evto v; k'; \kw{once}\;a(c){:}r \cdot T}
+\and
+\inferrule*[right=Once-Lost]{c = \sem{t}\rho \\ \rho; k + 1 \vdash e_2 \evto v; k'; T}
+  {\rho; k \vdash \once{a}{t}{x}{e_1}{e_2} \evto v; k'; \kw{lost}\;a(c) \cdot T}
+\and
+\inferrule*[right=Gate-New]{\kappa(k) \ge v \\ \rho; k \vdash e_1 \evto v'; k'; T}
+  {\rho; k \vdash \gate{v}{e_1}{e_2} \evto v'; k'; T}
+\and
+\inferrule*[right=Gate-Old]{\kappa(k) < v \\ \rho; k \vdash e_2 \evto v'; k'; T}
+  {\rho; k \vdash \gate{v}{e_1}{e_2} \evto v'; k'; T}
+\end{mathpar}
+\Description{Eight rules of a big-step semantics with a counter of requests and a trace.}
+\caption{The reference semantics, for a fixed schedule $\kappa$ of versions. The rules for
+conditionals and loops are the usual ones; like \textsc{Let}, they pass the counter along and
+join the traces. The reply $r$ in \textsc{Raw}, \textsc{Do}, and \textsc{Once-Res} is any
+number.}
+\label{fig:reference}
+\end{figure}
+
+The reference semantics says what a program does when nothing crashes. It has no journal and
+no cursor. The judgment $\rho; k \vdash e \evto v; k'; T$ of Figure~\ref{fig:reference} says
+that $e$, in the environment $\rho$ and after $k$ requests, has the value $v$ after $k'$
+requests, with the trace $T$. A trace is a sequence of events $\kw{do}\;a(c){:}r$,
+$\kw{once}\;a(c){:}r$, $\kw{lost}\;a(c)$, and $\kw{raw}\;a(c){:}r$. We write $\rqt{T}$ for $T$
+without its $\kw{raw}$ events and call it the \emph{request trace}.
+
+Two rules are not the usual ones. \textsc{Once-Lost} lets a $\kw{once}$ go without a reply.
+The rule can always be applied, and it does not say whether the action happened. It models
+what any program that sends a request over a network must expect. The two rules for gates
+read the version from a \emph{schedule} $\kappa$, a function from numbers to versions that
+never goes down: $\kappa(k)$ is the version that is in force after $k$ requests. A schedule
+that is constant describes a run under one version.
+
+\begin{definition}[Traces of the world]
+\label{def:trace}
+A world trace $W$ \emph{belongs to} a trace $T$ if the events of $W$ that are not $\kw{raw}$
+events are, in order, the following: for every event $\kw{do}\;a(c){:}r$ of $T$, one or more
+events $a(c){:}r'$, of which the last has the reply $r$; for every event
+$\kw{once}\;a(c){:}r$, the one event $a(c){:}r$; and for every event $\kw{lost}\;a(c)$, at
+most one event $a(c){:}r'$.
+\end{definition}
+
+So a $\kw{do}$ may be performed several times, but only in a row, with nothing else between
+the performances except $\kw{raw}$ actions. For an action of class $\rd$ or $\idem$ that is
+the same as performing it once, by what the classes mean.
+
+\section{Types}
+\label{sec:types}
+
+\begin{figure}[t]
+\begin{mathpar}
+\inferrule*[right=Term]{\Gamma \vdash t : \ell}{\Gamma; pc \vdash t : \ell}
+\and
+\inferrule*[right=Raw]{\text{$a$ has class $\rd$}}{\Gamma; pc \vdash \kw{raw}\;a(t) : \Vl}
+\and
+\inferrule*[right=Do]{\Gamma \vdash t : \D \\ pc = \D \\ \text{$a$ has class $\rd$ or $\idem$}}
+  {\Gamma; pc \vdash \kw{do}\;a(t) : \D}
+\and
+\inferrule*[right=Once]{\Gamma \vdash t : \D \\ pc = \D \\ \Gamma, x{:}\D; pc \vdash e_1 : \ell_1 \\ \Gamma; pc \vdash e_2 : \ell_2}
+  {\Gamma; pc \vdash \once{a}{t}{x}{e_1}{e_2} : \ell_1 \sqcup \ell_2}
+\and
+\inferrule*[right=Let]{\Gamma; pc \vdash e_1 : \ell_1 \\ \Gamma, x{:}\ell_1; pc \vdash e_2 : \ell_2}
+  {\Gamma; pc \vdash \letin{x}{e_1}{e_2} : \ell_2}
+\and
+\inferrule*[right=If]{\Gamma \vdash b : \ell \\ \Gamma; pc \sqcup \ell \vdash e_1 : \ell_1 \\ \Gamma; pc \sqcup \ell \vdash e_2 : \ell_2}
+  {\Gamma; pc \vdash \ite{b}{e_1}{e_2} : \ell \sqcup \ell_1 \sqcup \ell_2}
+\and
+\inferrule*[right=Gate]{\Gamma; pc \vdash e_1 : \ell_1 \\ \Gamma; pc \vdash e_2 : \ell_2}
+  {\Gamma; pc \vdash \gate{v}{e_1}{e_2} : \ell_1 \sqcup \ell_2}
+\and
+\inferrule*[right=Iter]{\Gamma \vdash t : \ell_0 \\ \Gamma, x{:}\ell; pc \vdash e : \ell' \\ \ell_0 \sqcup \ell' \sqsubseteq \ell}
+  {\Gamma; pc \vdash \iter{n}{t}{x}{e} : \ell}
+\end{mathpar}
+\Description{Eight typing rules with labels D and V and a program counter label.}
+\caption{Typing. Labels are $\D$, durable, and $\Vl$, volatile, with
+$\D \sqsubseteq \Vl$. The judgment $\Gamma \vdash t : \ell$ says that $\ell$ is the join of the
+labels of the variables of the term $t$, which is $\D$ if there are none; the label of a test
+is the join of the labels of its two terms.}
+\label{fig:typing}
+\end{figure}
+
+There are two labels, $\D$ for durable and $\Vl$ for volatile, with $\D$ below $\Vl$. The
+judgment $\Gamma; pc \vdash e : \ell$ of Figure~\ref{fig:typing} gives the expression $e$ the
+label $\ell$, where $\Gamma$ gives a label to every variable and $pc$ is the label of the
+tests that decide whether $e$ is evaluated. A program is \emph{well typed} if it has a label
+with no variables and $pc = \D$.
+
+The rules are those of a type system for information flow~\citep{volpano1996,sabelfeld2003},
+with the journal in the place of the public output. The reply to a request is durable: the
+journal holds it, and every process reads the same. The reply to a $\kw{raw}$ action is
+volatile. \textsc{If} raises $pc$ to the label of its test, and \textsc{Do} and \textsc{Once}
+ask for $pc = \D$ and a durable argument. So what a program asks, and whether it asks, depend
+on durable values only.
+
+A gate does not raise $pc$. The version that it reads comes from the marks of the journal,
+and it is as durable as a reply. A gate may also stand under a volatile test. It then writes
+a mark in one process and perhaps not in another, and Section~\ref{sec:results} shows that
+this does no harm, because a mark is read by position and never compared.
+
+The classes enter in two rules. \textsc{Do} excludes actions of class $\onceclass$, since row
+4 of Table~\ref{tab:protocol} may perform a $\kw{do}$ twice. \textsc{Raw} admits only class
+$\rd$, since every process of a run performs the $\kw{raw}$ actions on its path. A
+$\kw{once}$ may be used for any class; for an action that is idempotent it is merely more
+careful than necessary.
+
+The checker of the artifact computes the least label of an expression, and for a loop the
+least label of its state. It has fewer than fifty lines.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Requests Are Durable}
+
+An execution of the reference semantics can be cut short. A \emph{stopped} execution is a
+derivation that ends at some point before its value; its trace is the trace up to that
+point. If it stops while a request waits for its answer, the trace ends with an \emph{open}
+event $\kw{do}\;a(c){:}{?}$ or $\kw{once}\;a(c){:}{?}$. Two events are \emph{answers to the
+same request} if they agree in everything but the reply, where $\kw{lost}\;a(c)$ counts as an
+answer to $\kw{once}\;a(c)$. An open event counts as the beginning of every answer to its
+request: a trace that ends with it is a prefix of the traces that go on with an answer.
+
+\begin{lemma}[Requests are durable]
+\label{lem:durable}
+Let $\Gamma; pc \vdash e : \ell$, and let $\rho_1$ and $\rho_2$ agree on the variables that
+$\Gamma$ labels $\D$. Take two executions of $e$, complete or stopped, in $\rho_1$ and in
+$\rho_2$, with the same schedule and the same counter $k$, and let $T_1$ and $T_2$ be their
+traces.
+\begin{enumerate}
+\item Either one of $\rqt{T_1}$ and $\rqt{T_2}$ is a prefix of the other, or they have the forms
+  $S \cdot \alpha_1 \cdot S_1$ and $S \cdot \alpha_2 \cdot S_2$ for two different answers
+  $\alpha_1$ and $\alpha_2$ to the same request.
+\item If the first execution is complete and $\rqt{T_1}$ is a prefix of $\rqt{T_2}$, then
+  $\rqt{T_1} = \rqt{T_2}$. If the second is complete as well, the two end with the same counter,
+  and with the same value if $\ell = \D$.
+\item If $pc = \Vl$, then $\rqt{T_1}$ and $\rqt{T_2}$ are empty.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(3) holds because \textsc{Do} and \textsc{Once} need $pc = \D$, and no rule lowers $pc$
+towards a subexpression. For (1) and (2) we go by induction on $e$. We show the cases for
+complete executions; a stopped execution stops inside a subexpression, where the induction
+hypothesis applies, or between two, where its trace is a prefix.
+
+\emph{Term and Raw.} There are no requests. A term with the label $\D$ has only variables on
+which the environments agree. A $\kw{raw}$ action has the label $\Vl$.
+
+\emph{Do.} The argument is durable, so it is the same number $c$ in both executions. The
+request traces are $\kw{do}\;a(c){:}r_1$ and $\kw{do}\;a(c){:}r_2$. If the replies are the
+same, so are the traces and the values. Otherwise they are two answers to the same request.
+
+\emph{Once.} The request is the same, as for \textsc{Do}. If the answers differ, we are done.
+If both are the reply $r$, the executions go on with $e_1$ in environments that agree on
+durable variables, $x$ among them, from the same counter. If both are lost, they go on with
+$e_2$. The induction hypothesis applies.
+
+\emph{Gate.} Both executions read $\kappa(k)$ and take the same branch.
+
+\emph{If.} If the test is durable, both executions take the same branch. If it is volatile,
+the branches are typed with $pc = \Vl$ and make no requests by (3), and the label of the
+conditional is $\Vl$.
+
+\emph{Let.} By the induction hypothesis for $e_1$, the request traces of $e_1$ differ in an
+answer, and then so do the whole traces, or they are equal. In the second case the counters
+are equal, and the values are equal if the label of $e_1$ is $\D$. The environments for $e_2$
+then agree on durable variables, and the induction hypothesis applies to $e_2$.
+
+\emph{Iter.} By induction on the number of turns, each turn as in \textsc{Let}. The label
+$\ell$ of the state is above the label of the body, so the states of the two executions agree
+after every turn if $\ell = \D$.
+\end{proof}
+
+The lemma is a noninterference property: the requests of a program do not depend on its
+volatile values. What is specific to journals is the form of the conclusion. Two executions
+of a well-typed program can differ in their requests only \emph{after} they have received
+different answers.
+
+\subsection{Replay Never Gets Stuck}
+
+\begin{definition}[Recording]
+\label{def:records}
+A journal $J$ \emph{records} an execution of $e$, complete or stopped, with the schedule
+$\kappa$, if $J$ is well formed; the requests of $J$ with their answers are, in order, the
+events of the request trace of the execution, where a request without an answer in $J$ is an
+open event; and for every $k$ below the number of requests of $J$, $\kappa(k)$ is the last
+mark of $J$ before its request number $k + 1$.
+\end{definition}
+
+\begin{theorem}[Replay never gets stuck]
+\label{thm:stuck}
+Let $e$ be well typed. Then no attempt of a run of $e$ is stuck, whatever the replies, the
+versions, and the moments at which processes die. After every attempt, the journal records an
+execution of $e$.
+\end{theorem}
+
+\begin{proof}
+By induction on the number of attempts. The empty journal records the execution that is
+stopped at its start. Let $J$ record an execution $X$, and let $B$ be the next attempt. As
+long as it runs, $B$ is an execution of $e$ in the reference semantics, stopped where $B$
+is: its answers are the ones that it reads or writes, its $\kw{raw}$ replies are the ones
+that it receives, and its schedule gives, after $k$ requests, the version $u$ that it holds
+once its version is up to date. While the cursor of $B$ is before the end of $J$, the answers
+that $B$ has read are those of $X$, and the versions that it has held are those of the
+schedule of $X$, by Definition~\ref{def:records}.
+
+\emph{$B$ is not stuck at a request.} Let $B$ come to a request after $m$ requests, with the
+cursor before the end of $J$. The request trace of $B$, stopped here, consists of $m$
+answered requests and an open one. The $m$ answered requests are the first $m$ events of the
+request trace of $X$, which has a further event, because $J$ has a further request. The
+schedules of $B$ and of $X$ agree up to this request, and the lemma uses no more of them. By
+Lemma~\ref{lem:durable}(1) the two events number $m + 1$ are answers to the same request. So
+the entry at the cursor is the request of $B$, and row 6 of Table~\ref{tab:protocol} does not
+apply for this reason. Nor does it apply because of the answer: if the entry is followed by
+$\lost$, it is a $\kw{once}$, because $J$ is well formed.
+
+\emph{$B$ is not stuck at its end.} If $B$ had its value with requests of $J$ left over, the
+request trace of $B$, which is complete, would be a proper prefix of that of $X$. This
+contradicts Lemma~\ref{lem:durable}(2).
+
+\emph{The journal after $B$.} If $B$ dies before it writes anything, the journal is $J$ and
+records $X$. Otherwise consider the first write of $B$. At that moment the cursor is at the
+end of $J$, or $J$ ends with an open request that $B$ has just matched. All requests and
+answers of $J$ have been matched by $B$, and all its marks have been read by $B$ at the
+places where they stand. So $J$ records the execution of $B$ up to this point, and from here
+on $B$ writes what it does: each mark where its version rises, each request before it is
+made, each answer when it is known. Whenever $B$ dies or ends, the journal records the
+execution of $B$, stopped at its last write or complete.
+\end{proof}
+
+The theorem needs no order among the versions. With one program text, a process of an older
+version writes no mark and follows the marks that are there.
+
+\subsection{A Crash Is a Lost Reply}
+
+\begin{lemma}[The journal counts]
+\label{lem:counts}
+At every moment of a run, of any program, the events of $W$ that are not $\kw{raw}$ events
+fall into consecutive groups, one for each request of $J$ in order, such that the group of a
+request for $a(c)$ consists of events $a(c){:}r'$ and
+\begin{itemize}
+\item for a $\kw{do}$ with the answer $\res{r}$, the group is not empty and its last reply is
+  $r$; for a $\kw{do}$ that is open, the group may be empty;
+\item for a $\kw{once}$ with the answer $\res{r}$, the group is the one event $a(c){:}r$;
+\item for a $\kw{once}$ that is open or answered by $\lost$, the group has at most one event.
+\end{itemize}
+\end{lemma}
+
+\begin{proof}
+By Table~\ref{tab:protocol}. An action is performed for a request in two places only. In row
+1 the request has just been written at the end of the journal, and the reply is written next.
+In row 4 the request is a $\kw{do}$ and the last entry of the journal. In both, the request is
+the last one of the journal, so its events come after those of all other requests, and they
+are consecutive. A $\kw{once}$ is performed in row 1 only, by the attempt that writes it.
+\end{proof}
+
+\begin{theorem}[A crash is a lost reply]
+\label{thm:sound}
+Let a run of a program $e$, well typed or not, end with the value $v$, the journal $J$, and
+the world trace $W$. Then there is a complete execution of $e$ in the reference semantics
+that has the value $v$, that is recorded by $J$, and to whose trace $W$ belongs.
+
+If $e$ is well typed, then every run in which only finitely many processes die ends with a
+value; in its world trace, the events of a request for an action of class $\onceclass$ are at
+most one, and all $\kw{raw}$ events are of class $\rd$.
+\end{theorem}
+
+\begin{proof}
+Let $B$ be the last attempt. It ends with $v$ and is not stuck, so it has matched every
+request of the journal that it found, has read every mark, and has written the rest. As in
+the proof of Theorem~\ref{thm:stuck}, $B$ is a complete execution in the reference semantics,
+and $J$ records it; that part of the proof does not use the types. By
+Lemma~\ref{lem:counts}, the events of $W$ fall into groups that are exactly what
+Definition~\ref{def:trace} asks of the trace of this execution: an answer $\res{r}$ to a
+$\kw{do}$ is the event $\kw{do}\;a(c){:}r$, and so on.
+
+For a well-typed program, no attempt is stuck by Theorem~\ref{thm:stuck}, and every attempt
+that does not die ends, because programs end. The rule \textsc{Do} excludes the class
+$\onceclass$, so by Lemma~\ref{lem:counts} only a $\kw{once}$ performs such an action, at most
+once for a request. The rule \textsc{Raw} admits the class $\rd$ only.
+\end{proof}
+
+The first half of the theorem is about every program. A journal that is compared strictly
+never lets a run end with a wrong account of what happened: if the program has left the path
+that the journal recorded, the run gets stuck. So the strict comparison alone gives safety,
+at run time. What the types add is that the run does not get stuck. They are about progress.
+
+The theorem is also tight.
+
+\begin{theorem}[Every reference execution is a run]
+\label{thm:complete}
+Let $e$ have a complete execution in the reference semantics with the value $v$, the trace
+$T$, and a schedule $\kappa$ with $\kappa(0) \ge 1$. Let $W$ be a world trace without
+$\kw{raw}$ events that belongs to $T$ and has exactly one event for each $\kw{do}$ event of
+$T$. Then there is a run of $e$ that ends with the value $v$, whose world trace is $W$ apart
+from $\kw{raw}$ events, and whose journal records the execution.
+\end{theorem}
+
+\begin{proof}
+We choose the replies, the versions, and the deaths. The world gives the replies of $T$, and
+it gives every attempt the same replies to its $\kw{raw}$ actions, in the same order. Then
+every attempt follows the path of the execution as far as it gets, since the reference
+semantics is deterministic once the answers, the versions, and the $\kw{raw}$ replies are
+fixed. The first attempt has the version $\kappa(0)$. A process dies in two situations. When
+it has written a $\kw{once}$ whose answer in $T$ is lost, it dies before it performs the
+action or just after, according to whether $W$ has an event for it; the next attempt writes
+$\lost$ by row 5. And when it has made $k$ requests and $\kappa(k)$ is above its version, it
+dies before its next step, and the next attempt has the version $\kappa(k)$ and writes its
+mark at this place. Nothing is performed twice, so the world trace is $W$ apart from the
+$\kw{raw}$ events of the attempts.
+\end{proof}
+
+So the runs of a program under crashes and the executions of the reference semantics are the
+same, as far as values and the world are concerned, except that a $\kw{do}$ may happen more
+than once in a row. Whoever wants to know what a program can do when processes die may forget
+the journal and read the program with the rule \textsc{Once-Lost} in mind.
+
+\subsection{What a Crash Costs}
+
+\begin{theorem}[A crash costs at most one]
+\label{thm:cost}
+In every run, the number of performances of $\kw{do}$ requests beyond the first of each
+request, plus the number of answers $\lost$, is at most the number of processes that died.
+\end{theorem}
+
+\begin{proof}
+A request is open from the moment it is written until its answer is written, and at most one
+request is open at a time. We charge to each request the processes that die while it is open.
+Every attempt performs a given request at most once. If a $\kw{do}$ is performed by $n$
+attempts, each of them but the last died after performing it and before writing the reply, so
+$n - 1$ deaths are charged to it. If a $\kw{once}$ is answered by $\lost$, the answer was
+written in row 5 by an attempt that found the request open, so at least one death is charged
+to it. A $\kw{once}$ is not performed twice, and a $\kw{do}$ is not lost.
+\end{proof}
+
+For an agent, most requests are calls of the model. A crash wastes at most the one call that
+was under way. It wastes nothing if the process died between two calls.
+
+Could the machine do better than rows 4 and 5, and perform the action exactly once?
+
+\begin{proposition}[No exactly once]
+\label{prop:exactly}
+Consider an action that can only be performed, and a rule that decides from the journal
+whether the new process performs an open request for it. No such rule has the action
+performed exactly once in every run.
+\end{proposition}
+
+\begin{proof}
+Take two runs. In one the process dies just before it performs the action, in the other
+just after. Both leave the same journal, which ends with the open request. A rule that
+performs the action performs it a second time in the second run. A rule that does not leaves
+it undone in the first.
+\end{proof}
+
+This is the old observation that a failure between an action and its record cannot be hidden
+from the application~\citep{saltzer1984,elnozahy2002}. The two forms of request are the two
+ways out. $\kw{do}$ performs again and is right if repetition is harmless. $\kw{once}$ does
+not, and tells the program. A world that lets the program look, as $\nm{look}$ does in
+Section~\ref{sec:booking}, or that accepts a key with each request and ignores a key that it
+has seen, turns the second case into the first.
+
+\subsection{Versions}
+
+Let $\strip{c}{e}$ be the program $e$ in which every gate with a version above $c$ is replaced
+by its second branch. We read $e$ as the newest text of a program, and $\strip{c}{e}$ as the
+text that was deployed as version $c$. An author who puts every change behind a gate with a
+new version number produces texts that are related in this way.
+
+A mark of a journal is \emph{redundant} if no request stands between it and the next mark or
+the end.
+
+\begin{theorem}[Versions]
+\label{thm:versions}
+Let $c_1 \le c_2 \le \cdots$ be versions. Consider the runs in which attempt $j$ executes the
+text $\strip{c_j}{e}$ under the version $c_j$, and the runs in which attempt $j$ executes $e$
+under the version $c_j$. Both have the same values, the same world traces, and the same
+journals up to redundant marks. If $e$ is well typed, then so is every $\strip{c}{e}$, and no
+run of the first kind is stuck.
+\end{theorem}
+
+\begin{proof}
+A journal of either kind has no mark above the version of the attempt that reads it, because
+the versions do not go down. So the current version of attempt $j$ never exceeds $c_j$, and a
+gate of $e$ with a version above $c_j$ takes its second branch, which is what
+$\strip{c_j}{e}$ has in its place. The two attempts differ in one respect: at such a gate, $e$
+brings its version up to date and may write the mark $\ver{c_j}$, where $\strip{c_j}{e}$
+writes this mark at its next gate or request, or not at all if the attempt ends or dies
+first. The mark stands before the same request in both journals, or it is redundant. A
+redundant mark does not change what a later attempt reads, since the next mark or the end
+follows it. Typing is preserved, since the second branch of a gate is typed in the same
+context as the gate. The last claim follows from Theorem~\ref{thm:stuck} for $e$.
+\end{proof}
+
+So all versions of a program are one text, and a deployment is a change of a number. Both
+conditions of the theorem are needed. A change that is not behind a gate gets a run stuck
+that has passed it, as in Section~\ref{sec:prompt}. And if the versions go down, the old text
+meets requests behind a mark that it has no gate for. The artifact has an example of each.
+
+\section{Consequences}
+\label{sec:laws}
+
+\subsection{A Long Task Needs a Journal}
+
+\begin{table}[t]
+\caption{The expected number of model calls for a task of $n$ calls in a row, if a process
+dies during each call with probability $0.01$.}
+\label{tab:calls}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & $n = 10$ & $n = 100$ & $n = 1{,}000$ \\
+\midrule
+start again from nothing & \exScratcha & \exScratchb & \exScratchc \\
+replay a journal & \exJournala & \exJournalb & \exJournalc \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Let a task consist of $n$ calls of the model, one after the other, and let the process die
+during each call with probability $q$, after the call was made and before its reply is
+stored. With a journal, Theorem~\ref{thm:cost} says that a death repeats one call. Each call
+is made until its reply is stored, so the expected number of calls is $n / (1 - q)$. Without
+a journal, a new process starts from nothing. If $E_i$ is the expected number of calls still
+to be made when $i$ replies are in hand, then $E_n = 0$ and
+$E_i = 1 + (1 - q)\,E_{i+1} + q\,E_0$, which gives
+\[
+E_0 = \frac{(1 - q)^{-n} - 1}{q}.
+\]
+The first grows linearly with the length of the task and the second exponentially.
+Table~\ref{tab:calls} shows both for $q = 0.01$. At a hundred calls, starting again costs
+\exScratchb{} calls where the journal costs \exJournalb{}. At a thousand calls it costs more
+than two million. An agent that is meant to work for a day cannot do without a journal, and
+then it has to be a program for which the journal fits.
+
+Replay itself calls no model, but it rebuilds the context of the agent, and the next call
+sends that context to the provider. A provider's cache of prompts is looked up by the text
+that is sent~\citep{anthropic2026}. Replay reproduces the earlier requests exactly, so a
+process that restarts while the cache still holds the context reads it at the price of a
+cached read; a later one pays the full price once~\citep{tpp6}.
+
+\subsection{Time and Chance Belong in the Journal}
+
+A program has two ways to read the clock. $\kw{raw}\;\nm{clock}$ gives the time of the
+process that happens to run, and $\kw{do}\;\nm{clock}$ gives the time at which the run first
+came to this point. Only the second may reach a request. The same holds for a random number,
+for an identifier that is made up on the spot, and for a call of a model. A model need not
+give the same answer twice, so an answer that is not journaled is volatile, and a prompt that
+is built from it is a volatile argument.
+
+The types do not forbid volatile values. They may be logged, shown, and returned. What the
+types say is where the line runs: on one side the values that the journal fixes, on the other
+side everything else, with no way from the second to the first.
+
+\subsection{A Prompt Is Code, and a Deployment Goes One Way}
+
+By Theorem~\ref{thm:versions}, an edit is safe if it stands behind a gate, and the edit of a
+prompt is no exception. A gate also says when the edit takes effect: for each run, at the
+point that the run had reached when a process of the new version first went live. A run never
+changes its past, and every attempt replays that past from its start. It follows that the
+old branch of a gate can be deleted only when every run that began under an older version has
+ended.
+
+A deployment cannot be taken back for the runs that have passed its mark. For them, taking it
+back is a new change, and it needs a gate with a higher version whose new branch holds the old
+behavior.
+
+\subsection{After a Lost Reply}
+
+The second branch of a $\kw{once}$ has three honest things to do. It can look, if the world
+can be asked whether the action happened. It can ask a person; a companion paper types the
+question and the answer~\citep{tpp7}. Or it can give up and say so. What it cannot do is try
+again as if nothing had happened, since the type of $\kw{do}$ excludes the action. If the
+action was approved by a person and the approval is a value that is used up by acting, as
+in~\citet{tpp4}, the lost reply leaves the approval used: a second payment needs a second
+answer.
+
+A retry in the sense of~\citet{tpp3}, where a generator is called again until a checker
+accepts, is a different matter. Each call is a $\kw{do}$ of class $\rd$, and the journal
+holds every attempt, so that a new process does not generate again what was already rejected.
+
+\section{Testing the Claims}
+\label{sec:tests}
+
+The artifact is one Python script without dependencies. It contains the checker of
+Figure~\ref{fig:typing}, the machine of Section~\ref{sec:machine} with a hook at every point
+at which a process may die, the reference semantics of Figure~\ref{fig:reference},
+Definition~\ref{def:trace} as a function, a generator of random programs, and the tests. All
+numbers are those of one fixed seed, and \texttt{make -C artifact check} computes them again
+and compares. The script also checks Table~\ref{tab:verdicts} and the three runs of
+Section~\ref{sec:overview}, entry by entry.
+
+\subsection{Programs and Runs}
+
+The generator builds programs by following the typing rules. It keeps the labels of the
+variables and of the tests above, and chooses among the forms that these allow; a program has
+a nesting depth of at most six, and the median program has \exMedianNodes{} nodes in its
+syntax tree. A switch makes the generator \emph{slip}: with a probability of one in ten, at
+each place where a rule constrains a choice, it ignores the constraint.
+
+A run is random in three ways. The replies of the world are uniform over four numbers. A
+process dies with probability $0.15$ before each write and each journaled action, and with
+probability $0.02$ where it only reads, up to four times in a run. And each new attempt has
+the version of its predecessor or, with probability $0.3$, the next one, up to version $3$.
+
+\subsection{The Theorems}
+
+We took $2{,}000$ programs from the generator without slips, and $2{,}000$ programs from the
+generator with slips that the checker accepts. Each of the \exPrograms{} programs was run five
+times. The tests are these.
+\begin{itemize}
+\item Theorem~\ref{thm:stuck}: no run is stuck, and every journal is well formed. A sixth run
+  of each program has versions that go up and down, and is not stuck either.
+\item Theorem~\ref{thm:sound}: the script reads the answers and the marks from the final
+  journal, runs the reference semantics with them and with the $\kw{raw}$ replies of the last
+  attempt, and checks that it makes the requests of the journal, ends with the value of the
+  run, and has a trace to which the world trace belongs; that no action of class
+  $\onceclass$ is repeated; and that no effect lies outside the journal.
+\item Theorem~\ref{thm:cost}: repeated performances plus lost replies are at most the
+  processes that died.
+\end{itemize}
+In the \exRuns{} runs, \exCrashes{} processes died, and the journals hold \exRequests{}
+requests and \exMarks{} marks. There were \exRepeats{} repeated performances and \exLost{}
+lost replies. No test failed.
+
+For Theorem~\ref{thm:complete} the script makes up a reference execution for each of
+\exReferences{} programs, with random answers, of which \exRefLost{} are lost, and a random
+schedule. It then drives the machine as the proof says and checks that the run has the same
+value, the same answers and versions in its journal, and a world trace without repetition.
+For Theorem~\ref{thm:versions} it runs $2{,}000$ programs twice on the same random stream,
+once with the text of each attempt's version and once with the newest text, and compares
+values, world traces, and journals without redundant marks.
+
+\subsection{Every Rule and Every Step Is Needed}
+\label{sec:needed}
+
+\begin{table}[t]
+\caption{Ten checkers with one weakened rule and five machines with one weakened step. For
+each there is a program, accepted by the checker at hand, with a run that the theorems
+exclude. The last column is the number of random programs that were tried until the first
+such program.}
+\label{tab:broken}
+\small
+\begin{tabular}{@{}lllr@{}}
+\toprule
+ & What is allowed & What goes wrong & Tried \\
+\midrule
+\textsc{Do} & a volatile argument & stuck & \exTryDoArg \\
+\textsc{Do} & a request under a volatile test & stuck & \exTryDoPc \\
+\textsc{Do} & an action of class $\onceclass$ & an action twice & \exTryDoClass \\
+\textsc{Once} & a volatile argument & stuck & \exTryOnceArg \\
+\textsc{Once} & a request under a volatile test & stuck & \exTryOncePc \\
+\textsc{Raw} & a durable label for the reply & stuck & \exTryRawLabel \\
+\textsc{Raw} & an action with an effect & an effect per attempt & \exTryRawClass \\
+\textsc{If} & branches without the raised $pc$ & stuck & \exTryIfPc \\
+\textsc{If} & a value without the label of its test & stuck & \exTryIfResult \\
+\textsc{Iter} & a state with the label of its start & stuck & \exTryIter \\
+\midrule
+row 1 & the request is written after the action & an action twice & \exStepLateReq \\
+row 5 & an open $\kw{once}$ is performed again & an action twice & \exStepOnceRetry \\
+marks & a gate reads the deployed version & stuck & \exStepNoEpoch \\
+row 6 & a replayed request is not compared & a wrong account & \exStepLenient \\
+the end & an attempt may end with requests left over & a wrong account & \exStepNoLeftover \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:broken} lists ten weakenings of Figure~\ref{fig:typing}. For each the script
+draws programs from the generator with slips, here with a probability of $0.15$, until the
+weakened checker accepts one and one of four runs of it is stuck or violates the second half
+of Theorem~\ref{thm:sound}. It finds such a program for every weakening. The slowest needs
+\exSlowest{} programs. It is the rule that the value of a conditional carries the label of
+its test: the counterexample has to bind such a value, pass it to a request, die after that
+request, and read another time in the next process.
+
+The lower part of the table weakens the machine. The first three are tried on programs that
+the unweakened checker accepts, and they break its guarantees: an action of class
+$\onceclass$ is performed twice, or a run is stuck after a deployment. The last two are tried
+on arbitrary programs and break the first half of Theorem~\ref{thm:sound}: a run ends, and no
+reference execution has its world trace. This is what the strict comparison in row 6 and at
+the end of an attempt is for.
+
+\subsection{Crashes in Tests Find These Defects Rarely}
+\label{sec:late}
+
+A team without a type checker would test its agent by killing processes. How much would that
+find? We took $2{,}000$ programs from the generator with slips that the checker rejects, and
+ran each twenty times with random crashes, as above.
+
+Of the \exRejectedRuns{} runs, \exStuck{} were stuck, and \exAstray{} ended with an effect
+too many: an action of class $\onceclass$ performed twice, or an effect outside the journal
+repeated by a later process. Together that is \exBadPercent{} percent of the runs. Of the
+runs that were stuck, \exLate{} had already performed an action with an effect, which is
+\exLatePercent{} percent; such a run can neither go on nor be undone. And \exQuiet{} of the
+$2{,}000$ programs, \exQuietPercent{} percent, showed nothing in twenty runs. Such a program
+either has a defect that needs a death at one particular step together with a changed
+volatile value, or it is safe on every run for a reason that the rules do not see. We did not
+separate the two cases. Every run that ended, of every program, satisfied the first half of
+Theorem~\ref{thm:sound}.
+
+\subsection{The Cost of a Long Task}
+
+The script checks the closed form of Section~\ref{sec:laws} against its recurrence with exact
+fractions, for six values of $n$. It also runs a chain of twenty model calls on the machine,
+with a death after one call in ten: over $4{,}000$ runs the chain makes \exChainCalls{} calls
+on average, and $20 / 0.9$ is $22.22$.
+
+\subsection{What the Tests Do Not Show}
+
+The tests run small programs over four numbers and a handful of runs of each. They cannot
+find an error that needs a longer program or a rarer coincidence. They share the reading of
+the definitions with the proofs, since both come from the same author. And they say nothing
+about a real engine: the machine of the script is the machine of this paper.
+
+\section{Limits}
+\label{sec:limits}
+
+\paragraph{One thing at a time.} The calculus is sequential. Agents make several tool calls
+at once and wait for the first reply, and then the order of the answers is itself something
+that the journal must fix. We expect the approach to carry over, with the order of arrival as
+one more durable value, and have not done it.
+
+\paragraph{The journal grows.} Every attempt replays the whole journal, and a long run has a
+long journal. Engines cut it by storing a state and starting a new journal from there. That is
+a change of the program text in the middle of a run, and it is outside what
+Theorem~\ref{thm:versions} covers.
+
+\paragraph{Classes are claims.} That an action is idempotent is a fact about the world, and
+the checker takes it on trust. A wrong class gives a wrong guarantee. The classes are also
+coarse: the theorems promise that repetitions are consecutive among the actions of this run,
+and say nothing about what other parties do to the world in between.
+
+\paragraph{The model of failure.} A process stops and is gone. The journal is written entry
+by entry, and an entry is there or not. A journal that loses or reorders entries, or two
+processes that run the same attempt at once, are outside the model.
+
+\paragraph{The language.} Programs are first order and end. An agent that loops without a
+bound would need the theorems for the finite parts of a run, which we expect to hold. And a
+real agent is written in a real language, where the volatile sources are many: the clock, the
+environment, the order in which a hash table is traversed. A checker for such a language has
+to find them all; this paper says what it then has to enforce.
+
+\paragraph{Proofs.} The proofs are on paper, and the artifact tests them and does not prove
+them.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Durable execution.} Workflow engines replay a history of events against code that
+must be deterministic~\citep{temporal-workflow,azure-constraints}, and they offer patching
+and versioning for code that changes while runs are
+alive~\citep{temporal-patching,azure-versioning}. The constraints are stated in
+documentation and enforced at run time by the comparison that we model in row 6.
+\citet{burckhardt2021} give a formal model of durable functions without faults, and prove
+that execution models with separate storage and with record and replay are equivalent to it.
+Our reference semantics has the role of their fault-free model. What we add is a type system for the determinism that
+replay presupposes, the two forms of request with the lost reply as a value that the program
+handles, and gates.
+
+\paragraph{Idempotence.} \citet{ramalingam2013} show how to make a program idempotent, so
+that running it again after a failure is harmless, and prove that failures then cannot be
+observed; \citet{jangda2019} give a semantics of serverless platforms in which functions are
+run at least once, and conditions under which this equals a simple semantics;
+\citet{kallas2023} give a framework with transactions whose implementations on such
+platforms are proved correct when requests are executed again. These works make repetition
+harmless. We keep the action that must not be repeated in the language, and give
+its failure a branch. That a failure between an action and its record cannot be hidden without
+the help of the application is the end-to-end argument~\citep{saltzer1984}.
+
+\paragraph{Recovery by logging.} Rollback recovery by message logging relies on the
+assumption that a process is deterministic between the events that are
+logged~\citep{elnozahy2002}. Lemma~\ref{lem:durable} is this assumption as a property that a
+type system establishes. The same survey describes the problem of output that cannot be
+taken back, which is our class $\onceclass$. A long-lived transaction that cannot hold locks
+can be split into steps with compensations~\citep{garciamolina1987}; the second branch of a
+$\kw{once}$ is where a compensation would go.
+
+\paragraph{Information flow.} The type system is that of \citet{volpano1996} with two labels,
+in the tradition surveyed by \citet{sabelfeld2003}. The usual reading is secrecy or
+integrity. Here the low level is what the journal fixes, and noninterference means that
+replay reproduces the requests. A companion paper uses the same technique for integrity,
+against text that an attacker has written~\citep{tpp7}.
+
+\paragraph{Updating programs that run.} Dynamic software updating replaces code in a running
+program at points where the old state can be carried over~\citep{hicks2005}, and
+\citet{stoyle2005} give a calculus in which updates at such points preserve typing. In our
+setting the state is not carried over. It is recomputed from the journal, so the new code must
+be able to play the old part, and a gate says how. The point of the update is a place in the
+journal.
+
+\paragraph{Agents.} The cost of an agent loop, with its cache, is the subject
+of~\citet{tpp6}; the journal is what keeps that cost linear when processes die. Consent as a
+value that is used up~\citep{tpp4} meets the lost reply in Section~\ref{sec:laws}.
+
+\section{Conclusion}
+
+A journal turns a run of many processes into one run. For this to work, the program must ask
+the same questions when it is run again, and it must say for each action whether a second
+performance is harmless. We have given both obligations a place in the language: two labels
+for the first, two forms of request for the second, and a gate for the case that the program
+changes on the way. In return the many ways in which processes can die reduce to one event
+that the program has to expect in any case, a reply that does not arrive.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
