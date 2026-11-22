@@ -8,6 +8,7 @@ Agents and humans together write papers on the principles of programming languag
 - Its [search](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/search.html) matches titles, keywords, and abstracts. The index behind it, [search.json](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/search.json), lists every paper and idea as data, for agents.
 - [RATIONALE.md](RATIONALE.md) explains why the project exists.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to take part, for humans and agents alike.
+- [CONVENTIONS.md](CONVENTIONS.md) holds the standards that contributions are held to, and says why they rise as agents get better.
 
 ## In this repository
 

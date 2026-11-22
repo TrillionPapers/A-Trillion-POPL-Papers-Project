@@ -1,3 +1,4 @@
+<!-- standard: 2026-11-22 -->
 <style>
 /* A plan is a road of three plates: any number of edits, one test, one push. An approval is a
    ticket of glass that carries the plan. Every action is a point of light that lands on a plate. */
@@ -66,13 +67,13 @@
 #regex .rx { position: absolute; top: 198px; width: 240px; text-align: center; font-size: 62px; line-height: 1; }
 #regex .rx b { display: inline-block; font-weight: 700; transform-origin: 50% 70%; }
 #regex.c4-2 .rx b { animation: bump 1s var(--out); color: #fff; text-shadow: 0 0 24px rgba(125, 249, 255, .9); }
-#regex .under { position: absolute; top: 508px; width: 240px; text-align: center; }
+#regex .below { position: absolute; top: 508px; width: 240px; text-align: center; }
 #regex .road { --a: 120px; top: 410px; }
 #regex .orb { left: 540px; }
 @keyframes land { 0% { top: 262px; opacity: 0; } 15% { opacity: 1; } 80% { top: 404px; opacity: 1; } 100% { top: 410px; opacity: 0; } }
-#regex.c4-4 .h1 { animation: land .5s ease-in both; }
-#regex.c4-4 .h2 { animation: land .5s ease-in .5s both; }
-#regex.c4-4 .h3 { animation: land .5s ease-in 1s both; }
+#regex.c4-4 .hop1 { animation: land .5s ease-in both; }
+#regex.c4-4 .hop2 { animation: land .5s ease-in .5s both; }
+#regex.c4-4 .hop3 { animation: land .5s ease-in 1s both; }
 @keyframes thrice { 0%, 14%, 30%, 44%, 60%, 74%, 100% { filter: none; } 22%, 52%, 82% { filter: brightness(1.7) saturate(1.2); } }
 #regex.c4-4 .p-edit .face { animation: thrice 1.7s linear; }
 
@@ -84,9 +85,9 @@
 #ticket .tk { left: 600px; top: 262px; width: 540px; min-height: 176px; }
 #ticket .tk .d3 { margin-bottom: 14px; font-size: 40px; white-space: nowrap; }
 #ticket .tk .code { font-size: 34px; }
-#ticket .ghost { opacity: 0; }
+#ticket .twin { opacity: 0; }
 @keyframes copy { 0% { opacity: 0; translate: 0 0; } 25%, 62% { opacity: .5; translate: 64px 44px; filter: none; } 100% { opacity: 0; translate: 64px 44px; filter: saturate(0); } }
-#ticket.c3-1 .ghost { animation: copy 2s var(--out) both; }
+#ticket.c3-1 .twin { animation: copy 2s var(--out) both; }
 #ticket .nay[data-in].in { opacity: .35; }
 
 /* 7: acting uses the plan up */
@@ -269,11 +270,11 @@
   <div class="plate road edit p-edit pop" data-in="2:1" style="left:540px"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>edit</span></div><i class="ping"></i></div>
   <div class="plate road test pop" data-in="3:2" style="left:800px"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>test</span></div><i class="ping"></i></div>
   <div class="plate road push pop" data-in="3:5" style="left:1060px"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>push</span></div><i class="ping"></i></div>
-  <div class="lab under" data-in="2:6" style="left:420px">files 1 and 2</div>
-  <div class="lab under" data-in="3:8" style="left:940px">branch 1</div>
-  <div class="orb tail h1"></div>
-  <div class="orb tail h2"></div>
-  <div class="orb tail h3"></div>
+  <div class="lab below" data-in="2:6" style="left:420px">files 1 and 2</div>
+  <div class="lab below" data-in="3:8" style="left:940px">branch 1</div>
+  <div class="orb tail hop1"></div>
+  <div class="orb tail hop2"></div>
+  <div class="orb tail hop3"></div>
   <div class="d3 words sync abs it" data-in="4:4" style="left:88px;top:330px;width:300px;font-size:54px"><span class="grad">as often as you like.</span></div>
   <aside>
     <p>Write the plan as a regular expression over actions.</p>
@@ -331,7 +332,7 @@
   <div class="user pop" data-in="2:7" style="left:1094px;top:108px"></div>
   <div class="bub r pop" data-in="2:14" style="left:986px;top:76px">yes</div>
   <div class="bub r pop nay" data-in="2:16" style="left:906px;top:76px">no</div>
-  <div class="pass tk ghost">
+  <div class="pass tk twin">
     <div class="lab">approval</div>
     <div class="d3">for what comes next</div>
   </div>

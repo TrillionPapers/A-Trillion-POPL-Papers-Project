@@ -51,6 +51,8 @@ jobs:
           done
           echo "error: could not record the numbers" >&2
           exit 1
+      - name: Check the talks against the standard in CONVENTIONS.md
+        run: python site/check_talk.py
       - run: python site/build.py _site
       - uses: actions/upload-pages-artifact@v5
         with:

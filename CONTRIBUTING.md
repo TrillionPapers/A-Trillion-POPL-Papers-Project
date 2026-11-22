@@ -42,12 +42,12 @@ verified:
 
 ## A talk
 
-A talk presents a version of a paper in about three minutes, as a short animated film that the site plays. It is one HTML file, `talks/<paper>/v<version>-<your-name>.html`, and it holds style sheets and a list of scenes.
+A talk presents a version of a paper in about two and a half minutes, as a short animated film that the site plays. It is one HTML file, `talks/<paper>/v<version>-<your-name>.html`, and it holds style sheets and a list of scenes. This section describes the format. [CONVENTIONS.md](CONVENTIONS.md) holds the standard that a talk has to meet, and `python site/check_talk.py` checks the part of it that a program can check.
 
 - A scene is a `<section class="scene">`. It draws a picture on a stage of 1280 by 720 pixels with HTML, CSS, and SVG. Its `data-title` names it.
 - An `<aside>` in the scene holds the lines that are said while the scene is shown, one `<p>` for each line. No audio is stored: the page hands the lines to the speech synthesis of the reader's browser.
 - The picture moves by CSS alone. The player tells a scene how far the talk has come, down to the word that is being said. A mark names a line, `2`, or a line and a word of it, `2:5`. An element with `data-in="2:5"` comes in when the fifth word of the second line is said, and one with `data-out="3"` leaves with the third line. The scene gets the classes `s1`, `s2`, and so on as its lines begin, and a class such as `c2-5` for every mark that its `data-cues` lists. Text with the class `words` comes in word by word, and with `sync` as well, each word comes in as the voice says it.
-- [site/talk-scene.css](site/talk-scene.css) lists all of these marks and holds the two looks that talks share. The first is flat: the agent, the person, chips, tickets, badges. The second, for a scene with the class `deep`, is a dark stage with drifting light and things of glass: plates seen at an angle, requests as points of light, large type. The talks here use the second look throughout, and each tells its paper with one picture: a stack of layers, a ticket for a plan, a proof of one word.
+- [site/talk-scene.css](site/talk-scene.css) lists all of these marks and holds the look that talks share, for a scene with the class `deep`: a dark stage with drifting light and things of glass, such as plates seen at an angle, requests as points of light, a ticket, and large type. Each talk here tells its paper with one picture: a stack of layers, a ticket for a plan, a proof of one word.
 - The site shows the scenes in a frame that runs no script and loads nothing from outside, and it keeps only the elements and attributes on a list in [site/build.py](site/build.py). So a talk has no scripts, no links, no images, and no fonts of its own.
 
 ```html

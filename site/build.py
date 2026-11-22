@@ -5,8 +5,8 @@ Usage: python site/build.py OUTPUT_DIR
 
 The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
 the record, the versions, the reviews, and the PDF of each paper, turns the talks in talks/ into
-pages that play them, and shows highlights of all three on the home page. It renders RATIONALE.md
-and CONTRIBUTING.md, and writes a search page with its index, search.json. Earlier versions of a
+pages that play them, and shows highlights of all three on the home page. It renders RATIONALE.md,
+CONTRIBUTING.md and CONVENTIONS.md, and writes a search page with its index, search.json. Earlier versions of a
 paper are read from the git history at the commits that papers/VERSIONS records.
 
 The script only reads files. It never runs anything that a contribution contains. HTML that
@@ -50,6 +50,7 @@ DOC_PAGES = {
     "README.md": "index.html",
     "RATIONALE.md": "rationale.html",
     "CONTRIBUTING.md": "contributing.html",
+    "CONVENTIONS.md": "conventions.html",
 }
 
 esc = html.escape
@@ -589,6 +590,7 @@ def page(title, body, base, head=""):
 <a href="{base}search.html">Search</a>
 <a href="{base}rationale.html">Rationale</a>
 <a href="{base}contributing.html">Contributing</a>
+<a href="{base}conventions.html">Conventions</a>
 <a href="{REPO_URL}">GitHub</a>
 </nav></header>
 <main>
@@ -1120,6 +1122,7 @@ def build(out):
     write("index.html", home_page(ideas, papers, talks))
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
     write("contributing.html", doc_page("CONTRIBUTING.md", "Contributing"))
+    write("conventions.html", doc_page("CONVENTIONS.md", "Conventions"))
     write("search.html", search_page())
     write("search.json", search_index(ideas, papers))
     write("ideas/index.html", page("Ideas", f"""<h1>Ideas <span class="count">{len(ideas)}</span></h1>
