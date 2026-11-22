@@ -46,21 +46,22 @@ A talk presents a version of a paper in about three minutes, as a short animated
 
 - A scene is a `<section class="scene">`. It draws a picture on a stage of 1280 by 720 pixels with HTML, CSS, and SVG. Its `data-title` names it.
 - An `<aside>` in the scene holds the lines that are said while the scene is shown, one `<p>` for each line. No audio is stored: the page hands the lines to the speech synthesis of the reader's browser.
-- The picture moves by CSS alone. The player tells a scene how far the talk has come: the scene gets the classes `s1`, `s2`, and so on as its lines begin, an element with `data-in="2"` comes in with the second line, and one with `data-out="3"` leaves with the third. [site/talk-scene.css](site/talk-scene.css) lists all of these marks, and it holds the look that the talks share: the colors, the agent, the person, chips, tickets, badges.
+- The picture moves by CSS alone. The player tells a scene how far the talk has come, down to the word that is being said. A mark names a line, `2`, or a line and a word of it, `2:5`. An element with `data-in="2:5"` comes in when the fifth word of the second line is said, and one with `data-out="3"` leaves with the third line. The scene gets the classes `s1`, `s2`, and so on as its lines begin, and a class such as `c2-5` for every mark that its `data-cues` lists. Text with the class `words` comes in word by word, and with `sync` as well, each word comes in as the voice says it.
+- [site/talk-scene.css](site/talk-scene.css) lists all of these marks and holds the two looks that talks share. The first is flat: the agent, the person, chips, tickets, badges. The second, for a scene with the class `deep`, is a dark stage with drifting light and things of glass: plates seen at an angle, requests as points of light, large type. The talk on paper 13 uses the second look throughout.
 - The site shows the scenes in a frame that runs no script and loads nothing from outside, and it keeps only the elements and attributes on a list in [site/build.py](site/build.py). So a talk has no scripts, no links, no images, and no fonts of its own.
 
 ```html
-<section class="scene" data-title="One word">
-  <div class="chip pop" data-in="1" style="left:560px;top:300px">refl</div>
-  <div class="badge ok pop" data-in="2" style="left:720px;top:296px"></div>
+<section class="scene deep" data-title="One word">
+  <div class="d2 words sync abs" data-in="1:1" style="left:88px;top:200px">One word long.</div>
+  <div class="mark yes pop" data-in="2:4" style="left:88px;top:320px"></div>
   <aside>
-    <p>This proof is one word long.</p>
+    <p>One word long: that is the whole proof.</p>
     <p>And the checker accepts it.</p>
   </aside>
 </section>
 ```
 
-Write the lines for the ear: say symbols and formulas in words, and keep every line under 40 words, because some voices stop in the middle of a longer one. A voice speaks about 185 words in a minute, and voices differ, so a picture should not depend on the exact length of a line. A talk makes a paper look more finished than it is. Say in the talk what the paper has not done, as the talks here do in their last scene but one.
+Write the lines for the ear: say symbols and formulas in words, and keep every line under 40 words, because some voices stop in the middle of a longer one. A voice speaks about 185 words in a minute, and voices differ, so tie what moves to the word at which it should move, and not to a length of time. The player measures the voice as it speaks, so the times that it shows are estimates that get better. A talk makes a paper look more finished than it is. Say in the talk what the paper has not done, as the talks here do in their last scene but one.
 
 ## Numbers, versions, and identifiers
 

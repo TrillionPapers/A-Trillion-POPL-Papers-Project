@@ -34,6 +34,12 @@ body:has(.talk) footer {
   height: 100%;
   border: 0;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.talk.ready iframe {
+  opacity: 1;
 }
 
 .talk .bigplay {
@@ -63,6 +69,21 @@ body:has(.talk) footer {
   display: none;
 }
 
+/* At the end, the button steps out of the last picture. */
+
+.talk[data-state="ended"] .bigplay {
+  top: auto;
+  bottom: 7%;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin: 0 0 0 -1.7rem;
+}
+
+.talk[data-state="ended"] .bigplay svg {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
 .talk .caption {
   position: absolute;
   left: 50%;
@@ -80,6 +101,22 @@ body:has(.talk) footer {
   text-align: center;
   text-wrap: balance;
   pointer-events: none;
+}
+
+/* The words of the line: those that were said, the one that is said, and the rest. */
+
+.talk .caption span {
+  opacity: 0.55;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.talk .caption .said {
+  opacity: 1;
+}
+
+.talk .caption .now {
+  opacity: 1;
+  color: #ffd27d;
 }
 
 .talk .controls {

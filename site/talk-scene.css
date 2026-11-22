@@ -3,14 +3,18 @@
    A talk is drawn on a stage of 1280 by 720 pixels. The page that shows it scales the stage to
    its screen, so a talk gives every length in pixels of the stage. A talk is a list of scenes,
    and in every scene a number of lines are said. The player shows one scene, marked "current",
-   and tells it how far the talk has come:
+   marks the scenes before it "past", and tells the scene how far the talk has come. A mark
+   names a line, "3", or a line and the word of it that is being said, "3:5".
 
-     .s1 .s2 ...        on the scene, for every line that has begun
-     [data-in="k"]      has the class "in" from line k on
-     [data-out="k"]     has the class "out" from line k on
-     [data-hot="k m"]   has the class "hot" while line k or line m is said
-     [data-fade="k"]    has the class "faded" from line k on
-     [data-count="n"]   counts up to n when it comes in
+     .s1 .s2 ...           on the scene, for every line that has begun
+     data-cues="2:4 3:1"   on the scene: it gets the classes c2-4 and c3-1 when they are reached
+     [data-in="3:5"]       has the class "in" from then on
+     [data-out="4"]        has the class "out" from then on
+     [data-fade="4"]       has the class "faded" from then on
+     [data-hot="2 5"]      has the class "hot" while line 2 or line 5 is said
+     [data-count="n"]      counts up to n when it comes in
+     .words                its text comes in word by word; with "sync", each word comes in when
+                           the voice says it, the first at the mark of the text
 
    Everything here moves by transitions between these states, so the player can jump to any
    line. Coming in and going out use the properties translate and scale; a talk places its
@@ -661,3 +665,569 @@ html.paused *::after {
   font-weight: 800;
   text-align: center;
 }
+
+/* ---------------------------------------------------------------------------------------------
+   The second look: a deep stage with drifting light, film grain, and things of glass. A scene
+   takes it with the class "deep". */
+
+.scene.deep {
+  --ground: radial-gradient(1300px 760px at 50% 118%, #172050 0%, #0a0d22 52%, #05060d 100%);
+  --light1: rgba(88, 110, 255, 0.34);
+  --light2: rgba(255, 95, 162, 0.2);
+  --text: #f5f6ff;
+  --mute: #98a1c8;
+  --out: cubic-bezier(0.16, 1, 0.3, 1);
+  --inout: cubic-bezier(0.65, 0, 0.35, 1);
+  color: var(--text);
+  font-family: "SF Pro Display", "Inter", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  font-weight: 500;
+  transform: scale(0.93);
+  filter: blur(16px);
+  transition: opacity 0.5s ease, visibility 0s linear 0.9s, transform 0.9s var(--out), filter 0.5s ease;
+}
+
+.scene.deep.current {
+  transform: none;
+  filter: none;
+  transition: opacity 0.5s ease, transform 0.9s var(--out), filter 0.5s ease;
+}
+
+.scene.deep.past {
+  transform: scale(1.12);
+}
+
+html:not(.driven) .scene.deep:first-of-type {
+  transform: none;
+  filter: none;
+}
+
+.scene.deep::before {
+  background:
+    radial-gradient(1.6px 1.6px at 14% 22%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(1.2px 1.2px at 22% 38%, rgba(255, 255, 255, 0.5), transparent 100%),
+    radial-gradient(1.4px 1.4px at 31% 19%, rgba(255, 255, 255, 0.65), transparent 100%),
+    radial-gradient(1.2px 1.2px at 38% 47%, rgba(255, 255, 255, 0.45), transparent 100%),
+    radial-gradient(1.8px 1.8px at 45% 28%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(1.2px 1.2px at 52% 17%, rgba(255, 255, 255, 0.5), transparent 100%),
+    radial-gradient(1.5px 1.5px at 58% 41%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(1.3px 1.3px at 66% 24%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1.2px 1.2px at 72% 36%, rgba(255, 255, 255, 0.45), transparent 100%),
+    radial-gradient(1.7px 1.7px at 79% 19%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(1.3px 1.3px at 85% 44%, rgba(255, 255, 255, 0.55), transparent 100%),
+    radial-gradient(1.2px 1.2px at 27% 52%, rgba(255, 255, 255, 0.4), transparent 100%),
+    radial-gradient(1.2px 1.2px at 63% 53%, rgba(255, 255, 255, 0.4), transparent 100%),
+    radial-gradient(1.4px 1.4px at 90% 30%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(1.3px 1.3px at 9% 45%, rgba(255, 255, 255, 0.5), transparent 100%),
+    radial-gradient(1.1px 1.1px at 48% 50%, rgba(255, 255, 255, 0.35), transparent 100%),
+    radial-gradient(620px 620px at 80% 12%, var(--light1), transparent 68%),
+    radial-gradient(700px 700px at 10% 92%, var(--light2), transparent 68%),
+    radial-gradient(560px 440px at 46% 42%, var(--light3, transparent), transparent 70%);
+  animation-duration: 21s;
+}
+
+/* Grain and a dark edge, over everything. */
+
+.scene.deep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 78% 72% at 50% 46%, transparent 55%, rgba(0, 0, 0, 0.58) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Words */
+
+.deep .d1 { font-size: 118px; font-weight: 800; line-height: 0.96; letter-spacing: -0.045em; }
+.deep .d2 { font-size: 78px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+.deep .d3 { font-size: 48px; font-weight: 700; line-height: 1.08; letter-spacing: -0.025em; }
+.deep .d4 { font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+
+.deep .lab {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.deep .it {
+  font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.deep .grad {
+  background: linear-gradient(92deg, var(--g1, #7df9ff), var(--g2, #b38cff));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.deep .soft { color: var(--mute); }
+
+.words .w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding: 0.1em 0.04em 0.14em;
+  margin: -0.1em -0.04em -0.14em;
+}
+
+.words .w i {
+  display: inline-block;
+  font-style: inherit;
+  translate: 0 118%;
+  transition: translate 0.75s var(--out, ease) calc(var(--i) * 70ms + var(--d, 0s));
+}
+
+.words.in .w i,
+.words .w.in i {
+  translate: 0 0;
+}
+
+.words.sync .w i {
+  transition-delay: 0s;
+}
+
+.words[data-in],
+.words .w[data-in] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+}
+
+.words.out .w i {
+  translate: 0 -118%;
+  transition-delay: calc(var(--i) * 30ms);
+}
+
+/* Coming in out of a blur, and from the directions of the angled view. */
+
+.blur[data-in] {
+  translate: 0 0;
+  scale: 0.9;
+  filter: blur(16px);
+  transition-duration: 0.7s;
+}
+
+.blur[data-in].in {
+  scale: 1;
+  filter: blur(0);
+}
+
+.iso-r[data-in]:not(.in) { translate: 340px 170px; }
+.iso-l[data-in]:not(.in) { translate: -340px 170px; }
+.above[data-in]:not(.in) { translate: 0 -280px; }
+
+.glass {
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 26px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.035));
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+/* A plate: one layer of a stack, a slab of glass seen from above at an angle. It is placed by
+   left and top at the middle of its upper face.
+   <div class="plate ask"><i class="glow"></i><div class="sides"><i class="under"></i>
+   <i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div> */
+
+.plate {
+  position: absolute;
+  width: 0;
+  height: 0;
+  --a: 150px;
+  --r: 26px;
+  --t: 22px;
+  --hi: #dfe4ff;
+  --c: #9aa3d8;
+  --lo: #6a73ad;
+  --side: #3c447a;
+  --glow: rgba(154, 163, 216, 0.4);
+}
+
+.plate.ask { --hi: #ffc0d8; --c: #ff5fa2; --lo: #d92f79; --side: #8f1b4e; --glow: rgba(255, 95, 162, 0.55); }
+.plate.budget { --hi: #ffe6b3; --c: #ffb84d; --lo: #e58d14; --side: #9a5c06; --glow: rgba(255, 184, 77, 0.5); }
+.plate.retry { --hi: #bdf4ff; --c: #45d6ff; --lo: #1a9bd9; --side: #0c5f96; --glow: rgba(69, 214, 255, 0.55); }
+.plate.trim { --hi: #c8ffeb; --c: #4dffc3; --lo: #19c48d; --side: #0c7a58; --glow: rgba(77, 255, 195, 0.5); }
+.plate.redact { --hi: #e4d6ff; --c: #b38cff; --lo: #8056e3; --side: #4d2ba1; --glow: rgba(179, 140, 255, 0.55); }
+
+.plate .under,
+.plate .face,
+.plate .glow,
+.plate .ping {
+  position: absolute;
+  left: calc(var(--a) / -2);
+  top: calc(var(--a) / -2);
+  width: var(--a);
+  height: var(--a);
+  border-radius: var(--r);
+  transform: matrix(1, 0.5, -1, 0.5, 0, 0);
+}
+
+.plate .glow {
+  background: var(--glow);
+  filter: blur(28px);
+  translate: 0 calc(var(--t) + 34px);
+  opacity: 0.8;
+}
+
+.plate .sides {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0.97;
+}
+
+.plate .under {
+  background: var(--side);
+  translate: 0 var(--t);
+}
+
+.plate .band {
+  position: absolute;
+  left: calc(0.586 * var(--r) - var(--a));
+  top: 0;
+  width: calc(2 * var(--a) - 1.172 * var(--r));
+  height: var(--t);
+  background: var(--side);
+}
+
+.plate .face {
+  display: grid;
+  place-items: end center;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, var(--hi) 0%, var(--c) 46%, var(--lo) 100%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12), inset 16px 16px 44px rgba(255, 255, 255, 0.3);
+  opacity: 0.94;
+  transition: filter 0.3s ease;
+}
+
+.plate .face span {
+  margin-bottom: 10px;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(8, 10, 34, 0.86);
+}
+
+.plate.hot .face {
+  filter: brightness(1.35) saturate(1.15);
+}
+
+.plate .ping {
+  border: 3px solid var(--hi);
+  opacity: 0;
+}
+
+@keyframes ping {
+  0% { scale: 1; opacity: 0.95; }
+  100% { scale: 1.5; opacity: 0; }
+}
+
+@keyframes flash {
+  0%, 100% { filter: none; }
+  25% { filter: brightness(1.7) saturate(1.2); }
+}
+
+/* The same two under other names: an animation plays again only when its name changes. */
+
+@keyframes ping2 {
+  0% { scale: 1; opacity: 0.95; }
+  100% { scale: 1.5; opacity: 0; }
+}
+
+@keyframes ping3 {
+  0% { scale: 1; opacity: 0.95; }
+  100% { scale: 1.5; opacity: 0; }
+}
+
+@keyframes flash2 {
+  0%, 100% { filter: none; }
+  25% { filter: brightness(1.7) saturate(1.2); }
+}
+
+@keyframes flash3 {
+  0%, 100% { filter: none; }
+  25% { filter: brightness(1.7) saturate(1.2); }
+}
+
+/* A request on its way: a point of light. With the class "tail" it draws a tail behind it. */
+
+.orb {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #fff 0%, var(--c, #a6ecff) 46%, transparent 74%);
+  box-shadow: 0 0 22px 8px var(--halo, rgba(110, 220, 255, 0.55));
+  opacity: 0;
+  z-index: 12;
+}
+
+.orb.tail::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  bottom: 18px;
+  width: 6px;
+  height: 96px;
+  border-radius: 3px;
+  background: linear-gradient(to top, var(--c, #a6ecff), transparent);
+  opacity: 0.75;
+}
+
+.orb.bad {
+  --c: #ff8a8a;
+  --halo: rgba(255, 90, 90, 0.6);
+}
+
+/* The world: the rim of a planet at the bottom of the stage. It is placed by left at its middle. */
+
+.planet {
+  position: absolute;
+  top: 572px;
+  width: 1900px;
+  height: 1900px;
+  margin-left: -950px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 0%, #3355ff 0%, #1c2e9c 7%, #0c1348 20%, #060817 42%);
+  box-shadow:
+    0 -2px 0 rgba(160, 200, 255, 0.95),
+    0 -12px 50px rgba(90, 150, 255, 0.7),
+    0 -70px 170px rgba(60, 100, 255, 0.36);
+}
+
+.wave {
+  position: absolute;
+  width: 120px;
+  height: 36px;
+  margin: -18px 0 0 -60px;
+  border: 3px solid var(--c, #a6ecff);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+@keyframes wave {
+  0% { scale: 0.3; opacity: 1; }
+  100% { scale: 2.6; opacity: 0; }
+}
+
+/* The model: a machine with a visor and two lights for eyes.
+   <div class="ai"><div class="body"><div class="visor"><i></i><i></i></div></div></div> */
+
+.ai {
+  position: absolute;
+  width: 150px;
+  height: 172px;
+}
+
+.ai .body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 150px;
+  height: 124px;
+  border-radius: 46px;
+  background: radial-gradient(130% 120% at 22% 12%, #d9fff6 0%, #5ff0c8 38%, #14a786 100%);
+  box-shadow:
+    inset 0 -16px 26px rgba(0, 70, 60, 0.4),
+    inset 0 8px 12px rgba(255, 255, 255, 0.55),
+    0 24px 40px rgba(0, 0, 0, 0.45),
+    0 0 70px rgba(77, 255, 195, 0.28);
+  animation: bob 3.6s ease-in-out infinite;
+}
+
+.ai .body::before {
+  content: "";
+  position: absolute;
+  left: 71px;
+  top: -24px;
+  width: 8px;
+  height: 28px;
+  border-radius: 4px;
+  background: linear-gradient(#8ff7d9, #19a886);
+}
+
+.ai .body::after {
+  content: "";
+  position: absolute;
+  left: 62px;
+  top: -44px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #ffc45e 55%, #ff9a2e);
+  box-shadow: 0 0 26px 6px rgba(255, 190, 90, 0.75);
+  animation: glow 1.9s ease-in-out infinite;
+}
+
+.ai .visor {
+  position: absolute;
+  left: 19px;
+  top: 30px;
+  width: 112px;
+  height: 62px;
+  border-radius: 31px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #111b47, #05081b);
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.2), inset 0 -8px 14px rgba(0, 0, 0, 0.55);
+}
+
+.ai .visor::after {
+  content: "";
+  position: absolute;
+  left: -30px;
+  top: -20px;
+  width: 60px;
+  height: 120px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: rotate(24deg);
+}
+
+.ai .visor i {
+  position: absolute;
+  top: 20px;
+  width: 16px;
+  height: 22px;
+  border-radius: 8px;
+  background: var(--eye, #7df9ff);
+  box-shadow: 0 0 14px 4px var(--eyeglow, rgba(125, 249, 255, 0.75));
+  animation: blink 4.4s infinite;
+  transition: background-color 0.3s ease, height 0.3s ease, top 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ai .visor i:nth-of-type(1) { left: 30px; }
+.ai .visor i:nth-of-type(2) { right: 30px; }
+
+/* A person: a round badge with a head and shoulders. <div class="user"></div> */
+
+.user {
+  position: absolute;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(160deg, #ff8fbd, #ffb84d);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.45),
+    0 0 50px rgba(255, 130, 170, 0.3),
+    inset 0 3px 6px rgba(255, 255, 255, 0.55),
+    inset 0 -10px 18px rgba(120, 20, 40, 0.35);
+}
+
+.user::before {
+  content: "";
+  position: absolute;
+  left: 34px;
+  top: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff6f1;
+}
+
+.user::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 62px;
+  width: 76px;
+  height: 64px;
+  border-radius: 38px 38px 0 0;
+  background: #fff6f1;
+}
+
+.bub {
+  position: absolute;
+  padding: 12px 22px;
+  border-radius: 22px;
+  background: #fff;
+  color: #0b0e24;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.4);
+}
+
+.bub::after {
+  content: "";
+  position: absolute;
+  left: 26px;
+  bottom: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+.bub.r::after {
+  left: auto;
+  right: 26px;
+}
+
+/* Read-outs: a number, its name, and a thin line that leads to what it measures. */
+
+.deep .num {
+  font-size: 104px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffffff 20%, #aab6ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.deep .num.warn {
+  background-image: linear-gradient(180deg, #ffd0d0 10%, #ff5a5a 100%);
+}
+
+.deep .num.good {
+  background-image: linear-gradient(180deg, #e6fff6 10%, #4dffc3 100%);
+}
+
+.lead {
+  position: absolute;
+  height: 2px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08));
+}
+
+.lead[data-in] {
+  translate: 0 0;
+  scale: 0 1;
+  transition-duration: 0.8s;
+}
+
+.lead[data-in].in {
+  scale: 1 1;
+}
+
+.mark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font: 900 26px/1 system-ui, sans-serif;
+  color: #06101a;
+}
+
+.mark.yes { background: #4dffc3; box-shadow: 0 0 26px rgba(77, 255, 195, 0.7); }
+.mark.yes::before { content: "\2713"; }
+.mark.no { background: #ff5a5a; box-shadow: 0 0 26px rgba(255, 90, 90, 0.7); }
+.mark.no::before { content: "\2715"; }

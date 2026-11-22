@@ -1,122 +1,251 @@
 <style>
-/* A layer is a bar of the stack. A packet is a request on its way down, in the lane at the
-   middle of the stack. The model sits on top and the world at the bottom. */
-.layer { position: absolute; left: 400px; width: 480px; height: 64px; display: flex; align-items: center; gap: 14px; padding-left: 22px; border-radius: 18px; background: var(--c); color: var(--dark); font-size: 30px; font-weight: 800; box-shadow: 0 7px 0 rgba(0, 0, 0, .28); }
-.layer b { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--dark); color: var(--c); font: 900 25px/1 system-ui, sans-serif; }
-.ask { --c: var(--coral); }
-.budget { --c: var(--amber); }
-.retry { --c: var(--sky); }
-.trim { --c: var(--mint); }
-.redact { --c: var(--violet); }
-.at1 { top: 150px; }
-.at2 { top: 232px; }
-.at3 { top: 314px; }
-.pkt { position: absolute; left: 618px; top: 110px; width: 44px; height: 30px; border-radius: 9px; background: #fff; box-shadow: 0 0 22px rgba(255, 255, 255, .75); opacity: 0; z-index: 2; }
-.me { left: 565px; top: -6px; transform: scale(.7); }
-.earth { left: 565px; top: 448px; transform: scale(.72); }
-.num { position: absolute; left: 940px; font-size: 76px; }
-.cap { position: absolute; left: 940px; }
-@keyframes fall { 0% { top: 110px; opacity: 0; } 8% { opacity: 1; } 88% { top: 468px; opacity: 1; } 100% { top: 490px; opacity: 0; } }
+/* The stack stands at 820 across, with its plates at three heights. The model floats above it
+   and the world lies below. A request is a point of light in the middle of the stack. */
+.plate { left: 820px; }
+.z1 { top: 216px; z-index: 6; }
+.z2 { top: 328px; z-index: 5; }
+.z3 { top: 440px; z-index: 4; }
+.planet { left: 820px; }
+.me { left: 745px; top: -44px; transform: scale(.62); transform-origin: 50% 100%; z-index: 14; }
+.orb { left: 820px; }
+.wave { left: 820px; top: 574px; z-index: 3; }
+.wave.bad { --c: #ff6b6b; }
+.head { position: absolute; left: 88px; top: 60px; width: 560px; }
+.call { position: absolute; left: 150px; width: 360px; text-align: right; }
+.call .d4 { margin-top: 4px; }
+.row { position: absolute; left: 84px; display: flex; align-items: center; gap: 22px; }
+.row .num { font-size: 84px; }
+.row .d4 { font-size: 24px; margin-top: 6px; }
+.digits { position: relative; width: 62px; height: 84px; }
+.digit { position: absolute; left: 0; top: 0; }
+.digits [data-in], .digits [data-out] { transition-duration: .25s; }
+.vow { position: relative; display: inline-block; transition: color .4s ease; }
+.vow::after { content: ""; position: absolute; left: -4px; right: -4px; top: 54%; height: 3px; border-radius: 2px; background: #ff5a5a; scale: 0 1; transform-origin: 0 50%; transition: scale .5s var(--out); }
+.mark.ask { background: #ffc45e; box-shadow: 0 0 26px rgba(255, 196, 94, .7); }
+.mark.ask::before { content: "?"; }
+.pill { position: absolute; display: flex; align-items: center; height: 60px; padding: 0 26px; border-radius: 30px; font-size: 26px; font-weight: 700; white-space: nowrap; }
+.key { display: inline-flex; align-items: center; height: 46px; padding: 0 18px; border-radius: 23px; color: #0b0e24; font-size: 19px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; background: linear-gradient(135deg, var(--hi), var(--c)); }
+.k-ask { --hi: #ffc0d8; --c: #ff5fa2; }
+.k-budget { --hi: #ffe6b3; --c: #ffb84d; }
+.k-retry { --hi: #bdf4ff; --c: #45d6ff; }
+.k-trim { --hi: #c8ffeb; --c: #4dffc3; }
+.k-redact { --hi: #e4d6ff; --c: #b38cff; }
+.k-log { --hi: #eef0ff; --c: #9aa3d8; }
+.slab { position: absolute; padding: 16px 24px; border-radius: 22px; }
+svg.over { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; fill: none; stroke-linecap: round; }
+@keyframes fall { 0% { top: 128px; opacity: 0; } 8% { opacity: 1; } 92% { top: 566px; opacity: 1; } 100% { top: 574px; opacity: 0; } }
 
-/* 1 */
-#stack.s1 .pkt { animation: fall 2.8s ease-in .4s both; }
-#stack.s3 .ask { animation: pulse .9s ease .2s; }
-#stack.s3 .budget { animation: pulse .9s ease 1.7s; }
-#stack.s3 .retry { animation: pulse .9s ease 3.1s; }
+/* 1: from the model to the world */
+#open .cam { position: absolute; inset: 0; transform-origin: 820px 572px; transition: transform 1.7s var(--inout); }
+#open.c4-3 .cam { transform: scale(.52); }
+#open .me { --move: 1.7s; }
+#open.c4-3 .me { top: -492px; }
+#open .x1 { top: 104px; z-index: 7; }
+#open .x2 { top: -8px; z-index: 8; }
+#open .x3 { top: -120px; z-index: 9; }
+#open .x4 { top: -232px; z-index: 10; }
+#open.c1-7 .o1 { animation: fall 1.5s cubic-bezier(.45, 0, .9, .55) both; }
+#open.c1-7 .w1 { animation: wave 1.2s ease-out 1.38s both; }
+#open.c2-5 .o2 { animation: fall 1.7s linear both; }
+#open.c2-5 .w2 { animation: wave 1.2s ease-out 1.56s both; }
+#open.c2-5 .z1 .face { animation: flash .7s ease .3s; }
+#open.c2-5 .z1 .ping { animation: ping .9s var(--out) .3s; }
+#open.c2-5 .z2 .face { animation: flash .7s ease .74s; }
+#open.c2-5 .z2 .ping { animation: ping .9s var(--out) .74s; }
+#open.c2-5 .z3 .face { animation: flash .7s ease 1.18s; }
+#open.c2-5 .z3 .ping { animation: ping .9s var(--out) 1.18s; }
+#open.c3-2 .z1 .face { animation: flash2 .9s ease; }
+#open.c3-2 .z1 .ping { animation: ping2 1s var(--out); }
+#open.c3-7 .z2 .face { animation: flash2 .9s ease; }
+#open.c3-7 .z2 .ping { animation: ping2 1s var(--out); }
+#open.c3-11 .z3 .face { animation: flash2 .9s ease; }
+#open.c3-11 .z3 .ping { animation: ping2 1s var(--out); }
 
-/* 2 */
-@keyframes sh-a { 0% { top: 150px; } 30% { top: 232px; } 60%, 100% { top: 314px; } }
-@keyframes sh-b { 0% { top: 232px; } 30%, 60% { top: 150px; } 90%, 100% { top: 232px; } }
-@keyframes sh-c { 0%, 30% { top: 314px; } 60% { top: 232px; } 90%, 100% { top: 150px; } }
-#order.s2 .ask { animation: sh-a 4.4s ease-in-out .3s both; }
-#order.s2 .budget { animation: sh-b 4.4s ease-in-out .3s both; }
-#order.s2 .retry { animation: sh-c 4.4s ease-in-out .3s both; }
+/* 2: order matters */
+#order .vowcard { left: 88px; width: 400px; }
+@keyframes go-top { 0% { translate: 0 0; z-index: 4; } 20% { translate: 250px 125px; z-index: 9; } 50% { translate: 250px -99px; z-index: 9; } 70%, 100% { translate: 0 -224px; z-index: 9; } }
+@keyframes down-twice { 0%, 18% { translate: 0 0; } 45%, 62% { translate: 0 112px; } 85%, 100% { translate: 0 224px; } }
+@keyframes down-around { 0%, 18% { translate: 0 0; z-index: 5; } 45%, 55% { translate: 0 112px; z-index: 5; } 65% { translate: -250px 237px; z-index: 8; } 80% { translate: -250px 125px; z-index: 8; } 100% { translate: 0 0; z-index: 8; } }
+#order.c2-12 .z3 { animation: go-top 3.2s var(--inout) both; }
+#order.c2-12 .z1 { animation: down-twice 3.2s var(--inout) both; }
+#order.c2-12 .z2 { animation: down-around 3.2s var(--inout) both; }
 
-/* 4 */
-#bad .m { transition: top .9s var(--soft), opacity .3s; }
-#bad.s2 .m { top: 167px; opacity: 1; }
-#bad.s3 .m { top: 249px; }
-#bad.s4 .m { top: 331px; }
-@keyframes send { 0% { top: 331px; opacity: 0; } 12% { opacity: 1; } 68% { top: 462px; opacity: 1; background: #fff; } 82% { top: 462px; background: var(--coral); } 100% { top: 436px; opacity: 0; background: var(--coral); } }
-@keyframes land { 0% { top: 331px; opacity: 0; } 12% { opacity: 1; } 80% { top: 462px; opacity: 1; } 100% { top: 474px; opacity: 0; } }
-#bad.s4 .r1 { animation: send 1.25s ease-in .8s both; }
-#bad.s4 .r2 { animation: send 1.25s ease-in 2.2s both; }
-#bad.s4 .r3 { animation: land 1.25s ease-in 3.6s both; }
-#bad.s5 .bot b { bottom: 16px; border-bottom: 0; border-top: 7px solid var(--dark); border-radius: 40px 40px 0 0; }
+/* 3: the title */
+#title .deco { position: absolute; left: 260px; top: 20px; animation: bob 5s ease-in-out infinite; }
 
-/* 5 */
-#good .ask { top: 150px; }
-#good .budget { top: 232px; }
-#good .retry { top: 314px; }
-#good.s1 .retry { top: 150px; }
-#good.s1 .ask { top: 232px; }
-#good.s1 .budget { top: 314px; }
-#good .layer { --move: 1.2s; }
-#good.s2 .q1 { animation: fall 1.5s ease-in .2s both; }
-#good.s2 .q2 { animation: fall 1.5s ease-in 1.3s both; }
-#good.s2 .q3 { animation: fall 1.5s ease-in 2.4s both; }
+/* 4: retry at the bottom */
+#bad .m { top: 128px; transition: top .55s var(--inout), opacity .25s ease; }
+#bad.s2 .m { top: 216px; opacity: 1; }
+#bad.s3 .m { top: 328px; }
+#bad.s4 .m { top: 440px; }
+#bad.c1-3 .z3 .ping { animation: ping 1s var(--out); }
+#bad.c1-3 .z3 .face { animation: flash 1s ease; }
+#bad.c2-2 .z1 .ping { animation: ping 1s var(--out); }
+#bad.c2-2 .z1 .face { animation: flash 1s ease; }
+#bad.c3-2 .z2 .ping { animation: ping 1s var(--out); }
+#bad.c3-2 .z2 .face { animation: flash 1s ease; }
+@keyframes shot-fail { 0% { top: 440px; opacity: 0; filter: none; } 12% { opacity: 1; } 52% { top: 566px; opacity: 1; filter: none; } 58% { top: 566px; filter: hue-rotate(150deg) saturate(1.8); } 100% { top: 470px; opacity: 0; filter: hue-rotate(150deg) saturate(1.8); } }
+@keyframes shot-land { 0% { top: 440px; opacity: 0; } 12% { opacity: 1; } 78% { top: 566px; opacity: 1; } 100% { top: 574px; opacity: 0; } }
+#bad.c4-2 .t1 { animation: shot-fail .95s ease-in both; }
+#bad.c4-2 .w1 { animation: wave .9s ease-out .45s both; }
+#bad.c4-2 .z3 .face { animation: flash2 .8s ease; }
+#bad.c4-5 .t2 { animation: shot-fail .95s ease-in both; }
+#bad.c4-5 .w2 { animation: wave .9s ease-out .45s both; }
+#bad.c4-5 .z3 .face { animation: flash3 .8s ease; }
+#bad.c4-8 .t3 { animation: shot-land .7s ease-in both; }
+#bad.c4-8 .w3 { animation: wave 1.1s ease-out .5s both; }
+#bad.c4-8 .z3 .face { animation: flash .8s ease; }
+#bad.c4-3 .ai { --eye: #ff8080; --eyeglow: rgba(255, 100, 100, .8); }
+@keyframes bump { 0% { scale: 1; } 35% { scale: 1.34; } 100% { scale: 1; } }
+#bad .row .num, #good .row .num { transform-origin: 0 60%; }
+#bad.c5-4 .rc .num, #bad.c5-8 .ra .num, #bad.c5-13 .rb .num { animation: bump .8s var(--out); }
+#bad.c6-4 .vow { color: #ff8a8a; }
+#bad.c6-4 .vow::after { scale: 1 1; }
 
-/* 6 */
-#moves .tile { position: absolute; width: 500px; height: 190px; border-radius: 26px; border: 2px solid var(--line); background: linear-gradient(160deg, var(--ink3), var(--ink2)); overflow: hidden; box-shadow: 0 18px 36px rgba(0, 0, 0, .3); }
-#moves .tile .h3 { position: absolute; left: 28px; top: 18px; color: var(--c); }
-#moves .slab { position: absolute; left: 236px; top: 80px; width: 28px; height: 88px; border-radius: 10px; background: var(--c); }
-#moves .tile i { position: absolute; left: 40px; top: 113px; width: 34px; height: 22px; border-radius: 7px; background: #fff; box-shadow: 0 0 16px rgba(255, 255, 255, .7); opacity: 0; }
-@keyframes mv-drop { 0% { left: 40px; opacity: 0; } 10% { opacity: 1; } 45% { left: 208px; opacity: 1; } 56%, 100% { left: 236px; opacity: 0; } }
-@keyframes mv-pass { 0% { left: 40px; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { left: 430px; opacity: 0; } }
-@keyframes mv-late { 0%, 46% { left: 236px; opacity: 0; } 56% { opacity: 1; } 92% { opacity: 1; } 100% { left: 430px; opacity: 0; } }
-@keyframes mv-tint { 0% { left: 40px; opacity: 0; background: #fff; } 10% { opacity: 1; } 48% { background: #fff; } 58% { background: var(--amber); } 90% { opacity: 1; } 100% { left: 430px; opacity: 0; background: var(--amber); } }
-#moves .drop i { animation: mv-drop 2.3s linear infinite; }
-#moves .twice i { animation: mv-pass 2.3s linear infinite; }
-#moves .twice i + i { animation: mv-late 2.3s linear .5s infinite; }
-#moves .tint i { animation: mv-tint 2.3s linear infinite; }
-#moves .new i { animation: mv-late 2.3s linear infinite; }
+/* 5: retry on top */
+@keyframes to-top { 0% { translate: 0 0; z-index: 4; } 22% { translate: 250px 125px; z-index: 9; } 60% { translate: 250px -99px; z-index: 9; } 100% { translate: 0 -224px; z-index: 9; } }
+@keyframes one-down { 0%, 22% { translate: 0 0; } 60%, 100% { translate: 0 112px; } }
+#good.c1-2 .z3 { animation: to-top 2.2s var(--inout) both; }
+#good.c1-2 .z1, #good.c1-2 .z2 { animation: one-down 2.2s var(--inout) both; }
+#good.c2-2 .q1 { animation: fall 1.5s linear both; }
+#good.c2-2 .q2 { animation: fall 1.5s linear .55s both; }
+#good.c2-2 .q3 { animation: fall 1.5s linear 1.1s both; }
+#good.c2-2 .w1 { animation: wave .9s ease-out 1.38s both; }
+#good.c2-2 .w2 { animation: wave .9s ease-out 1.93s both; }
+#good.c2-2 .w3 { animation: wave .9s ease-out 2.48s both; }
+@keyframes f-top { 0%, 6%, 20%, 27%, 41%, 48%, 62%, 100% { filter: none; } 12%, 33%, 54% { filter: brightness(1.7) saturate(1.2); } }
+@keyframes f-mid { 0%, 20%, 34%, 41%, 55%, 62%, 76%, 100% { filter: none; } 27%, 48%, 69% { filter: brightness(1.7) saturate(1.2); } }
+@keyframes f-low { 0%, 35%, 49%, 56%, 70%, 77%, 91%, 100% { filter: none; } 42%, 63%, 84% { filter: brightness(1.7) saturate(1.2); } }
+#good.c2-2 .z3 .face { animation: f-top 2.6s linear; }
+#good.c2-2 .z1 .face { animation: f-mid 2.6s linear; }
+#good.c2-2 .z2 .face { animation: f-low 2.6s linear; }
+#good.c3-4 .ra .num, #good.c3-9 .rb .num { animation: bump .8s var(--out); }
+#good .vow { transition: color .4s ease; }
+#good.c3-12 .vow { color: #7dffd2; }
 
-/* 8 */
-#up .limit { position: absolute; left: 545px; top: 141px; width: 190px; height: 38px; border: 3px dashed var(--dim); border-radius: 11px; }
-#up .reply { position: absolute; left: 640px; top: 446px; width: 150px; height: 30px; border-radius: 9px; background: #fff; box-shadow: 0 0 22px rgba(255, 255, 255, .7); transform: translateX(-50%); z-index: 2; overflow: hidden; transition: top 1.5s var(--soft), width .8s var(--soft) .5s; }
-#up .reply i { position: absolute; left: 44px; top: 0; width: 30px; height: 30px; background: var(--coral); transition: width .8s var(--soft) .5s, background-color .5s ease .5s; }
-#up.s1 .reply { top: 374px; }
-#up.s2 .reply { top: 262px; width: 230px; }
-#up.s2 .reply i { width: 110px; background: #7d84b8; }
-#up.s3 .reply { top: 145px; width: 182px; }
+/* 6: four moves, each shown on a layer of its own */
+#moves .plate { --a: 104px; --r: 20px; --t: 16px; top: 300px; z-index: 6; }
+#moves .plate[data-in] { translate: 0 0; scale: .6; }
+#moves .plate[data-in].in { scale: 1; }
+#moves .lane { position: absolute; top: 118px; width: 2px; height: 372px; margin-left: -1px; background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, .3) 0 6px, transparent 6px 14px); }
+#moves .lane.in { opacity: .5; }
+#moves .orb.dn { z-index: 3; }
+@keyframes drop-in { 0% { top: 128px; opacity: 0; } 8% { opacity: 1; } 45% { top: 296px; opacity: 1; } 52%, 100% { top: 300px; opacity: 0; } }
+@keyframes come-out { 0%, 45% { top: 300px; opacity: 0; } 47% { top: 304px; opacity: 1; } 92% { top: 468px; opacity: 1; } 100% { top: 480px; opacity: 0; } }
+@keyframes hit { 0%, 40% { filter: none; } 48% { filter: brightness(1.8) saturate(1.2); } 72%, 100% { filter: none; } }
+@keyframes ring { 0%, 44% { scale: 1; opacity: 0; } 46% { scale: 1; opacity: .95; } 82%, 100% { scale: 1.5; opacity: 0; } }
+#moves .p1 .ping { border-color: #ff6b6b; }
+#moves .p4 .ping { border-color: #c9a8ff; }
+#moves.s2 .o-a, #moves.s3 .o-b, #moves.s4 .o-c { animation: drop-in 2.4s linear infinite; }
+#moves.s3 .o-b1, #moves.s4 .o-c1, #moves.s5 .o-d1 { animation: come-out 2.4s linear infinite; }
+#moves.s3 .o-b2 { animation: come-out 2.4s linear .34s infinite; }
+#moves.s2 .p1 .face, #moves.s3 .p2 .face, #moves.s4 .p3 .face, #moves.s5 .p4 .face { animation: hit 2.4s ease infinite; }
+#moves.s2 .p1 .ping, #moves.s5 .p4 .ping { animation: ring 2.4s ease-out infinite; }
+#moves .name { position: absolute; top: 470px; width: 260px; margin-left: -130px; text-align: center; }
+#moves .like { position: absolute; top: 532px; width: 230px; margin-left: -115px; text-align: center; text-wrap: balance; line-height: 1.5; }
 
-/* 9 */
-#count .grid { position: absolute; left: 250px; top: 262px; width: 780px; height: 208px; background: radial-gradient(circle, var(--dc) 6px, transparent 7px) 0 0 / 26px 26px; transition: opacity .8s ease; }
-#count .g1 { --dc: #8d94c6; }
-#count .g2 { --dc: #8a2f38; opacity: 0; }
-#count.s3 .g1 { opacity: .4; }
-#count.s4 .g1 { opacity: 0; }
-#count.s4 .g2 { opacity: 1; }
-#count .green { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 18px 4px var(--mint); }
-#count .ring { position: absolute; left: 1094px; top: 286px; width: 104px; height: 104px; border-radius: 50%; border: 11px dashed var(--amber); animation: spin 7s linear infinite; }
+/* 7: what a promise survives */
+#modes .strip { position: absolute; left: 88px; width: 760px; height: 92px; display: flex; align-items: center; padding-left: 32px; border-radius: 24px; font-size: 38px; font-weight: 700; letter-spacing: -.02em; }
+#modes .mark { width: 56px; height: 56px; font-size: 30px; }
+#modes .way { position: absolute; left: 884px; font-size: 38px; white-space: nowrap; }
 
-/* 10 */
-#ran .mini { position: absolute; left: 170px; top: 150px; width: 230px; height: 150px; }
-#ran .mini i { position: absolute; left: 0; width: 230px; height: 40px; border-radius: 12px; box-shadow: 0 5px 0 rgba(0, 0, 0, .28); }
-@keyframes mini-a { 0%, 20% { top: 0; } 40%, 60% { top: 52px; } 80%, 100% { top: 104px; } }
-@keyframes mini-b { 0%, 20% { top: 52px; } 40%, 100% { top: 0; } }
-@keyframes mini-c { 0%, 60% { top: 104px; } 80%, 100% { top: 52px; } }
-#ran .mini i:nth-child(1) { background: var(--coral); animation: mini-a 2.6s ease-in-out infinite alternate; }
-#ran .mini i:nth-child(2) { background: var(--amber); animation: mini-b 2.6s ease-in-out infinite alternate; }
-#ran .mini i:nth-child(3) { background: var(--sky); animation: mini-c 2.6s ease-in-out infinite alternate; }
+/* 8: replies go up */
+#up .zt { top: 290px; z-index: 6; }
+#up .zr { top: 402px; z-index: 5; }
+#up .slot { position: absolute; left: 725px; top: 150px; width: 190px; height: 38px; border-radius: 12px; border: 2px dashed rgba(255, 255, 255, .5); transition: border-color .4s ease, box-shadow .4s ease; }
+#up.c3-9 .slot { border-color: #4dffc3; box-shadow: 0 0 26px rgba(77, 255, 195, .5); }
+#up .reply { position: absolute; left: 820px; top: 566px; width: 150px; height: 30px; border-radius: 15px; background: #fff; transform: translateX(-50%); overflow: hidden; z-index: 12; opacity: 0; box-shadow: 0 0 24px rgba(255, 255, 255, .7); transition: top 1s var(--inout), width .7s var(--out), opacity .3s ease; }
+#up .reply i { position: absolute; left: 46px; top: 0; width: 30px; height: 30px; background: #ff5fa2; transition: width .7s var(--out), background-color .4s ease; }
+#up.c1-2 .reply { opacity: 1; top: 494px; }
+#up.c2-3 .reply { top: 402px; }
+#up.c2-8 .reply { width: 232px; }
+#up.c2-8 .reply i { width: 112px; background: #8f97c4; }
+#up.c3-6 .reply { top: 290px; width: 184px; }
+#up.c3-9 .reply { top: 169px; }
+#up.c2-3 .zr .face { animation: flash .9s ease; }
+#up.c2-3 .zr .ping { animation: ping 1s var(--out); }
+#up.c3-6 .zt .face { animation: flash .9s ease; }
+#up.c3-6 .zt .ping { animation: ping 1s var(--out); }
+#up .wrong { left: 88px; top: 262px; width: 392px; height: 212px; }
+#up .wrong .key { position: absolute; left: 30px; }
+#up .wrong .long { position: absolute; left: 30px; top: 62px; width: 300px; height: 22px; border-radius: 8px; border: 2px solid #ff6b6b; background: rgba(255, 107, 107, .25); }
+
+/* 9: above and below */
+#above .plate { --a: 108px; --r: 20px; --t: 16px; left: 950px; }
+#above .plate .face span { font-size: 16px; margin-bottom: 7px; }
+#above .y1 { top: 176px; z-index: 9; }
+#above .y2 { top: 254px; z-index: 8; }
+#above .y3 { top: 332px; z-index: 7; }
+#above .y4 { top: 410px; z-index: 6; }
+#above .y5 { top: 488px; z-index: 5; }
+#above .old, #above .new { transition: scale .4s var(--inout) var(--w, 0s), opacity .12s linear calc(var(--w, 0s) + .28s); }
+#above .new { scale: 1 0; opacity: 0; }
+#above.c2-3 .old { scale: 1 0; opacity: 0; }
+#above.c2-3 .new { scale: 1 1; opacity: 1; transition: scale .5s var(--spring) calc(var(--w, 0s) + .4s), opacity .12s linear calc(var(--w, 0s) + .4s); }
+#above .fact { left: 88px; width: 400px; display: flex; align-items: center; gap: 16px; padding: 16px 22px; }
+
+/* 10: which orders are right */
+#count .field { position: absolute; left: 560px; top: 150px; width: 630px; height: 324px; background: radial-gradient(circle, var(--dot) 3.2px, transparent 4px) 0 0 / 18px 18px; transition: clip-path 1.6s var(--out), opacity .8s ease; }
+#count .f1 { --dot: #8d95c9; clip-path: inset(0 100% 0 0); }
+#count .f2 { --dot: #9a3440; opacity: 0; }
+#count.c1-3 .f1 { clip-path: inset(0 0 0 0); }
+#count.c3-2 .f1 { opacity: .45; }
+#count.c4-13 .f1 { opacity: 0; }
+#count.c4-13 .f2 { opacity: 1; }
+#count.s5 .f2 { opacity: .22; }
+#count .lit { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #4dffc3; box-shadow: 0 0 16px 5px rgba(77, 255, 195, .8); }
+
+/* 11: every order was run */
+#ran .belt { position: absolute; left: 0; top: 160px; width: 1280px; height: 150px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+#ran .run { position: absolute; left: 0; top: 18px; display: flex; gap: 44px; padding-right: 44px; width: max-content; animation: belt 7s linear infinite paused; }
+#ran.c1-8 .run { animation-play-state: running; }
+#ran.s3 .run { animation-play-state: paused; }
+@keyframes belt { to { translate: -50% 0; } }
+#ran .mini { position: relative; flex: none; width: 88px; height: 112px; }
+#ran .mini .plate { --a: 44px; --r: 9px; --t: 7px; left: 44px; }
+#ran .mini .plate:nth-child(1) { top: 24px; z-index: 3; }
+#ran .mini .plate:nth-child(2) { top: 50px; z-index: 2; }
+#ran .mini .plate:nth-child(3) { top: 76px; z-index: 1; }
+#ran .mini .face { border-width: 1px; box-shadow: inset 4px 4px 10px rgba(255, 255, 255, .3); }
+#ran .scan { position: absolute; left: 638px; top: 146px; width: 4px; height: 178px; border-radius: 2px; background: #4dffc3; box-shadow: 0 0 26px 6px rgba(77, 255, 195, .8); }
+#ran .scan::before { content: ""; position: absolute; right: 4px; top: 0; width: 240px; height: 100%; background: linear-gradient(270deg, rgba(77, 255, 195, .2), transparent); }
+#ran .eq { position: absolute; left: 640px; top: 362px; display: flex; align-items: center; gap: 20px; }
+#ran .eq .mark { position: static; }
 </style>
 
-<section class="scene" id="stack" data-title="A stack of layers">
-  <div class="bot me fade" data-in="1"><div class="head"><i></i><i></i><b></b></div></div>
-  <div class="tag abs" data-in="1" style="left:720px;top:64px;--d:.2s">the model</div>
-  <div class="globe earth fade" data-in="1"></div>
-  <div class="tag abs" data-in="1" style="left:720px;top:512px;--d:.2s">the world</div>
-  <div class="pkt"></div>
-  <div class="layer ask at1 from-l" data-in="2"><b>?</b>approve</div>
-  <div class="layer budget at2 from-r" data-in="2" style="--d:.2s"><b>$</b>budget</div>
-  <div class="layer retry at3 from-l" data-in="2" style="--d:.4s"><b>↻</b>retry</div>
-  <div class="h3 abs coral" data-in="3" data-out="4" style="left:910px;top:160px;--d:.2s">asks you</div>
-  <div class="h3 abs amber" data-in="3" data-out="4" style="left:910px;top:242px;--d:1.7s">counts the cost</div>
-  <div class="h3 abs sky" data-in="3" data-out="4" style="left:910px;top:324px;--d:3.1s">tries again</div>
-  <div class="chip ghost abs pop" data-in="4" style="left:910px;top:150px;--d:1.3s">cache</div>
-  <div class="chip ghost abs pop" data-in="4" style="left:1040px;top:150px;--d:1.9s">log</div>
-  <div class="chip ghost abs pop" data-in="4" style="left:910px;top:232px;--d:2.5s">sandbox</div>
-  <div class="chip ghost abs pop" data-in="4" style="left:910px;top:314px;--d:3.3s">secret filter</div>
+<section class="scene deep" id="open" data-title="From the model to the world" data-cues="1:7 2:5 3:2 3:7 3:11 4:3">
+  <div class="planet"></div>
+  <div class="cam">
+    <div class="plate retry z3 iso-l" data-in="2:1"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+    <div class="plate budget z2 iso-r" data-in="2:3"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+    <div class="plate ask z1 iso-l" data-in="2:4"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+    <div class="plate x1 above" data-in="4:8"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>cache</span></div><i class="ping"></i></div>
+    <div class="plate x2 above" data-in="4:10"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>log</span></div><i class="ping"></i></div>
+    <div class="plate x3 above" data-in="4:12"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>sandbox</span></div><i class="ping"></i></div>
+    <div class="plate x4 above" data-in="4:14"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>filter</span></div><i class="ping"></i></div>
+    <div class="ai me blur" data-in="1"><div class="body"><div class="visor"><i></i><i></i></div></div></div>
+    <div class="orb tail o1"></div>
+    <div class="orb tail o2"></div>
+  </div>
+  <div class="wave w1"></div>
+  <div class="wave w2"></div>
+  <div class="d2 words sync abs" data-in="1:1" data-out="2" style="left:88px;top:170px;width:540px">Every tool call</div>
+  <div class="d2 words abs" data-in="1:7" data-out="2" style="left:88px;top:256px;width:540px"><span class="soft">falls to the</span> <span class="it grad">world.</span></div>
+  <div class="lab abs" data-in="1:10" data-out="4" style="left:896px;top:82px">the model</div>
+  <div class="lab abs" data-in="1:13" style="left:1020px;top:540px">the world</div>
+  <div class="d2 words sync abs" data-in="2:7" data-out="3" style="left:88px;top:214px;width:540px">a stack of <span class="it grad">layers.</span></div>
+  <div class="call" data-in="3:2" data-out="4" style="top:186px"><div class="lab">approve</div><div class="d4">asks you first</div></div>
+  <div class="lead" data-in="3:2" data-out="4" style="left:528px;top:216px;width:136px"></div>
+  <div class="call" data-in="3:7" data-out="4" style="top:298px"><div class="lab">budget</div><div class="d4">counts the cost</div></div>
+  <div class="lead" data-in="3:7" data-out="4" style="left:528px;top:328px;width:136px"></div>
+  <div class="call" data-in="3:11" data-out="4" style="top:410px"><div class="lab">retry</div><div class="d4">tries again</div></div>
+  <div class="lead" data-in="3:11" data-out="4" style="left:528px;top:440px;width:136px"></div>
+  <div class="lab abs" data-in="4:2" style="left:92px;top:196px">a real harness has</div>
+  <div class="d1 words abs" data-in="4:5" style="left:84px;top:222px">a <span class="it grad">dozen</span></div>
+  <div class="d4 abs" data-in="4:8" style="left:930px;top:310px">cache</div>
+  <div class="d4 abs" data-in="4:10" style="left:930px;top:252px">log</div>
+  <div class="d4 abs" data-in="4:12" style="left:930px;top:194px">sandbox</div>
+  <div class="d4 abs" data-in="4:14" style="left:930px;top:136px">secret filter</div>
   <aside>
     <p>Every tool call your agent makes travels from the model to the world.</p>
     <p>On the way, it passes through a stack of layers.</p>
@@ -125,19 +254,21 @@
   </aside>
 </section>
 
-<section class="scene" id="order" data-title="Order matters">
-  <div class="bot me fade" data-in="1"><div class="head"><i></i><i></i><b></b></div></div>
-  <div class="globe earth fade" data-in="1"></div>
-  <div class="layer ask at1 fade" data-in="1"><b>?</b>approve</div>
-  <div class="layer budget at2 fade" data-in="1"><b>$</b>budget</div>
-  <div class="layer retry at3 fade" data-in="1"><b>↻</b>retry</div>
-  <div class="chip white abs from-l" data-in="1" data-out="2" style="left:40px;top:158px;height:48px;font-size:22px;--d:.4s">only what you approved</div>
-  <div class="chip white abs from-l" data-in="1" data-out="2" style="left:106px;top:240px;height:48px;font-size:22px;--d:.8s">within the budget</div>
-  <div class="tag abs" data-in="1" data-out="2" style="left:40px;top:120px;--d:.3s">the promises</div>
-  <div class="h1 abs amber pop" data-in="2" style="left:990px;top:160px;font-size:220px;--d:.6s">?</div>
-  <div class="h3 abs" data-in="3" style="left:40px;top:170px;font-size:31px">same layers</div>
-  <div class="h3 abs amber" data-in="3" style="left:40px;top:226px;font-size:31px;--d:.9s">different order</div>
-  <div class="h3 abs coral" data-in="3" style="left:40px;top:282px;font-size:31px;--d:1.9s">different guarantees</div>
+<section class="scene deep" id="order" data-title="Order matters" data-cues="2:12" style="--light1: rgba(179, 140, 255, .32); --light2: rgba(69, 214, 255, .2)">
+  <div class="planet"></div>
+  <div class="plate retry z3"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+  <div class="plate budget z2"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+  <div class="plate ask z1"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+  <div class="ai me"><div class="body"><div class="visor"><i></i><i></i></div></div></div>
+  <div class="slab glass vowcard blur" data-in="1:4" data-out="3" style="top:174px"><div class="lab">promise</div><div class="d4">every write is approved</div></div>
+  <div class="lead" data-in="1:4" data-out="3" style="left:500px;top:216px;width:164px;--d:.3s"></div>
+  <div class="slab glass vowcard blur" data-in="1:5" data-out="3" style="top:286px"><div class="lab">promise</div><div class="d4">never over budget</div></div>
+  <div class="lead" data-in="1:5" data-out="3" style="left:500px;top:328px;width:164px;--d:.3s"></div>
+  <div class="mark ask pop" data-in="2:8" data-out="3" style="left:466px;top:150px"></div>
+  <div class="mark ask pop" data-in="2:8" data-out="3" style="left:466px;top:262px;--d:.15s"></div>
+  <div class="d3 words sync abs" data-in="3:1" style="left:88px;top:196px">Same layers.</div>
+  <div class="d3 words sync abs" data-in="3:3" style="left:88px;top:264px">Different order.</div>
+  <div class="d3 words sync abs" data-in="3:5" style="left:88px;top:332px">Different <span class="it grad">guarantees.</span></div>
   <aside>
     <p>Each layer makes a promise.</p>
     <p>Here is the surprise. Whether a promise holds depends on the order of the stack.</p>
@@ -145,38 +276,56 @@
   </aside>
 </section>
 
-<section class="scene title" data-title="What a Guarantee Survives">
-  <div class="box">
-    <div class="kicker" data-in="1">A Trillion POPL Papers · Paper 13</div>
-    <div class="h1" data-in="1" style="--d:.15s">What a Guarantee Survives</div>
-    <div class="sub" data-in="1" style="--d:.4s">The order of the layers of a harness</div>
+<section class="scene deep" id="title" data-title="What a Guarantee Survives" style="--light1: rgba(255, 95, 162, .42); --light2: rgba(88, 110, 255, .42); --light3: rgba(69, 214, 255, .16)">
+  <div class="deco">
+    <div class="plate retry z3"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+    <div class="plate budget z2"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+    <div class="plate ask z1"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
   </div>
+  <div class="lab abs" data-in="1" style="left:88px;top:176px">A Trillion POPL Papers · Paper 13</div>
+  <div class="d1 words abs" data-in="1:5" style="left:84px;top:212px;width:880px;font-size:98px">What a Guarantee <span class="it grad" style="--g1:#ff8fbd;--g2:#ffc45e">Survives</span></div>
+  <div class="d4 soft abs" data-in="1:9" style="left:88px;top:446px">The order of the layers of a harness</div>
   <aside>
     <p>This paper asks one question: what does a guarantee survive?</p>
   </aside>
 </section>
 
-<section class="scene alarm" id="bad" data-title="Retry at the bottom">
-  <div class="bot me fade" data-in="1"><div class="head"><i></i><i></i><b></b></div></div>
-  <div class="globe earth fade" data-in="1"></div>
-  <div class="layer ask at1 fade" data-in="1"><b>?</b>approve</div>
-  <div class="layer budget at2 fade" data-in="1"><b>$</b>budget</div>
-  <div class="layer retry at3 fade" data-in="1" data-hot="1 4"><b>↻</b>retry</div>
-  <div class="pkt m"></div>
-  <div class="pkt r1"></div>
-  <div class="pkt r2"></div>
-  <div class="pkt r3"></div>
-  <div class="human from-l" data-in="2" style="left:160px;top:100px"></div>
-  <div class="bubble pop" data-in="2" style="left:262px;top:56px;--d:.5s">yes</div>
-  <span class="tag cap" data-in="2" style="top:112px">you approved</span>
-  <b class="big num" data-in="2" data-count="1" data-ms="300" data-hot="5" style="top:136px">0</b>
-  <span class="tag cap" data-in="3" style="top:240px">the budget counted</span>
-  <b class="big num" data-in="3" data-count="1" data-ms="300" data-hot="5" style="top:264px">0</b>
-  <span class="tag cap coral" data-in="4" style="top:368px">the world received</span>
-  <b class="big num coral" data-in="4" data-count="3" data-ms="4100" data-even data-hot="5" style="top:392px">0</b>
-  <div class="stamp" data-in="6" style="left:1030px;top:152px;font-size:28px">broken</div>
-  <div class="stamp" data-in="6" style="left:1030px;top:280px;font-size:28px;--d:.5s">broken</div>
-  <div class="h3 abs dim" data-in="6" style="left:70px;top:330px;width:300px;--d:1.1s">and no layer did anything wrong</div>
+<section class="scene deep" id="bad" data-title="Retry at the bottom" data-cues="1:3 2:2 3:2 4:2 4:3 4:5 4:8 5:4 5:8 5:13 6:4" style="--light1: rgba(255, 95, 120, .3); --light2: rgba(88, 110, 255, .26)">
+  <div class="planet"></div>
+  <div class="plate retry z3"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+  <div class="plate budget z2"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+  <div class="plate ask z1"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+  <div class="ai me"><div class="body"><div class="visor"><i></i><i></i></div></div></div>
+  <div class="orb m"></div>
+  <div class="orb tail t1"></div>
+  <div class="orb tail t2"></div>
+  <div class="orb tail t3"></div>
+  <div class="wave bad w1"></div>
+  <div class="wave bad w2"></div>
+  <div class="wave w3"></div>
+  <div class="d3 words head" data-in="1:2">Retry at the <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">bottom.</span></div>
+  <div class="row ra blur" data-in="2" style="top:176px">
+    <div class="digits"><b class="num digit" data-out="2:3">0</b><b class="num digit" data-in="2:3">1</b></div>
+    <div><div class="lab">you approved</div><div class="d4 soft"><span class="vow">every write is approved</span></div></div>
+  </div>
+  <div class="lead" data-in="2" style="left:500px;top:218px;width:164px;--d:.3s"></div>
+  <div class="row rb blur" data-in="3" style="top:288px">
+    <div class="digits"><b class="num digit" data-out="3:4">0</b><b class="num digit" data-in="3:4">1</b></div>
+    <div><div class="lab">the budget counted</div><div class="d4 soft"><span class="vow">never over budget</span></div></div>
+  </div>
+  <div class="lead" data-in="3" style="left:500px;top:330px;width:164px;--d:.3s"></div>
+  <div class="row rc blur" data-in="4" style="top:486px">
+    <div class="digits"><b class="num digit" data-out="4:2">0</b><b class="num digit" data-in="4:2" data-out="4:5">1</b><b class="num digit" data-in="4:5" data-out="4:8">2</b><b class="num digit warn" data-in="4:8">3</b></div>
+    <div><div class="lab">the world received</div><div class="d4 soft">requests</div></div>
+  </div>
+  <div class="lead" data-in="4" style="left:440px;top:548px;width:330px;--d:.3s"></div>
+  <div class="user pop" data-in="2:2" style="left:1070px;top:146px"></div>
+  <div class="bub pop" data-in="2:2" style="left:1040px;top:78px;--d:.25s">yes</div>
+  <div class="mark yes pop" data-in="6:6" style="left:1004px;top:193px"></div>
+  <div class="mark yes pop" data-in="6:7" style="left:1004px;top:305px"></div>
+  <div class="mark yes pop" data-in="6:8" style="left:1004px;top:417px"></div>
+  <div class="mark no pop" data-in="6:4" style="left:24px;top:206px"></div>
+  <div class="mark no pop" data-in="6:4" style="left:24px;top:318px;--d:.15s"></div>
   <aside>
     <p>Start with retry at the bottom of the stack, next to the world.</p>
     <p>You approve one write.</p>
@@ -187,28 +336,40 @@
   </aside>
 </section>
 
-<section class="scene calm" id="good" data-title="Retry on top">
-  <div class="bot me"><div class="head"><i></i><i></i><b></b></div></div>
-  <div class="globe earth"></div>
-  <div class="layer ask mv"><b>?</b>approve</div>
-  <div class="layer budget mv"><b>$</b>budget</div>
-  <div class="layer retry mv"><b>↻</b>retry</div>
-  <div class="pkt q1"></div>
-  <div class="pkt q2"></div>
-  <div class="pkt q3"></div>
-  <div class="human" style="left:190px;top:182px"></div>
-  <div class="bubble pop" data-in="3" style="left:96px;top:112px">yes, yes, yes</div>
-  <span class="tag cap" data-in="2" style="top:112px">you approved</span>
-  <b class="big num" data-in="2" data-count="3" data-ms="3200" data-even style="top:136px">0</b>
-  <span class="tag cap" data-in="2" style="top:240px">the budget counted</span>
-  <b class="big num" data-in="2" data-count="3" data-ms="3200" data-even style="top:264px">0</b>
-  <span class="tag cap" data-in="2" style="top:368px">the world received</span>
-  <b class="big num" data-in="2" data-count="3" data-ms="3400" data-even style="top:392px">0</b>
-  <div class="badge ok pop" data-in="3" style="left:1020px;top:142px;--d:.3s"></div>
-  <div class="badge ok pop" data-in="3" style="left:1020px;top:270px;--d:.6s"></div>
-  <div class="badge ok pop" data-in="3" style="left:1020px;top:398px;--d:.9s"></div>
-  <div class="chip mint abs from-l" data-in="4" style="left:60px;top:392px;height:50px;font-size:22px">dropped: still true</div>
-  <div class="chip coral abs from-l" data-in="4" style="left:60px;top:456px;height:50px;font-size:22px;--d:1.7s">repeated: broken</div>
+<section class="scene deep" id="good" data-title="Retry on top" data-cues="1:2 2:2 3:4 3:9 3:12" style="--light1: rgba(77, 255, 195, .26); --light2: rgba(88, 110, 255, .28)">
+  <div class="planet"></div>
+  <div class="plate retry z3"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+  <div class="plate budget z2"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+  <div class="plate ask z1"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+  <div class="ai me"><div class="body"><div class="visor"><i></i><i></i></div></div></div>
+  <div class="orb tail q1"></div>
+  <div class="orb tail q2"></div>
+  <div class="orb tail q3"></div>
+  <div class="wave w1"></div>
+  <div class="wave w2"></div>
+  <div class="wave w3"></div>
+  <div class="d3 words head" data-in="1:2">Retry on <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">top.</span></div>
+  <div class="row ra blur" data-in="2" data-out="4" style="top:176px">
+    <div class="digits"><b class="num digit" data-out="2:4">0</b><b class="num digit good" data-in="2:4" data-count="3" data-from="1" data-ms="1200" data-even>1</b></div>
+    <div><div class="lab">you approved</div><div class="d4 soft"><span class="vow">every write is approved</span></div></div>
+  </div>
+  <div class="lead" data-in="2" data-out="4" style="left:500px;top:226px;width:192px;rotate:32deg;--d:.3s"></div>
+  <div class="row rb blur" data-in="2" data-out="4" style="top:288px">
+    <div class="digits"><b class="num digit" data-out="2:5">0</b><b class="num digit good" data-in="2:5" data-count="3" data-from="1" data-ms="1200" data-even>1</b></div>
+    <div><div class="lab">the budget counted</div><div class="d4 soft"><span class="vow">never over budget</span></div></div>
+  </div>
+  <div class="lead" data-in="2" data-out="4" style="left:500px;top:338px;width:196px;rotate:32deg;--d:.3s"></div>
+  <div class="row rc blur" data-in="2" data-out="4" style="top:486px">
+    <div class="digits"><b class="num digit" data-out="2:6">0</b><b class="num digit good" data-in="2:6" data-count="3" data-from="1" data-ms="1200" data-even>1</b></div>
+    <div><div class="lab">the world received</div><div class="d4 soft">requests</div></div>
+  </div>
+  <div class="lead" data-in="2" data-out="4" style="left:440px;top:548px;width:330px;--d:.3s"></div>
+  <div class="user pop" data-in="3:3" data-out="4" style="left:1070px;top:258px"></div>
+  <div class="bub pop" data-in="3:3" data-out="4" style="left:1004px;top:186px;--d:.25s">yes · yes · yes</div>
+  <div class="mark yes pop" data-in="3:12" data-out="4" style="left:24px;top:206px"></div>
+  <div class="mark yes pop" data-in="3:12" data-out="4" style="left:24px;top:318px;--d:.15s"></div>
+  <div class="d3 words abs" data-in="4:1" style="left:88px;top:186px;width:570px;font-size:58px">Dropping a request<br><span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">never hurt.</span></div>
+  <div class="d3 words abs" data-in="4:8" style="left:88px;top:356px;width:570px;font-size:58px">Repeating one <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">did.</span></div>
   <aside>
     <p>Now move retry to the top.</p>
     <p>Every try passes the other layers again.</p>
@@ -217,13 +378,33 @@
   </aside>
 </section>
 
-<section class="scene" id="moves" data-title="Four moves">
-  <div class="tile drop" data-in="1" data-hot="2" style="left:110px;top:100px;--c:var(--coral)"><div class="h3">drop</div><div class="slab"></div><i></i></div>
-  <div class="tile twice" data-in="1" data-hot="3" style="left:670px;top:100px;--c:var(--sky);--d:.15s"><div class="h3">repeat</div><div class="slab"></div><i></i><i></i></div>
-  <div class="tile tint" data-in="1" data-hot="4" style="left:110px;top:330px;--c:var(--amber);--d:.3s"><div class="h3">rewrite</div><div class="slab"></div><i></i></div>
-  <div class="tile new" data-in="1" data-hot="5" style="left:670px;top:330px;--c:var(--violet);--d:.45s"><div class="h3">invent</div><div class="slab"></div><i></i></div>
+<section class="scene deep" id="moves" data-title="Four moves" style="--light1: rgba(69, 214, 255, .26); --light2: rgba(255, 184, 77, .18)">
+  <div class="d3 words head" data-in="1:9">Only <span class="it grad">four</span> moves.</div>
+  <div class="lane" data-in="1:10" style="left:220px"></div>
+  <div class="lane" data-in="1:10" style="left:500px;--d:.1s"></div>
+  <div class="lane" data-in="1:10" style="left:780px;--d:.2s"></div>
+  <div class="lane" data-in="1:10" style="left:1060px;--d:.3s"></div>
+  <div class="orb tail dn o-b1" style="left:500px"></div>
+  <div class="orb tail dn o-b2" style="left:500px"></div>
+  <div class="orb tail dn o-c1" style="left:780px;--c:#ffc45e;--halo:rgba(255, 196, 94, .6)"></div>
+  <div class="orb tail dn o-d1" style="left:1060px;--c:#c9a8ff;--halo:rgba(179, 140, 255, .6)"></div>
+  <div class="plate p1" data-in="1:4" style="left:220px"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span></span></div><i class="ping"></i></div>
+  <div class="plate p2" data-in="1:4" style="left:500px;--d:.1s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span></span></div><i class="ping"></i></div>
+  <div class="plate p3" data-in="1:4" style="left:780px;--d:.2s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span></span></div><i class="ping"></i></div>
+  <div class="plate p4" data-in="1:4" style="left:1060px;--d:.3s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span></span></div><i class="ping"></i></div>
+  <div class="orb tail o-a" style="left:220px"></div>
+  <div class="orb tail o-b" style="left:500px"></div>
+  <div class="orb tail o-c" style="left:780px"></div>
+  <div class="d3 words name" data-in="2:1" style="left:220px">Drop</div>
+  <div class="lab like" data-in="2:5" style="left:220px">a cache answers by itself</div>
+  <div class="d3 words name" data-in="3:1" style="left:500px">Repeat</div>
+  <div class="lab like" data-in="3:5" style="left:500px">a retry</div>
+  <div class="d3 words name" data-in="4:1" style="left:780px">Rewrite</div>
+  <div class="lab like" data-in="4:5" style="left:780px">a hook tidies a path</div>
+  <div class="d3 words name" data-in="5:2" style="left:1060px">Invent</div>
+  <div class="lab like" data-in="5:9" style="left:1060px">a formatter after a write</div>
   <aside>
-    <p>Seen from above, a layer can do only four things to a request.</p>
+    <p>However clever a layer is, it can do only four things to a request.</p>
     <p>Drop it, like a cache that answers by itself.</p>
     <p>Repeat it, like a retry.</p>
     <p>Rewrite it, like a hook that tidies a path.</p>
@@ -231,23 +412,23 @@
   </aside>
 </section>
 
-<section class="scene" id="modes" data-title="What a promise survives">
-  <div class="kicker abs" data-in="1" style="left:150px;top:80px">does the promise survive a request that is</div>
-  <div class="h3 abs" data-in="1" style="left:498px;top:128px;--d:.2s">dropped?</div>
-  <div class="h3 abs" data-in="1" style="left:690px;top:128px;--d:.4s">repeated?</div>
-  <div class="chip amber abs from-l" data-in="2" style="left:150px;top:216px">a budget</div>
-  <div class="badge ok pop" data-in="2" style="left:540px;top:213px;--d:.5s"></div>
-  <div class="badge no pop" data-in="2" style="left:742px;top:213px;--d:1.3s"></div>
-  <div class="chip mint abs from-l" data-in="3" style="left:150px;top:316px">an allow-list</div>
-  <div class="badge ok pop" data-in="3" style="left:540px;top:313px;--d:.5s"></div>
-  <div class="badge ok pop" data-in="3" style="left:742px;top:313px;--d:.9s"></div>
-  <div class="chip abs from-l" data-in="4" style="left:150px;top:416px">an exact log</div>
-  <div class="badge no pop" data-in="4" style="left:540px;top:413px;--d:.5s"></div>
-  <div class="badge no pop" data-in="4" style="left:742px;top:413px;--d:.9s"></div>
-  <div class="chip ghost abs pop" data-in="5" style="left:890px;top:216px;font-size:24px;--d:1.3s">at most once</div>
-  <div class="chip ghost abs pop" data-in="5" style="left:890px;top:316px;font-size:24px;--d:2.2s">any number of times</div>
-  <div class="chip ghost abs pop" data-in="5" style="left:890px;top:416px;font-size:24px;--d:3.4s">exactly once</div>
-  <div class="tag abs amber" data-in="6" style="left:890px;top:500px">structural rules</div>
+<section class="scene deep" id="modes" data-title="What a promise survives" style="--light1: rgba(88, 110, 255, .34); --light2: rgba(77, 255, 195, .16)">
+  <div class="d3 words head" data-in="1:2" style="width:900px">What does a promise <span class="it grad">survive?</span></div>
+  <div class="lab abs" data-in="1:6" style="left:478px;top:158px;width:160px;text-align:center">dropped</div>
+  <div class="lab abs" data-in="1:6" style="left:668px;top:158px;width:160px;text-align:center;--d:.15s">repeated</div>
+  <div class="strip glass blur" data-in="2:2" style="top:192px">a budget</div>
+  <div class="mark yes pop" data-in="2:4" style="left:530px;top:210px"></div>
+  <div class="mark no pop" data-in="2:7" style="left:720px;top:210px"></div>
+  <div class="strip glass blur" data-in="3:2" style="top:300px">an allow-list</div>
+  <div class="mark yes pop" data-in="3:5" style="left:530px;top:318px"></div>
+  <div class="mark yes pop" data-in="3:5" style="left:720px;top:318px;--d:.2s"></div>
+  <div class="strip glass blur" data-in="4:2" style="top:408px">an exact log</div>
+  <div class="mark no pop" data-in="4:5" style="left:530px;top:426px"></div>
+  <div class="mark no pop" data-in="4:5" style="left:720px;top:426px;--d:.2s"></div>
+  <div class="way it grad from-l" data-in="5:5" style="top:214px;--g1:#ffe6b3;--g2:#ffb84d">at most once</div>
+  <div class="way it grad from-l" data-in="5:8" style="top:322px;--g1:#c8ffeb;--g2:#4dffc3">any number of times</div>
+  <div class="way it grad from-l" data-in="5:13" style="top:430px;--g1:#ffc0d8;--g2:#ff8fbd">exactly once</div>
+  <div class="d3 words abs" data-in="6:2" style="left:88px;top:524px"><span class="soft" style="font-size:30px">logicians call them</span> <span class="it grad">structural rules.</span></div>
   <aside>
     <p>A promise holds if it survives everything that the layers below it do.</p>
     <p>A budget survives dropping, but not repeating.</p>
@@ -258,19 +439,28 @@
   </aside>
 </section>
 
-<section class="scene" id="up" data-title="Replies go the other way">
-  <div class="bot me fade" data-in="1"><div class="head"><i></i><i></i><b></b></div></div>
-  <div class="globe earth fade" data-in="1"></div>
-  <div class="limit fade" data-in="1"></div>
-  <div class="tag abs" data-in="1" style="left:750px;top:150px">what fits</div>
-  <div class="layer trim fade" data-in="1" style="top:190px"><b>✂</b>trim</div>
-  <div class="layer redact fade" data-in="1" style="top:300px"><b>▓</b>redact</div>
+<section class="scene deep" id="up" data-title="Replies go the other way" data-cues="1:2 2:3 2:8 3:6 3:9" style="--light1: rgba(179, 140, 255, .34); --light2: rgba(77, 255, 195, .2)">
+  <div class="planet"></div>
+  <div class="plate redact zr"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>redact</span></div><i class="ping"></i></div>
+  <div class="plate trim zt"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>trim</span></div><i class="ping"></i></div>
+  <div class="ai me"><div class="body"><div class="visor"><i></i><i></i></div></div></div>
+  <div class="slot"></div>
+  <div class="lab abs" style="left:930px;top:160px">what fits</div>
   <div class="reply"><i></i></div>
-  <div class="tag abs coral" data-in="1" data-out="2" style="left:740px;top:380px;--d:1.2s">a reply with a secret</div>
-  <div class="chip coral abs pop" data-in="2" data-out="3" style="left:790px;top:250px;height:46px;font-size:22px;--d:1.4s">too long</div>
-  <div class="badge ok pop" data-in="3" style="left:890px;top:128px;--d:1.4s"></div>
-  <div class="h3 abs mint" data-in="3" style="left:120px;top:206px;--d:.4s">trim on top</div>
-  <div class="chip coral abs from-l" data-in="4" style="left:60px;top:316px;height:50px;font-size:22px">trim below: too long</div>
+  <div class="d3 words head" data-in="1:1">Replies go <span class="it grad" style="--g1:#c9a8ff;--g2:#7dffd2">up.</span></div>
+  <div class="call" data-in="2:8" data-out="3:6" style="top:372px"><div class="lab">redact</div><div class="d4">the placeholder is longer</div></div>
+  <div class="lead" data-in="2:8" data-out="3:6" style="left:528px;top:402px;width:136px"></div>
+  <div class="call" data-in="3:6" data-out="4" style="top:260px"><div class="lab">trim</div><div class="d4">cuts it to fit</div></div>
+  <div class="lead" data-in="3:6" data-out="4" style="left:528px;top:290px;width:136px"></div>
+  <div class="mark yes pop" data-in="3:9" style="left:1050px;top:146px"></div>
+  <div class="slab glass wrong blur" data-in="4:3">
+    <div class="lab">the other way round</div>
+    <div class="long"></div>
+    <span class="key k-redact" style="top:102px">redact</span>
+    <span class="key k-trim" style="top:156px">trim</span>
+    <div class="d4 abs" style="left:176px;top:128px">does not fit</div>
+  </div>
+  <div class="mark no pop" data-in="4:11" style="left:440px;top:246px"></div>
   <aside>
     <p>Replies travel the other way, and the same rule applies upside down.</p>
     <p>A filter removes secrets, but its placeholder is longer than the secret.</p>
@@ -279,42 +469,57 @@
   </aside>
 </section>
 
-<section class="scene" id="above" data-title="Above and below">
-  <div class="kicker abs" data-in="1" style="left:130px;top:76px">every fact has the same form</div>
-  <div class="chip abs from-l" data-in="1" style="left:130px;top:150px;--d:.2s">retry</div>
-  <div class="h3 abs dim" data-in="1" style="left:286px;top:158px;--d:.3s">above</div>
-  <div class="chip coral abs from-r" data-in="1" style="left:420px;top:150px;--d:.4s">approve</div>
-  <div class="chip abs from-l" data-in="1" style="left:130px;top:250px;--d:1.2s">retry</div>
-  <div class="h3 abs dim" data-in="1" style="left:286px;top:258px;--d:1.3s">above</div>
-  <div class="chip amber abs from-r" data-in="1" style="left:420px;top:250px;--d:1.4s">budget</div>
-  <div class="chip mint abs from-l" data-in="1" style="left:130px;top:350px;--d:2.2s">trim</div>
-  <div class="h3 abs dim" data-in="1" style="left:286px;top:358px;--d:2.3s">above</div>
-  <div class="chip violet abs from-r" data-in="1" style="left:420px;top:350px;--d:2.4s">redact</div>
-  <div class="card pop" data-in="2" style="left:740px;top:150px;width:440px">
-    <div class="h3">an order that respects them all</div>
-    <div class="h3 mint" style="margin-top:10px">keeps every promise</div>
-  </div>
-  <div class="badge ok pop" data-in="2" style="left:1136px;top:126px;--d:.6s"></div>
-  <div class="chip ghost abs" data-in="2" style="left:740px;top:370px;font-size:24px;--d:2.6s">checked before anything runs</div>
+<section class="scene deep" id="above" data-title="Above and below" data-cues="2:3" style="--light1: rgba(69, 214, 255, .3); --light2: rgba(255, 95, 162, .2)">
+  <div class="plate retry y5 old" style="--w:.4s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+  <div class="plate redact y5 new" style="--w:.4s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>redact</span></div><i class="ping"></i></div>
+  <div class="plate trim y4 old" style="--w:.3s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>trim</span></div><i class="ping"></i></div>
+  <div class="plate trim y4 new" style="--w:.3s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>trim</span></div><i class="ping"></i></div>
+  <div class="plate budget y3 old" style="--w:.2s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+  <div class="plate budget y3 new" style="--w:.2s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
+  <div class="plate redact y2 old" style="--w:.1s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>redact</span></div><i class="ping"></i></div>
+  <div class="plate ask y2 new" style="--w:.1s"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+  <div class="plate ask y1 old"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+  <div class="plate retry y1 new"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+  <div class="d3 words head" data-in="1:2">One form: <span class="it grad">above.</span></div>
+  <div class="slab glass fact blur" data-in="1:5" style="top:166px"><span class="key k-retry">retry</span><span class="d4 soft">above</span><span class="key k-ask">approve</span></div>
+  <div class="slab glass fact blur" data-in="1:9" style="top:262px"><span class="key k-retry">retry</span><span class="d4 soft">above</span><span class="key k-budget">budget</span></div>
+  <div class="slab glass fact blur" data-in="1:13" style="top:358px"><span class="key k-trim">trim</span><span class="d4 soft">above</span><span class="key k-redact">redact</span></div>
+  <div class="mark yes pop" data-in="2:8" style="left:466px;top:183px"></div>
+  <div class="mark yes pop" data-in="2:8" style="left:466px;top:279px;--d:.15s"></div>
+  <div class="mark yes pop" data-in="2:8" style="left:466px;top:375px;--d:.3s"></div>
+  <div class="pill glass" data-in="2:15" style="left:88px;top:474px">checked before anything runs</div>
   <aside>
     <p>Every one of these facts has the same form: this layer must stand above that one.</p>
     <p>An order that respects all of them keeps every promise. And a program can check that, before anything runs.</p>
   </aside>
 </section>
 
-<section class="scene" id="count" data-title="Which orders are right?">
-  <div class="kicker abs" data-in="1" style="left:96px;top:56px">which orders are right?</div>
-  <b class="big abs" data-in="2" data-count="40320" data-ms="1500" style="left:96px;top:92px;font-size:88px">0</b>
-  <span class="tag abs" data-in="2" style="left:100px;top:190px;--d:.2s">orders of eight layers</span>
-  <div class="grid g1" data-in="2" style="--d:.3s"></div>
-  <div class="grid g2"></div>
-  <b class="big abs mint" data-in="3" data-count="364" data-ms="1000" style="left:760px;top:92px;font-size:88px">0</b>
-  <span class="tag abs mint" data-in="3" style="left:764px;top:190px;--d:.2s">keep every promise</span>
-  <div class="green pop" data-in="3" data-out="4" style="left:438px;top:320px;--d:.5s"></div>
-  <div class="green pop" data-in="3" data-out="4" style="left:802px;top:398px;--d:.7s"></div>
-  <div class="card pop" data-in="4" style="left:340px;top:282px;width:600px;text-align:center"><b class="big coral" style="font-size:92px">0</b> <span class="h3">of 3,628,800</span><div class="small dim">with a log that is exact and free of secrets</div></div>
-  <div class="ring pop" data-in="5"></div>
-  <span class="tag abs amber" data-in="5" style="left:1076px;top:410px;--d:.3s">a cycle</span>
+<section class="scene deep" id="count" data-title="Which orders are right?" data-cues="1:3 3:2 4:13" style="--light1: rgba(88, 110, 255, .34); --light2: rgba(255, 95, 120, .18)">
+  <div class="field f1"></div>
+  <div class="field f2"></div>
+  <div class="lit pop" data-in="3:2" data-out="4:13" style="left:672px;top:208px"></div>
+  <div class="lit pop" data-in="3:2" data-out="4:13" style="left:834px;top:316px;--d:.12s"></div>
+  <div class="lit pop" data-in="3:2" data-out="4:13" style="left:960px;top:244px;--d:.24s"></div>
+  <div class="lit pop" data-in="3:2" data-out="4:13" style="left:1068px;top:388px;--d:.36s"></div>
+  <div class="lit pop" data-in="3:2" data-out="4:13" style="left:762px;top:406px;--d:.48s"></div>
+  <div class="d3 words head" data-in="1:2" data-out="4:13">Which orders are <span class="it grad">right?</span></div>
+  <div class="num abs" data-in="2:6" data-out="4:13" data-count="40320" data-ms="1500" style="left:84px;top:170px">0</div>
+  <div class="lab abs" data-in="2:6" data-out="4:13" style="left:90px;top:282px;--d:.2s">orders of eight layers</div>
+  <div class="num good abs" data-in="3:2" data-out="4:13" data-count="364" data-ms="1000" style="left:84px;top:334px">0</div>
+  <div class="lab abs" data-in="3:2" data-out="4:13" style="left:90px;top:446px;--d:.2s">keep every promise</div>
+  <div class="d4 soft abs" data-in="4:2" style="left:90px;top:492px;width:440px">add a log that is exact<br>and free of secrets</div>
+  <div class="num warn abs pop" data-in="4:13" style="left:76px;top:150px;font-size:250px">0</div>
+  <div class="lab abs" data-in="4:13" style="left:90px;top:420px;--d:.3s">of 3,628,800 orders of ten layers</div>
+  <svg class="over" viewBox="0 0 1280 720" stroke="#ffc45e" stroke-width="5">
+    <path class="draw" data-in="5:2" pathLength="1" d="M804 290 C 846 222, 920 222, 954 286"/>
+    <path class="fade" data-in="5:2" style="--d:1.1s" fill="#ffc45e" stroke="none" d="M942 268 L 962 296 L 930 292 Z"/>
+    <path class="draw" data-in="5:4" pathLength="1" d="M954 340 C 920 406, 846 406, 806 344"/>
+    <path class="fade" data-in="5:4" style="--d:1.1s" fill="#ffc45e" stroke="none" d="M818 362 L 798 334 L 830 338 Z"/>
+  </svg>
+  <span class="key k-log abs pop" data-in="5:1" style="left:712px;top:290px">log</span>
+  <span class="key k-redact abs pop" data-in="5:1" style="left:940px;top:290px;--d:.15s">redact</span>
+  <div class="lab abs" data-in="5:2" style="left:770px;top:196px;color:#ffc45e;--d:.5s">exact: log below</div>
+  <div class="lab abs" data-in="5:4" style="left:756px;top:420px;color:#ffc45e;--d:.5s">no secrets: log above</div>
   <aside>
     <p>So which orders are right?</p>
     <p>For eight layers, there are forty thousand orders.</p>
@@ -324,15 +529,19 @@
   </aside>
 </section>
 
-<section class="scene calm" id="ran" data-title="Checked by running">
-  <div class="mini" data-in="1"><i></i><i></i><i></i></div>
-  <b class="big abs" data-in="1" data-count="40320" data-ms="3800" style="left:480px;top:150px;--d:.2s">0</b>
-  <span class="tag abs" data-in="1" style="left:486px;top:282px;--d:.4s">orders, each one built and run</span>
-  <div class="chip ghost abs from-l" data-in="2" style="left:300px;top:400px">predicted</div>
-  <div class="h1 abs" data-in="2" style="left:588px;top:372px;--d:.3s">=</div>
-  <div class="chip ghost abs from-r" data-in="2" style="left:690px;top:400px">observed</div>
-  <div class="badge ok pop" data-in="2" style="left:920px;top:397px;--d:.8s"></div>
-  <span class="tag abs" data-in="3" style="left:300px;top:496px">on every guarantee of every stack</span>
+<section class="scene deep" id="ran" data-title="Checked by running" data-cues="1:8" style="--light1: rgba(77, 255, 195, .28); --light2: rgba(88, 110, 255, .3)">
+  <div class="d3 words head" data-in="1:3" style="width:800px">Not only predicted. <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">Run.</span></div>
+  <div class="belt" data-in="1:7"><div class="run"><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div><div class="mini"><div class="plate retry"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate budget"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div><div class="plate ask"><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"></div></div></div></div></div>
+  <div class="scan" data-in="1:7" style="--d:.2s"></div>
+  <div class="num abs" data-in="1:8" data-count="40320" data-ms="3200" style="left:84px;top:348px">0</div>
+  <div class="lab abs" data-in="1:10" style="left:90px;top:462px">orders, each one built and run</div>
+  <div class="eq">
+    <div class="d3" data-in="2:2">predicted</div>
+    <div class="d3 soft pop" data-in="2:3">=</div>
+    <div class="d3" data-in="2:5">observed</div>
+    <div class="mark yes pop" data-in="2:6" style="--d:.3s"></div>
+  </div>
+  <div class="d4 soft abs" data-in="3:2" style="left:640px;top:440px">on every guarantee, of every stack</div>
   <aside>
     <p>We did not just predict this. We ran the layers in every one of those orders.</p>
     <p>The prediction matched the runs every time.</p>
@@ -340,22 +549,25 @@
   </aside>
 </section>
 
-<section class="scene caveat" data-title="A caveat">
-  <div class="kicker mid" data-in="1" style="top:104px">before you believe it</div>
-  <div class="note" data-in="1" style="top:170px;--d:.25s">The proofs are on paper.</div>
-  <div class="note" data-in="2" style="top:282px">No machine has checked them.</div>
-  <div class="note" data-in="2" style="top:394px;--d:.6s">No human has reviewed the paper.</div>
+<section class="scene deep" id="caveat" data-title="A caveat" style="--light1: rgba(255, 184, 77, .22); --light2: rgba(88, 110, 255, .22)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:120px;color:#ffc45e">before you believe it</div>
+  <div class="d2 words abs" data-in="1:3" style="left:88px;top:162px">The proofs are on <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">paper.</span></div>
+  <div class="d2 words sync abs" data-in="2:1" style="left:88px;top:270px">No <span class="it">machine</span> has checked them.</div>
+  <div class="d2 words sync abs" data-in="2:7" style="left:88px;top:378px">No <span class="it">human</span> has reviewed the paper.</div>
   <aside>
     <p>One caveat. The proofs in this paper are on paper.</p>
     <p>No machine has checked them, and no human has reviewed the paper.</p>
   </aside>
 </section>
 
-<section class="scene title" data-title="Order is part of the promise">
-  <div class="box">
-    <div class="h1" data-in="1">The order of the layers is part of the promise.</div>
-    <div class="sub" data-in="1" style="--d:.5s">Paper 13 · tpp:13 · A Trillion POPL Papers</div>
+<section class="scene deep" id="end" data-title="Order is part of the promise" style="--light1: rgba(255, 95, 162, .42); --light2: rgba(88, 110, 255, .42); --light3: rgba(69, 214, 255, .16)">
+  <div class="deco" style="position:absolute;left:290px;top:30px;animation:bob 5s ease-in-out infinite">
+    <div class="plate retry z1"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>retry</span></div><i class="ping"></i></div>
+    <div class="plate ask z2"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>approve</span></div><i class="ping"></i></div>
+    <div class="plate budget z3"><i class="glow"></i><div class="sides"><i class="under"></i><i class="band"></i></div><div class="face"><span>budget</span></div><i class="ping"></i></div>
   </div>
+  <div class="d2 words sync abs" data-in="1:1" style="left:88px;top:196px;width:820px">The order of the layers is part of the <span class="it grad" style="--g1:#ff8fbd;--g2:#ffc45e">promise.</span></div>
+  <div class="lab abs" data-in="1:8" style="left:92px;top:468px">Paper 13 · tpp:13 · A Trillion POPL Papers</div>
   <aside>
     <p>The order of the layers is part of the promise.</p>
   </aside>

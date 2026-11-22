@@ -1,7 +1,7 @@
 // Plays a talk as a video. The page holds a frame with the scenes of the talk and, below it, the
 // lines that are said. This script hands the lines, one by one, to the speech synthesis of the
-// browser and tells the frame how far the talk has come, so that the picture moves with the
-// voice. Where there is no voice, a line stays for as long as reading it takes.
+// browser and tells the frame how far the talk has come, down to the word, so that the picture
+// moves with the voice. Where there is no voice, a line stays for as long as reading it takes.
 //
 // The frame runs no script and loads nothing from outside. It is drawn by style sheets alone, and
 // this script only sets classes in it; site/talk-scene.css says which. Without this script the
@@ -22,41 +22,36 @@
   const synth = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window
     ? window.speechSynthesis : null;
 
-  const PACE = 60 / 185;   // seconds for a word, as measured with one voice in one browser
+  const PACE = 60 / 185;   // seconds for a word, until the voice in use has been measured
   const GAP = 0.3;         // seconds between two scenes
+  const MEMORY = 400;      // words of earlier visits that count when the pace is measured
   const rates = [0.85, 1, 1.2, 1.5];
-  const wordsOf = text => (text.trim() ? text.trim().split(/\s+/).length : 0);
-  const starts = [];       // for every scene, the time at which each of its lines begins
-  let total = 0;
-  for (const scene of scenes) {
-    const times = [];
-    for (const span of scene) {
-      times.push(total);
-      total += Math.max(0.7, wordsOf(span.textContent) * PACE);
-    }
-    if (!scene.length) {
-      times.push(total);
-      total += 1.5;
-    }
-    starts.push(times);
-    total += GAP;
-  }
+  const textOf = span => span.textContent.trim();
+  const startsOf = text => Array.from(text.matchAll(/\S+/g), match => match.index);
+  // for every line, where its words begin in its text
+  const words = scenes.map(scene => scene.map(span => startsOf(textOf(span))));
 
-  let at = 0;            // the scene that is shown
-  let line = 0;          // the line of that scene
+  let at = 0;             // the scene that is shown
+  let line = 0;           // the line of that scene
+  let word = 0;           // how many words of that line have begun
   let playing = false;
-  let begun = false;     // whether the talk has been played or stepped through at all
+  let begun = false;      // whether the talk has been played or stepped through at all
   let ended = false;
-  let rested = true;     // the picture is the still picture of its line
-  let turn = 0;          // counts what is started, so that an answer to something older is ignored
+  let turn = 0;           // counts what is started, so that an answer to something older is ignored
   let timer = 0;
-  let speech = null;     // the utterance in the air; some browsers drop one that nothing refers to
-  let cutAt = 0;         // when the voice was last cut off
+  let beat = 0;           // the timer that guesses the word when the voice does not report it
+  let speech = null;      // the utterance in the air; some browsers drop one that nothing refers to
+  let cutAt = 0;          // when the voice was last cut off
+  let lineBegan = 0;      // when the line that is being said began
   let voices = [];
-  let voice = null;      // null: no voice, the text alone
+  let voice = null;       // null: no voice, the text alone
   let rate = 1;
+  let pace = PACE;        // seconds for a word at speed 1, measured as the voice speaks
+  let measured = { seconds: 0, words: 0 };
   let captions = true;
-  let stage = [];        // the scenes inside the frame
+  let stage = [];         // the scenes inside the frame
+  let starts = [];        // for every scene, the time at which each of its lines begins
+  let total = 0;
 
   const recall = key => {
     try { return localStorage.getItem(key); } catch (error) { return null; }
@@ -66,35 +61,99 @@
   };
 
   // ---------------------------------------------------------------------------------------
-  // The picture
+  // Time. Nothing says in advance how long a voice takes, so the length of a line is its number
+  // of words times the pace of the voice, and the pace is measured while the voice speaks.
 
+  const lengthOf = (scene, n) => (scenes[scene].length
+    ? Math.max(0.7, words[scene][n].length * pace) / rate : 1.5);
+
+  function schedule() {
+    starts = [];
+    total = 0;
+    scenes.forEach((scene, index) => {
+      const times = [];
+      for (let n = 0; n < Math.max(scene.length, 1); n++) {
+        times.push(total);
+        total += lengthOf(index, n);
+      }
+      starts.push(times);
+      total += GAP;
+    });
+  }
+
+  function learn(seconds, count) {
+    measured.seconds += seconds * rate;
+    measured.words += count;
+    if (measured.words < 10) return;
+    pace = Math.max(0.15, Math.min(1.2, measured.seconds / measured.words));
+    if (voice) remember(`talk.pace.${voice.name}`, `${pace.toFixed(4)} ${Math.min(measured.words, MEMORY)}`);
+    schedule();
+    lay();
+  }
+
+  // Starts from what earlier visits measured for the voice. That measurement keeps its weight,
+  // up to MEMORY words, so that a few lines of this visit do not replace a whole talk.
+  function forget() {
+    const [known, count] = String((voice && recall(`talk.pace.${voice.name}`)) || "").split(" ").map(Number);
+    const good = known > 0.1 && known < 1.5;
+    const weight = good ? Math.min(count || 0, MEMORY) : 0;
+    pace = good ? known : PACE;
+    measured = { seconds: pace * weight, words: weight };
+    schedule();
+    lay();
+  }
+
+  // Where the talk is, in seconds: the start of the line, and what has passed of it.
+  function position() {
+    if (ended) return total;
+    const into = playing && lineBegan ? (performance.now() - lineBegan) / 1000 : 0;
+    return (starts[at][line] || 0) + Math.min(into, lengthOf(at, line));
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // The picture. A mark in the frame names the line at which it applies, "3", or the line and
+  // the word, "3:5".
+
+  // The document of the frame, once it has a root: a frame that is still loading has none.
   const doc = () => {
-    try { return frame.contentDocument; } catch (error) { return null; }
+    try {
+      const page = frame.contentDocument;
+      return page && page.documentElement ? page : null;
+    } catch (error) { return null; }
   };
   const number = value => Math.round(value).toLocaleString("en-US");
   const counting = new WeakMap();
+  const cueOf = text => {
+    const [first, second] = String(text).split(":");
+    return [Number(first) || 0, Number(second) || 0];
+  };
+  const reached = (cue, step, said) => cue[0] < step || (cue[0] === step && cue[1] <= said);
 
-  function setStep(index, step) {
+  // Puts a scene into the state of a line, after `said` words of it.
+  function setStep(index, step, said) {
     const el = stage[index];
     if (!el) return;
     for (let k = 1; k <= Math.max(scenes[index].length, 1); k++) el.classList.toggle(`s${k}`, k <= step);
+    for (const name of (el.dataset.cues || "").split(/\s+/).filter(Boolean)) {
+      el.classList.toggle(`c${name.replace(":", "-")}`, reached(cueOf(name), step, said));
+    }
     el.dataset.step = String(step);
-    for (const item of el.querySelectorAll("[data-in]")) item.classList.toggle("in", Number(item.dataset.in) <= step);
-    for (const item of el.querySelectorAll("[data-out]")) item.classList.toggle("out", Number(item.dataset.out) <= step);
-    for (const item of el.querySelectorAll("[data-fade]")) item.classList.toggle("faded", Number(item.dataset.fade) <= step);
+    for (const item of el.querySelectorAll("[data-in]")) item.classList.toggle("in", reached(cueOf(item.dataset.in), step, said));
+    for (const item of el.querySelectorAll("[data-out]")) item.classList.toggle("out", reached(cueOf(item.dataset.out), step, said));
+    for (const item of el.querySelectorAll("[data-fade]")) item.classList.toggle("faded", reached(cueOf(item.dataset.fade), step, said));
     for (const item of el.querySelectorAll("[data-hot]")) {
       item.classList.toggle("hot", item.dataset.hot.split(/\s+/).includes(String(step)));
     }
   }
 
   // Numbers that count up when they come in. A still picture shows where they end.
-  function setCounts(index, step, still) {
+  function setCounts(index, step, said, still) {
     const el = stage[index];
     if (!el) return;
     for (const item of el.querySelectorAll("[data-count]")) {
       const from = Number(item.dataset.from) || 0;
       const to = Number(item.dataset.count) || 0;
-      const due = (Number(item.dataset.in) || 1) <= step;
+      const due = reached(cueOf(item.dataset.in || "1"), step, said);
       const state = counting.get(item) || {};
       if (!due || still) {
         cancelAnimationFrame(state.frame);
@@ -125,21 +184,24 @@
     }
   }
 
-  const show = index => stage.forEach((el, i) => el.classList.toggle("current", i === index));
+  // The scene that is shown is "current", and the scenes before it are "past".
+  const show = index => stage.forEach((el, i) => {
+    el.classList.toggle("current", i === index);
+    el.classList.toggle("past", i < index);
+  });
 
-  // The still picture of a line.
+  // The still picture of the end of a line.
   function still(index, step) {
     const page = doc();
     if (!page || !stage.length) return;
     const html = page.documentElement;
     html.classList.add("snap");
-    setStep(index, step);
-    setCounts(index, step, true);
+    setStep(index, step, Infinity);
+    setCounts(index, step, Infinity, true);
     show(index);
     void html.offsetWidth;
     settle(page);
     html.classList.remove("snap");
-    rested = true;
   }
 
   // A line begins: the picture of the line before it, and then what the line sets in motion.
@@ -148,15 +210,57 @@
     if (!page || !stage.length) return;
     const html = page.documentElement;
     html.classList.add("snap");
-    setStep(index, step - 1);
-    setCounts(index, step - 1, true);
+    setStep(index, step - 1, Infinity);
+    setCounts(index, step - 1, Infinity, true);
     void html.offsetWidth;
     settle(page);
     html.classList.remove("snap");
     show(index);
-    setStep(index, step);
-    setCounts(index, step, false);
-    rested = false;
+    setStep(index, step, 0);
+    setCounts(index, step, 0, false);
+  }
+
+  // Text of the class "words" is cut into words, so that it can come in word by word. With
+  // the class "sync" as well, each word comes in when the voice reaches it: the mark of the
+  // text names the word of the line at which its first word is said.
+  function cut(page) {
+    for (const el of page.querySelectorAll(".words")) {
+      let count = 0;
+      // a word keeps the tint of the text around it, because a tint does not reach into a word
+      const walk = (node, tint) => {
+        for (const child of Array.from(node.childNodes)) {
+          if (child.nodeType === 1) {
+            const tinted = child.classList.contains("grad");
+            walk(child, tint || tinted);
+            child.classList.remove("grad");
+          }
+          if (child.nodeType !== 3) continue;
+          const pieces = page.createDocumentFragment();
+          for (const part of child.textContent.split(/(\s+)/)) {
+            if (!part) continue;
+            if (/^\s+$/.test(part)) {
+              pieces.append(" ");
+              continue;
+            }
+            const outer = page.createElement("span");
+            const inner = page.createElement("i");
+            outer.className = "w";
+            if (tint) inner.className = "grad";
+            inner.textContent = part;
+            inner.style.setProperty("--i", String(count++));
+            outer.append(inner);
+            pieces.append(outer);
+          }
+          child.replaceWith(pieces);
+        }
+      };
+      walk(el, el.classList.contains("grad"));
+      el.classList.remove("grad");
+      if (el.classList.contains("sync") && el.dataset.in) {
+        const [first, from] = cueOf(el.dataset.in);
+        el.querySelectorAll(".w").forEach((item, n) => { item.dataset.in = `${first}:${from + n}`; });
+      }
+    }
   }
 
   function fit() {
@@ -168,10 +272,14 @@
     const page = doc();
     stage = page ? Array.from(page.querySelectorAll("section.scene")) : [];
     if (!stage.length) return;
+    if (!page.documentElement.classList.contains("driven")) cut(page);
     page.documentElement.classList.add("driven");
     fit();
-    if (playing) enter(at, line + 1);
-    else still(at, line + 1);
+    if (playing) {
+      enter(at, line + 1);
+      setStep(at, line + 1, word);
+    } else still(at, line + 1);
+    root.classList.add("ready");   // until now the frame is hidden: it has not been told what to show
     render();
   }
 
@@ -208,7 +316,6 @@
   });
   const segments = scenes.map((scene, index) => {
     const segment = make("button", "seg");
-    segment.style.flexGrow = String((starts[index + 1] ? starts[index + 1][0] : total) - starts[index][0]);
     segment.title = titles[index] || `Scene ${index + 1}`;
     segment.setAttribute("aria-label", `Scene ${index + 1}: ${segment.title}`);
     segment.append(make("i"));
@@ -231,15 +338,49 @@
 
   const clock = value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`;
 
-  function render() {
-    const said = scenes[at][line];
-    caption.textContent = begun && !ended && said ? said.textContent : "";
-    caption.hidden = !captions || !caption.textContent;
+  // The track: every scene is as wide as it is long.
+  function lay() {
     segments.forEach((segment, index) => {
-      const done = ended || index < at ? 1 : index > at ? 0 : line / Math.max(scenes[index].length, 1);
-      segment.firstChild.style.width = `${100 * done}%`;
+      const end = starts[index + 1] ? starts[index + 1][0] : total;
+      segment.style.flexGrow = String(Math.max(0.1, end - starts[index][0]));
     });
-    time.textContent = `${clock(ended ? total : starts[at][line] || 0)} / ${clock(total)}`;
+    progress();
+  }
+
+  // The clock and the track, which move while a line is said.
+  function progress() {
+    const now = position();
+    time.textContent = `${clock(now)} / ${clock(total)}`;
+    segments.forEach((segment, index) => {
+      const from = starts[index][0];
+      const end = starts[index + 1] ? starts[index + 1][0] : total;
+      const done = ended || index < at ? 1 : index > at ? 0 : (now - from) / (end - from);
+      segment.firstChild.style.width = `${100 * Math.max(0, Math.min(1, done))}%`;
+    });
+  }
+
+  // What is said, word by word: the words that were said, the one that is said, and the rest.
+  function subtitle() {
+    const said = scenes[at][line];
+    const show = begun && !ended && said;
+    if (!show) caption.replaceChildren();
+    else if (caption.dataset.for !== `${at}:${line}`) {
+      caption.replaceChildren();
+      textOf(said).split(/\s+/).forEach((part, n) => {
+        if (n) caption.append(" ");
+        caption.append(make("span", "", part));
+      });
+    }
+    caption.dataset.for = show ? `${at}:${line}` : "";
+    Array.from(caption.children).forEach((item, n) => {
+      item.className = !playing || n < word - 1 ? "said" : n === word - 1 ? "now" : "";
+    });
+    caption.hidden = !captions || !show;
+  }
+
+  function render() {
+    subtitle();
+    progress();
     playButton.innerHTML = playing ? icons.pause : ended ? icons.again : icons.play;
     playButton.setAttribute("aria-label", playing ? "Pause" : ended ? "Play again" : "Play");
     big.innerHTML = ended ? icons.again : icons.play;
@@ -260,7 +401,7 @@
     else if (!synth) note.textContent = "This browser has no speech synthesis, so the talk plays without a voice." + keys;
     else if (!voices.length && begun) note.textContent = "This browser offers no English voice, so the talk plays without a voice." + keys;
     else if (!voice && voices.length) note.textContent = "No voice is chosen, so the talk plays without one." + keys;
-    else note.textContent = "The voice is the speech synthesis of your browser." + keys;
+    else note.textContent = "The voice is the speech synthesis of your browser. The times are estimates that get better as it speaks." + keys;
   }
 
   // ---------------------------------------------------------------------------------------
@@ -289,48 +430,81 @@
     const wanted = recall("talk.voice");
     let pick = voices.findIndex(item => item.name === wanted);
     if (pick < 0 && wanted !== "none" && voices.length) pick = 0;
-    voice = pick < 0 ? null : voices[pick];
+    const chosen = pick < 0 ? null : voices[pick];
+    const changed = (chosen && chosen.name) !== (voice && voice.name);
+    voice = chosen;
     voiceSelect.replaceChildren();
     voices.forEach((item, index) => voiceSelect.append(new Option(item.name, String(index))));
     voiceSelect.append(new Option("No voice", "none"));
     voiceSelect.value = pick < 0 ? "none" : String(pick);
     voiceSelect.disabled = !voices.length;
+    if (changed) forget();
     tell();
   }
 
   // ---------------------------------------------------------------------------------------
   // Speaking
 
-  function cut() {
+  function hush() {
     turn++;
     clearTimeout(timer);
+    clearTimeout(beat);
+    lineBegan = 0;
     if (synth && (synth.speaking || synth.pending)) {
       synth.cancel();
       cutAt = Date.now();
     }
   }
 
+  // The voice has reached a word of the line.
+  function reach(count) {
+    if (count <= word) return;
+    word = count;
+    setStep(at, line + 1, word);
+    setCounts(at, line + 1, word, false);
+    subtitle();
+  }
+
   function say() {
     const mine = ++turn;
     clearTimeout(timer);
+    clearTimeout(beat);
     const said = scenes[at][line];
-    const text = said ? said.textContent.trim() : "";
-    const words = wordsOf(text);
+    const text = said ? textOf(said) : "";
+    const offsets = said ? words[at][line] : [];
+    const length = lengthOf(at, line) * 1000;
     let over = false;
-    const done = () => {
+    let heard = 0;      // when the voice last reported a word
+    const done = natural => {
       if (over || mine !== turn) return;
       over = true;
       clearTimeout(timer);
+      clearTimeout(beat);
+      if (natural && voice && offsets.length) learn((performance.now() - lineBegan) / 1000, offsets.length);
+      reach(offsets.length);
       if (playing) advance();
     };
+    // Between the reports of the voice, or without them, the word is guessed from the time.
+    const guess = () => {
+      if (over || mine !== turn) return;
+      const now = performance.now();
+      if (lineBegan && now - heard > 700) {
+        reach(Math.min(offsets.length, Math.floor((now - lineBegan) / length * offsets.length) + 1));
+      }
+      progress();
+      beat = setTimeout(guess, 80);
+    };
     if (!text || !voice) {
-      timer = setTimeout(done, text ? (300 + 1000 * PACE * words) / rate : 1500);
+      lineBegan = performance.now();
+      guess();
+      timer = setTimeout(() => done(false), text ? 300 + length : 1500);
       return;
     }
     const silent = reason => {
       // the voice failed: the talk goes on without one, from this line
       if (over || mine !== turn) return;
       over = true;
+      clearTimeout(beat);
       synth.cancel();
       voice = null;
       voiceSelect.value = "none";
@@ -341,24 +515,30 @@
     utterance.voice = voice;
     utterance.lang = voice.lang.replace("_", "-");
     utterance.rate = rate;
-    utterance.onend = done;
+    utterance.onend = () => done(true);
+    utterance.onboundary = event => {
+      if (over || mine !== turn || event.name === "sentence") return;
+      heard = performance.now();
+      reach(offsets.filter(offset => offset <= event.charIndex).length);
+    };
     utterance.onerror = event => {
       if (event.error !== "interrupted" && event.error !== "canceled") silent(event.error || "error");
     };
     speech = utterance;
     const start = () => {
       if (mine !== turn) return;
-      const began = Date.now();
+      lineBegan = performance.now();
       synth.speak(utterance);
+      guess();
       // Some browsers do not report the end of every utterance. So the script also looks:
       // when the voice has fallen silent, the line is over.
       const look = () => {
         if (over || mine !== turn) return;
-        if (!synth.speaking && !synth.pending) done();
-        else if (Date.now() - began > (8000 + 1500 * words) / rate) silent("no end");
+        if (!synth.speaking && !synth.pending) done(true);
+        else if (performance.now() - lineBegan > (8000 + 1500 * offsets.length) / rate) silent("no end");
         else timer = setTimeout(look, 700);
       };
-      timer = setTimeout(look, (1500 + 600 * words) / rate);
+      timer = setTimeout(look, (1500 + 600 * offsets.length) / rate);
     };
     // A voice that was cut off a moment ago may swallow what is said right after.
     if (Date.now() - cutAt < 200) timer = setTimeout(start, 200);
@@ -366,10 +546,12 @@
   }
 
   function advance() {
+    lineBegan = 0;
+    word = 0;
     if (line + 1 < scenes[at].length) {
       line++;
-      setStep(at, line + 1);
-      setCounts(at, line + 1, false);
+      setStep(at, line + 1, 0);
+      setCounts(at, line + 1, 0, false);
       render();
       say();
     } else if (at + 1 < scenes.length) {
@@ -391,19 +573,19 @@
       at = 0;
       line = 0;
       ended = false;
-      rested = true;
     }
     begun = true;
     playing = true;
+    word = 0;
     if (!voices.length) loadVoices();
-    if (rested) enter(at, line + 1);
+    enter(at, line + 1);
     render();
     say();
   }
 
   function pause() {
     playing = false;
-    cut();
+    hush();
     render();
   }
 
@@ -411,9 +593,10 @@
 
   // Moves to a line. A talk that was playing goes on from there.
   function go(scene, sentence) {
-    cut();
+    hush();
     at = Math.max(0, Math.min(scenes.length - 1, scene));
     line = Math.max(0, Math.min(scenes[at].length - 1, sentence));
+    word = 0;
     begun = true;
     ended = false;
     if (playing) enter(at, line + 1);
@@ -446,12 +629,15 @@
   voiceSelect.addEventListener("change", () => {
     voice = voiceSelect.value === "none" ? null : voices[Number(voiceSelect.value)] || null;
     remember("talk.voice", voice ? voice.name : "none");
+    forget();
     tell();
     if (playing) go(at, line);
   });
   rateSelect.addEventListener("change", () => {
     rate = Number(rateSelect.value) || 1;
     remember("talk.rate", String(rate));
+    schedule();
+    lay();
     if (playing) go(at, line);
   });
   const enterFull = root.requestFullscreen || root.webkitRequestFullscreen;
@@ -495,6 +681,8 @@
   captions = recall("talk.captions") !== "off";
   const linked = /^#scene-(\d+)$/.exec(location.hash);
   if (linked) at = Math.max(0, Math.min(scenes.length - 1, Number(linked[1]) - 1));
+  schedule();
+  lay();
   if (synth) {
     synth.cancel();   // a voice may still be speaking for the page that was here before
     if (synth.addEventListener) synth.addEventListener("voiceschanged", loadVoices);
