@@ -4,9 +4,10 @@
 Usage: python site/build.py OUTPUT_DIR
 
 The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
-the record, the versions, the reviews, and the PDF of each paper, renders RATIONALE.md and
-CONTRIBUTING.md, and writes a search page with its index, search.json. Earlier versions of a paper are read from the git history at the commits that
-papers/VERSIONS records.
+the record, the versions, the reviews, and the PDF of each paper, turns the talks in talks/ into
+pages with slides, renders RATIONALE.md and CONTRIBUTING.md, and writes a search page with its
+index, search.json. Earlier versions of a paper are read from the git history at the commits
+that papers/VERSIONS records.
 
 The script only reads files. It never runs anything that a contribution contains, and HTML that
 comes from Markdown passes through an allowlist.
@@ -405,9 +406,182 @@ def load_papers(numbers, versions):
 
 
 # ---------------------------------------------------------------------------------------------
+# Talks
+#
+# A talk is a Markdown file. A line `---` after an empty line separates two slides. On a slide,
+# a quotation is what is said, and everything else is what is shown. What is shown appears when
+# the quotation that follows it begins, so a slide can build up while the talk goes on.
+
+TALK_NAME = re.compile(r"v(\d+)-(.+)")
+FIGURE = re.compile(r"^```(flow|stat)[ \t]*\n(.*?)^```[ \t]*$", flags=re.M | re.S)
+SENTENCE_END = re.compile(r"[.?!][\"”’)]*\s+(?=[\"“‘(]?[A-Z0-9])")
+WORDS_PER_MINUTE = 138    # measured with one voice in one browser; other voices differ
+LONGEST_SENTENCE = 40
+
+
+class Blocks(Sanitizer):
+    """The top-level elements of a rendered text, each as its tag and its sanitized HTML."""
+
+    def __init__(self, link):
+        super().__init__(link)
+        self.depth, self.first, self.tag, self.blocks = 0, 0, "", []
+
+    def handle_starttag(self, tag, attrs):
+        size = len(self.out)
+        super().handle_starttag(tag, attrs)
+        if len(self.out) > size and tag not in VOID_TAGS:
+            if self.depth == 0:
+                self.first, self.tag = size, tag
+            self.depth += 1
+
+    def handle_endtag(self, tag):
+        size = len(self.out)
+        super().handle_endtag(tag)
+        if len(self.out) > size and self.depth:
+            self.depth -= 1
+            if self.depth == 0:
+                self.blocks.append((self.tag, "".join(self.out[self.first:])))
+
+
+def figure(kind, source):
+    """A figure of a slide. Its source is a few lines of text in a fenced block, and the HTML is
+    built here, so a talk brings no markup of its own.
+
+    flow  Every line is a row of boxes with arrows between them: `a -> b -> c`. A box that
+          starts with * stands out, and what follows | in a box is a note under its name.
+    stat  Every line is a number and what it counts: `48 | steps with advice`."""
+    lines = [line.strip() for line in source.splitlines() if line.strip()]
+    if kind == "stat":
+        cells = []
+        for line in lines:
+            value, _, what = line.partition("|")
+            cells.append(f"<div><strong>{esc(value.strip())}</strong>"
+                         f"<span>{esc(what.strip())}</span></div>")
+        return '<div class="fig stat">' + "".join(cells) + "</div>"
+    rows = []
+    for line in lines:
+        boxes = []
+        for item in line.split("->"):
+            name, _, note = item.strip().partition("|")
+            hot = ' hot' if name.startswith("*") else ""
+            small = f"<small>{esc(note.strip())}</small>" if note.strip() else ""
+            boxes.append(f'<span class="box{hot}">{esc(name.lstrip("*").strip())}{small}</span>')
+        rows.append('<div class="row">' + '<span class="to">→</span>'.join(boxes) + "</div>")
+    return '<div class="fig flow">' + "".join(rows) + "</div>"
+
+
+def slide_sources(text):
+    """The slides of a talk, as Markdown. A fenced block may contain the separator."""
+    slides, lines, fenced, blank = [], [], False, True
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+        if not fenced and blank and re.fullmatch(r"-{3,}\s*", line):
+            slides.append("\n".join(lines))
+            lines = []
+        else:
+            lines.append(line)
+        blank = not line.strip()
+    slides.append("\n".join(lines))
+    return [slide for slide in slides if slide.strip()]
+
+
+def sentences(text):
+    """A paragraph as sentences. The page hands them to the voice one at a time."""
+    found, start = [], 0
+    for match in SENTENCE_END.finditer(text):
+        found.append(text[start:match.end()].strip())
+        start = match.end()
+    found.append(text[start:].strip())
+    return [sentence for sentence in found if sentence]
+
+
+def parse_slide(source, link):
+    """One slide as units. A unit is what is shown, as blocks of HTML, and what is said about it,
+    as paragraphs of sentences. Blocks after the last quotation belong to the last unit."""
+    figures = []
+
+    def keep(match):
+        figures.append(figure(match.group(1), match.group(2)))
+        return f"\n\n@@figure-{len(figures) - 1}@@\n\n"
+
+    parser = Blocks(link)
+    parser.feed(markdown.markdown(FIGURE.sub(keep, source), extensions=["tables", "fenced_code"],
+                                  output_format="html"))
+    parser.close()
+    units = [{"shown": [], "said": []}]
+    for tag, block in parser.blocks:
+        if tag == "blockquote":
+            for paragraph in re.findall(r"<p>(.*?)</p>", block, flags=re.S):
+                said = sentences(" ".join(html.unescape(re.sub(r"<[^>]*>", "", paragraph)).split()))
+                if said:
+                    units[-1]["said"].append(said)
+            continue
+        if units[-1]["said"]:
+            units.append({"shown": [], "said": []})
+        placed = re.fullmatch(r"<p>@@figure-(\d+)@@</p>", block)
+        if placed and int(placed.group(1)) < len(figures):
+            block = figures[int(placed.group(1))]
+        units[-1]["shown"].append(block)
+    if len(units) > 1 and not units[-1]["said"]:
+        units[-2]["shown"].extend(units.pop()["shown"])
+    return {"units": units, "title": bool(parser.blocks) and parser.blocks[0][0] == "h1"}
+
+
+def load_talks(papers):
+    """The talks. A file talks/<paper>/v<version>-<speaker>.md presents that version of the
+    paper. Every paper gets its talks, the one about its latest version first."""
+    known = {paper["slug"]: paper for paper in papers}
+    for paper in papers:
+        paper["talks"] = []
+    talks = []
+    folder = ROOT / "talks"
+    for directory in sorted(folder.iterdir()) if folder.is_dir() else []:
+        if not directory.is_dir():
+            continue
+        paper = known.get(directory.name)
+        if paper is None:
+            warn(f"skipping talks/{directory.name}: there is no paper of this name")
+            continue
+        for path in sorted(directory.glob("*.md")):
+            match = TALK_NAME.fullmatch(path.stem)
+            if not match or not SLUG.fullmatch(path.stem):
+                warn(f"skipping talks/{directory.name}/{path.name}: unexpected file name")
+                continue
+            link = linker(f"talks/{directory.name}", "../../")
+            slides = [parse_slide(source, link) for source in slide_sources(read(path))]
+            slides = [slide for slide in slides
+                      if any(unit["shown"] or unit["said"] for unit in slide["units"])]
+            said = [sentence for slide in slides for unit in slide["units"]
+                    for paragraph in unit["said"] for sentence in paragraph]
+            if not slides:
+                warn(f"skipping talks/{directory.name}/{path.name}: it has no slide")
+                continue
+            for sentence in said:
+                if len(sentence.split()) > LONGEST_SENTENCE:
+                    warn(f"talks/{directory.name}/{path.name}: some voices stop in the middle of "
+                         f"a sentence as long as the one that begins “{sentence[:50]}”")
+            words = sum(len(sentence.split()) for sentence in said)
+            talk = {
+                "paper": paper, "file": path.name, "version": int(match.group(1)),
+                "speaker": match.group(2), "slides": slides, "words": words,
+                # the words at the pace of a voice, and the pause that follows every slide
+                "seconds": words * 60 / WORDS_PER_MINUTE + 0.45 * len(slides),
+                "url": f"talks/{directory.name}/{path.stem}.html",
+            }
+            talks.append(talk)
+            paper["talks"].append(talk)
+    for paper in papers:
+        paper["talks"].sort(key=lambda talk: (-talk["version"], talk["speaker"].lower()))
+    return sorted(talks, key=lambda talk: (talk["paper"]["number"] is not None,
+                                           -(talk["paper"]["number"] or 0), -talk["version"],
+                                           talk["speaker"].lower()))
+
+
+# ---------------------------------------------------------------------------------------------
 # Pages
 
-def page(title, body, base):
+def page(title, body, base, head=""):
     full_title = SITE_NAME if title == SITE_NAME else f"{title} · {SITE_NAME}"
     built = ""
     if COMMIT:
@@ -419,12 +593,13 @@ def page(title, body, base):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(full_title)}</title>
-<link rel="stylesheet" href="{base}style.css">
+<link rel="stylesheet" href="{base}style.css">{head}
 </head>
 <body>
 <header><nav>
 <a class="brand" href="{base}index.html">{esc(SITE_NAME)}</a>
 <a href="{base}papers/index.html">Papers</a>
+<a href="{base}talks/index.html">Talks</a>
 <a href="{base}ideas/index.html">Ideas</a>
 <a href="{base}search.html">Search</a>
 <a href="{base}rationale.html">Rationale</a>
@@ -492,6 +667,8 @@ def paper_entry(paper, base):
         facts.append("builds on " + ", ".join(esc(name) for name in paper["builds_on"]))
     if paper["reviews"]:
         facts.append(f"{len(paper['reviews'])} review{'s' if len(paper['reviews']) != 1 else ''}")
+    for talk in paper.get("talks", []):
+        facts.append(f'<a href="{base}{talk["url"]}">talk</a>')
     summary = f"<p>{esc(paper['summary'])}</p>" if paper["summary"] else ""
     return (f'<li>{label(paper["number"])}'
             f'<a class="title" href="{base}papers/{quote(paper["slug"])}/index.html">'
@@ -616,6 +793,9 @@ def paper_body(paper, state, ideas, papers, base, version):
         actions.append(f'<a href="{REPO_URL}/{blob}/papers/{slug}/paper.tex">LaTeX source</a>')
     if state["artifact"]:
         actions.append(f'<a href="{folder}/artifact">Artifact</a>')
+    for talk in paper["talks"]:
+        if not version or talk["version"] == version:
+            actions.append(f'<a href="{base}{talk["url"]}">Talk, {length_of(talk)}</a>')
     actions.append(f'<a href="{folder}">All files</a>')
     shown = version or paper["version"]
     kicker = f"Paper {number}" if number else "Paper"
@@ -699,6 +879,71 @@ def paper_body(paper, state, ideas, papers, base, version):
     return "\n".join(part for part in parts if part)
 
 
+def length_of(talk):
+    minutes = round(talk["seconds"] / 60)
+    if minutes < 1:
+        return "under a minute"
+    return f"about {minutes} minute{'s' if minutes != 1 else ''}"
+
+
+def talk_entry(talk, base):
+    paper = talk["paper"]
+    facts = [f"a talk on version {talk['version']}", esc(talk["speaker"]), length_of(talk)]
+    return (f'<li>{label(paper["number"])}<a class="title" href="{base}{talk["url"]}">'
+            f'{esc(paper["title"])}</a><p class="meta">{" · ".join(facts)}</p></li>')
+
+
+def slide_html(number, count, slide):
+    shown, said = [], []
+    for index, unit in enumerate(slide["units"]):
+        if unit["shown"]:
+            shown.append(f'<div class="part" data-at="{index}">\n' + "\n".join(unit["shown"])
+                         + "\n</div>")
+        for paragraph in unit["said"]:
+            said.append("<p>" + " ".join(f'<span data-at="{index}">{esc(sentence)}</span>'
+                                         for sentence in paragraph) + "</p>")
+    kind = "slide title" if slide["title"] else "slide"
+    return (f'<section class="{kind}" id="slide-{number}" aria-label="Slide {number} of {count}">\n'
+            '<div class="frame">\n' + "\n".join(shown) + '\n</div>\n'
+            '<div class="say">\n' + "\n".join(said) + "\n</div>\n</section>")
+
+
+def talk_page(talk):
+    """The page of a talk. Without its script the page shows every slide with what is said about
+    it. The script shows one slide at a time and has the browser speak."""
+    base = "../../"
+    paper = talk["paper"]
+    slug, number, version = quote(paper["slug"]), paper["number"], talk["version"]
+    count = len(talk["slides"])
+    recorded = [state["version"] for state in paper["history"]]
+    kicker = "Talk" + (f" · paper {number}" if number else "") + f" · version {version}"
+    parts = [
+        f'<p class="kicker">{kicker}</p>',
+        f"<h1>{esc(paper['title'])}</h1>",
+        f'<p class="byline">A talk by {esc(talk["speaker"])}, {length_of(talk)}, '
+        f'{count} slide{"s" if count != 1 else ""}</p>',
+    ]
+    if recorded and recorded[-1] != version:
+        parts.append(f'<p class="notice">This talk presents version {version} of the paper. '
+                     f'<a href="{base}papers/{slug}/index.html">Version {recorded[-1]}</a> '
+                     "is the latest.</p>")
+    about = f"v{version}/index.html" if version in recorded else "index.html"
+    source = f"{REPO_URL}/blob/main/talks/{slug}/{quote(talk['file'])}"
+    parts.append(f'<p class="actions"><a class="button" href="{base}papers/{slug}/{about}">'
+                 f'Read the paper</a> <a href="{source}">Source of this talk</a></p>')
+    parts.append('<div class="talk">\n' + "\n".join(
+        slide_html(index, count, slide) for index, slide in enumerate(talk["slides"], start=1))
+        + "\n</div>")
+    parts.append('<p class="meta">The slides and the text of this talk are one file in the '
+                 "repository. The voice is not in the repository: this page hands the text to "
+                 "the speech synthesis of your browser, sentence by sentence, so the talk sounds "
+                 "different from browser to browser. Where a browser has no voice, the text is "
+                 "shown at the pace of reading.</p>")
+    parts.append(f'<script src="{base}talk.js"></script>')
+    head = f'\n<link rel="stylesheet" href="{base}talk.css">'
+    return page(f"Talk: {paper['title']}", "\n".join(parts), base, head)
+
+
 def search_index(ideas, papers):
     """Every paper and idea as data, for the search page and for agents."""
     entries = []
@@ -715,6 +960,7 @@ def search_index(ideas, papers):
             "status": ("retracted" if paper["retracted"] else
                        "superseded" if paper["superseded_by"] else ""),
             "superseded_by": paper["superseded_by"],
+            "talks": [talk["url"] for talk in paper["talks"]],
         })
     for idea in ideas:
         entries.append({
@@ -796,6 +1042,7 @@ def build(out):
     (out / "papers").mkdir()
     idea_numbers, paper_numbers, versions = registries()
     ideas, papers = load_ideas(idea_numbers), load_papers(paper_numbers, versions)
+    talks = load_talks(papers)
 
     def write(relative, content):
         target = out / relative
@@ -805,7 +1052,8 @@ def build(out):
         else:
             target.write_text(content, encoding="utf-8")
 
-    shutil.copyfile(ROOT / "site" / "style.css", out / "style.css")
+    for name in ("style.css", "talk.css", "talk.js"):
+        shutil.copyfile(ROOT / "site" / name, out / name)
     write("index.html", home_page(ideas, papers))
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
     write("contributing.html", doc_page("CONTRIBUTING.md", "Contributing"))
@@ -821,8 +1069,18 @@ def build(out):
     write("papers/index.html", page("Papers", f"""<h1>Papers <span class="count">{len(papers)}</span></h1>
 <p>Each paper records who wrote it and which of its claims a command checks.</p>
 {entries([paper_entry(paper, "../") for paper in newest_first(papers)])}""", "../"))
+    count = f'<span class="count">{len(talks)}</span>'
+    write("talks/index.html", page("Talks", f"""<h1>Talks {count}</h1>
+<p>A talk presents one version of a paper in a few minutes: slides, and with every slide the text
+that is said about it. The voice is the speech synthesis of the browser that shows the page. The
+number before a talk is the number of its paper.</p>
+{entries([talk_entry(talk, "../") for talk in talks])}""", "../"))
+    for talk in talks:
+        write(talk["url"], talk_page(talk))
     for paper in papers:
         slug, number = paper["slug"], paper["number"]
+        if number and paper["talks"]:
+            write(f"p/{number}/talk/index.html", redirect(f"../../../{paper['talks'][0]['url']}"))
         write(f"papers/{slug}/index.html",
               page(paper["title"], paper_body(paper, paper, ideas, papers, "../../", None), "../../"))
         if paper["pdf"] is not None:
@@ -839,7 +1097,7 @@ def build(out):
             if number:
                 write(f"p/{number}/v{version}/index.html",
                       redirect(f"../../../papers/{quote(slug)}/v{version}/index.html"))
-    print(f"built {len(ideas)} ideas and {len(papers)} papers into {out}")
+    print(f"built {len(ideas)} ideas, {len(papers)} papers and {len(talks)} talks into {out}")
 
 
 if __name__ == "__main__":

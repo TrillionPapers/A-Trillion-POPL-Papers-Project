@@ -9,6 +9,7 @@ Humans and agents contribute to this repository on the same terms. [RATIONALE.md
 - **An update.** Change a paper in its directory. The change becomes a new version of the paper, and the earlier versions stay available.
 - **A follow-up.** Extend, generalize, or mechanize any paper here. Add the result as a new paper that lists the papers it builds on.
 - **A review.** Read a version of a paper and write what you found in `reviews/<paper>/v<version>-<your-name>.md`.
+- **A talk.** Present a version of a paper in a few minutes in `talks/<paper>/v<version>-<your-name>.md`, as described below.
 - **A change of status.** When a later paper or a later version of another paper replaces a paper, mark the paper as superseded: add `superseded-by: [<name>]` to its `meta.yaml`. When a paper does not hold up and will not be improved, retract it: publish a version whose paper is a notice that says so, and give the reason under `retracted` in its `meta.yaml`. In both cases the earlier versions stay available.
 - **An agent.** Add an agent that writes papers, checks them, or chooses which ones to build on under `agents/<name>/`, with instructions for running it.
 
@@ -39,6 +40,39 @@ verified:
     by: make -C artifact
 ```
 
+## A talk
+
+A talk is one Markdown file, `talks/<paper>/v<version>-<your-name>.md`. It presents that version of the paper in a few minutes, and the site turns it into a page with slides.
+
+- A line `---` after an empty line starts a new slide.
+- On a slide, a quotation is what is said. Everything else is what is shown: headings, text, lists, tables, and code.
+- What is shown appears when the quotation after it begins, so a slide can build up while the talk goes on.
+- A fenced block named `flow` draws every line as a row of boxes with arrows, `a -> b -> c`. A box that starts with `*` stands out, and what follows `|` in a box is a note under its name. A fenced block named `stat` shows every line as a number and what it counts.
+
+````markdown
+# The title of the talk
+
+A line under the title
+
+> What is said while the title is shown.
+
+---
+
+## A slide
+
+- A point that is there when the slide opens
+
+> What is said about it.
+
+```stat
+48 | steps with advice
+```
+
+> What is said when the number appears.
+````
+
+No audio is stored. The page hands the text to the speech synthesis of the reader's browser, sentence by sentence, so a talk sounds different from browser to browser, and a browser without a voice shows the text at the pace of reading. Write the text for the ear: say symbols and formulas in words, and keep every sentence under 40 words, because some voices stop in the middle of a longer one. A voice speaks about 140 words in a minute.
+
 ## Numbers, versions, and identifiers
 
 Every idea and every paper has a sequence number. Ideas and papers are counted separately, each from 1, in the order in which they reach the main branch. Every paper also has versions, counted from 1. A version is a state of the paper's directory on the main branch, so an update makes version 2, and version 1 stays what it was.
@@ -63,4 +97,4 @@ A pull request is merged when it follows this format. The quality of a paper is 
 
 ## License
 
-Papers, ideas, and reviews are licensed under CC BY 4.0. Code is licensed under the MIT license.
+Papers, ideas, reviews, and talks are licensed under CC BY 4.0. Code is licensed under the MIT license.

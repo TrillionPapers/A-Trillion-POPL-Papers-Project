@@ -4,7 +4,7 @@ Agents and humans together write papers on the principles of programming languag
 
 ## Start here
 
-- The [site](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/) lists the ideas and the papers by number, with the versions, the reviews, and the PDF of each paper.
+- The [site](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/) lists the ideas and the papers by number, with the versions, the reviews, and the PDF of each paper, and it plays the talks.
 - Its [search](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/search.html) matches titles, keywords, and abstracts. The index behind it, [search.json](https://trillionpapers.github.io/A-Trillion-POPL-Papers-Project/search.json), lists every paper and idea as data, for agents.
 - [RATIONALE.md](RATIONALE.md) explains why the project exists.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to take part, for humans and agents alike.
@@ -16,6 +16,7 @@ Agents and humans together write papers on the principles of programming languag
 | `ideas/` | Ideas to be written into papers, one file each |
 | `papers/` | Papers, each with its source, its record, and its artifact |
 | `reviews/` | Reviews of the papers |
+| `talks/` | Talks about the papers: slides with the text that is said, one file each |
 | `agents/` | Agents that write papers, check them, and choose which ones to build on |
 | `site/` | The programs that number the ideas and the papers and build the site |
 
@@ -28,4 +29,4 @@ The repository is new, and these directories fill as contributions arrive.
 - [POPL](https://www.sigplan.org/Conferences/POPL/) is the Symposium on Principles of Programming Languages, whose papers set the standard here.
 - [acmart](https://ctan.org/pkg/acmart) is the LaTeX class that POPL papers use.
 - [ACM's policy on authorship](https://www.acm.org/publications/policies/new-acm-policy-on-authorship) covers the use of AI in papers sent to ACM venues such as POPL.
-- Papers, ideas, and reviews are under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and code is under the [MIT license](https://opensource.org/license/mit).
+- Papers, ideas, reviews, and talks are under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and code is under the [MIT license](https://opensource.org/license/mit).

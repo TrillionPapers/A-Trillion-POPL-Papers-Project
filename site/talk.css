@@ -1,0 +1,353 @@
+/* A talk is a list of slides, each with the text that is said about it. Without the script the
+   slides stand one below the other with their text. The script adds the class "player" and
+   shows one slide at a time. Every size inside a slide follows the width of the slide. */
+
+.talk {
+  margin: 1.4rem 0 1rem;
+}
+
+.slide {
+  container-type: inline-size;
+  margin: 0 0 1.6rem;
+}
+
+.frame {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 5% 6.5%;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--soft);
+  font-size: 0.8rem;
+  font-size: clamp(0.4rem, 2.5cqw, 4rem);
+  line-height: 1.38;
+}
+
+.slide.title .frame {
+  justify-content: center;
+}
+
+.frame h1 {
+  font-size: 2.4em;
+  line-height: 1.1;
+  margin: 0 0 0.35em;
+  letter-spacing: -0.015em;
+}
+
+.frame h2 {
+  font-size: 1.5em;
+  line-height: 1.2;
+  margin: 0 0 0.65em;
+}
+
+.frame h3 {
+  font-size: 1.1em;
+  margin: 0 0 0.4em;
+}
+
+.frame p {
+  margin: 0 0 0.6em;
+}
+
+.slide.title .frame p {
+  font-size: 1.2em;
+  color: var(--muted);
+}
+
+.frame ul,
+.frame ol {
+  margin: 0 0 0.6em;
+  padding-left: 1.2em;
+}
+
+.frame li {
+  margin: 0 0 0.4em;
+}
+
+.frame code {
+  background: var(--bg);
+}
+
+.frame pre {
+  margin: 0 0 0.7em;
+  padding: 0.6em 0.9em;
+  border-radius: 0.4em;
+  background: var(--bg);
+  font-size: 1em;
+}
+
+.frame pre code {
+  background: none;
+}
+
+.frame table {
+  display: table;
+  width: auto;
+  margin: 0 0 0.7em;
+  font-size: 0.94em;
+}
+
+.frame th,
+.frame td {
+  padding: 0.3em 1.6em 0.3em 0;
+}
+
+.frame th {
+  font: 600 0.8em/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--muted);
+}
+
+.frame td code {
+  white-space: normal;
+}
+
+/* What is shown appears when the sentence that it belongs to begins. It keeps its place while
+   it waits, so nothing on the slide moves. */
+
+.part {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.part.wait {
+  opacity: 0;
+  transform: translateY(0.5em);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .part {
+    transition: none;
+  }
+}
+
+/* Figures: rows of boxes with arrows, and numbers with what they count. */
+
+.fig {
+  margin: 0.1em 0 0.8em;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.flow .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0 0 0.55em;
+}
+
+.flow .box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.3em 0.65em;
+  border: 1px solid var(--line);
+  border-radius: 0.4em;
+  background: var(--bg);
+  font-size: 0.84em;
+  line-height: 1.25;
+}
+
+.flow .box.hot {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.flow .box small {
+  font-size: 0.74em;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.flow .to {
+  color: var(--muted);
+}
+
+.stat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em 2.4em;
+}
+
+.stat div {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat strong {
+  font-size: 2.2em;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.stat span {
+  max-width: 13em;
+  font-size: 0.78em;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+/* What is said, under its slide. */
+
+.say {
+  margin: 0.6rem 0 0;
+  font-size: 0.98rem;
+}
+
+.say p {
+  margin: 0 0 0.5rem;
+}
+
+/* With the script: one slide, a line of text, and the controls. */
+
+.talk.player {
+  display: flex;
+  flex-direction: column;
+}
+
+.talk.player .slide {
+  display: none;
+  margin: 0;
+}
+
+.talk.player .slide.current {
+  display: block;
+}
+
+.talk.player .say {
+  display: none;
+}
+
+.talk.player .frame {
+  cursor: pointer;
+}
+
+.talk .bar {
+  height: 3px;
+  margin: 0.5rem 0 0;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.talk .bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.talk .caption {
+  min-height: 3.2em;
+  margin: 0.7rem 0 0.4rem;
+  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.talk .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font: 0.9rem/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.talk button,
+.talk select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  padding: 0.42rem 0.75rem;
+  cursor: pointer;
+}
+
+.talk select {
+  max-width: 12rem;
+}
+
+.talk button.main {
+  min-width: 5.2rem;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.talk .where {
+  margin: 0 auto 0 0.3rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.talk .note {
+  margin: 0.7rem 0 0;
+  color: var(--muted);
+  font: 0.85rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* All slides at once, as without the script. Only the button that leads back stays. */
+
+.talk.player.all .slide {
+  display: block;
+  margin: 0 0 1.6rem;
+}
+
+.talk.player.all .say {
+  display: block;
+}
+
+.talk.player.all .frame {
+  cursor: auto;
+}
+
+.talk.player.all .part.wait {
+  opacity: 1;
+  transform: none;
+}
+
+.talk.player.all .bar,
+.talk.player.all .caption,
+.talk.player.all .note,
+.talk.player.all .controls > :not(.toggle) {
+  display: none;
+}
+
+.talk.player.all .controls {
+  order: -1;
+  margin: 0 0 1rem;
+}
+
+/* On the full screen the slide is as large as the screen allows above the controls. */
+
+.talk:fullscreen {
+  margin: 0;
+  padding: 2vh 3vw;
+  justify-content: center;
+  background: var(--bg);
+  overflow: auto;
+}
+
+.talk:fullscreen .slide.current {
+  width: min(100%, calc((100vh - 12rem) * 16 / 9));
+  margin: 0 auto;
+}
+
+.talk:fullscreen .bar,
+.talk:fullscreen .controls,
+.talk:fullscreen .note {
+  width: min(100%, calc((100vh - 12rem) * 16 / 9));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.talk:fullscreen .caption {
+  font-size: 1.3rem;
+}
