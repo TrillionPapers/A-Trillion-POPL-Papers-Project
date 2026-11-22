@@ -1,353 +1,247 @@
-/* A talk is a list of slides, each with the text that is said about it. Without the script the
-   slides stand one below the other with their text. The script adds the class "player" and
-   shows one slide at a time. Every size inside a slide follows the width of the slide. */
+/* The page of a talk: a screen that shows the scenes, the line that is being said, and the
+   controls of a video, with the text of the talk below. Without the script of the page there is
+   no screen, and the text is what the page shows. */
+
+main:has(.talk),
+body:has(.talk) nav,
+body:has(.talk) footer {
+  max-width: 66rem;
+}
 
 .talk {
-  margin: 1.4rem 0 1rem;
+  margin: 1.4rem 0 0.6rem;
 }
 
-.slide {
-  container-type: inline-size;
-  margin: 0 0 1.6rem;
+.talk .screen {
+  display: none;
 }
 
-.frame {
+.talk.player .screen {
+  display: block;
+  position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  padding: 5% 6.5%;
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
-  background: var(--soft);
-  font-size: 0.8rem;
-  font-size: clamp(0.4rem, 2.5cqw, 4rem);
-  line-height: 1.38;
-}
-
-.slide.title .frame {
-  justify-content: center;
-}
-
-.frame h1 {
-  font-size: 2.4em;
-  line-height: 1.1;
-  margin: 0 0 0.35em;
-  letter-spacing: -0.015em;
-}
-
-.frame h2 {
-  font-size: 1.5em;
-  line-height: 1.2;
-  margin: 0 0 0.65em;
-}
-
-.frame h3 {
-  font-size: 1.1em;
-  margin: 0 0 0.4em;
-}
-
-.frame p {
-  margin: 0 0 0.6em;
-}
-
-.slide.title .frame p {
-  font-size: 1.2em;
-  color: var(--muted);
-}
-
-.frame ul,
-.frame ol {
-  margin: 0 0 0.6em;
-  padding-left: 1.2em;
-}
-
-.frame li {
-  margin: 0 0 0.4em;
-}
-
-.frame code {
-  background: var(--bg);
-}
-
-.frame pre {
-  margin: 0 0 0.7em;
-  padding: 0.6em 0.9em;
-  border-radius: 0.4em;
-  background: var(--bg);
-  font-size: 1em;
-}
-
-.frame pre code {
-  background: none;
-}
-
-.frame table {
-  display: table;
-  width: auto;
-  margin: 0 0 0.7em;
-  font-size: 0.94em;
-}
-
-.frame th,
-.frame td {
-  padding: 0.3em 1.6em 0.3em 0;
-}
-
-.frame th {
-  font: 600 0.8em/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: var(--muted);
-}
-
-.frame td code {
-  white-space: normal;
-}
-
-/* What is shown appears when the sentence that it belongs to begins. It keeps its place while
-   it waits, so nothing on the slide moves. */
-
-.part {
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-.part.wait {
-  opacity: 0;
-  transform: translateY(0.5em);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .part {
-    transition: none;
-  }
-}
-
-/* Figures: rows of boxes with arrows, and numbers with what they count. */
-
-.fig {
-  margin: 0.1em 0 0.8em;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-
-.flow .row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35em;
-  margin: 0 0 0.55em;
-}
-
-.flow .box {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.3em 0.65em;
-  border: 1px solid var(--line);
-  border-radius: 0.4em;
-  background: var(--bg);
-  font-size: 0.84em;
-  line-height: 1.25;
-}
-
-.flow .box.hot {
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 650;
-}
-
-.flow .box small {
-  font-size: 0.74em;
-  font-weight: 400;
-  color: var(--muted);
-}
-
-.flow .to {
-  color: var(--muted);
-}
-
-.stat {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6em 2.4em;
-}
-
-.stat div {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat strong {
-  font-size: 2.2em;
-  font-weight: 650;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-}
-
-.stat span {
-  max-width: 13em;
-  font-size: 0.78em;
-  line-height: 1.3;
-  color: var(--muted);
-}
-
-/* What is said, under its slide. */
-
-.say {
-  margin: 0.6rem 0 0;
-  font-size: 0.98rem;
-}
-
-.say p {
-  margin: 0 0 0.5rem;
-}
-
-/* With the script: one slide, a line of text, and the controls. */
-
-.talk.player {
-  display: flex;
-  flex-direction: column;
-}
-
-.talk.player .slide {
-  display: none;
-  margin: 0;
-}
-
-.talk.player .slide.current {
-  display: block;
-}
-
-.talk.player .say {
-  display: none;
-}
-
-.talk.player .frame {
+  border-radius: 0.8rem 0.8rem 0 0;
+  background: #0e1124;
   cursor: pointer;
+  container-type: inline-size;
 }
 
-.talk .bar {
-  height: 3px;
-  margin: 0.5rem 0 0;
-  border-radius: 2px;
-  background: var(--line);
-  overflow: hidden;
-}
-
-.talk .bar i {
-  display: block;
-  width: 0;
+.talk iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  background: var(--accent);
-  transition: width 0.3s ease;
+  border: 0;
+  pointer-events: none;
+}
+
+.talk .bigplay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 5.2rem;
+  height: 5.2rem;
+  margin: -2.6rem 0 0 -2.6rem;
+  border-radius: 50%;
+  background: rgba(14, 17, 36, 0.72);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.talk .bigplay svg {
+  width: 2.6rem;
+  height: 2.6rem;
+  fill: currentColor;
+}
+
+.talk .bigplay[hidden],
+.talk .caption[hidden] {
+  display: none;
 }
 
 .talk .caption {
-  min-height: 3.2em;
-  margin: 0.7rem 0 0.4rem;
-  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  position: absolute;
+  left: 50%;
+  bottom: 4.5%;
+  width: max-content;
+  max-width: 88%;
+  margin: 0;
+  padding: 0.3em 0.75em;
+  border-radius: 0.45em;
+  transform: translateX(-50%);
+  background: rgba(8, 10, 24, 0.82);
+  color: #fff;
+  font: 600 1rem/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: clamp(0.72rem, 2.3cqw, 2rem);
   text-align: center;
   text-wrap: balance;
+  pointer-events: none;
 }
 
 .talk .controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
-  font: 0.9rem/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 0 0.8rem 0.8rem;
+  background: #171b3a;
+  color: #e9ebff;
+  font: 0.85rem/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-.talk button,
-.talk select {
+.talk .controls button,
+.talk .controls select {
   font: inherit;
-  color: var(--fg);
-  background: var(--bg);
-  border: 1px solid var(--line);
+  color: inherit;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0;
   border-radius: 0.4rem;
-  padding: 0.42rem 0.75rem;
+  padding: 0.42rem 0.55rem;
   cursor: pointer;
 }
 
-.talk select {
-  max-width: 12rem;
+.talk .controls select {
+  max-width: 9rem;
 }
 
-.talk button.main {
-  min-width: 5.2rem;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg);
-  font-weight: 600;
+.talk .controls option {
+  color: #171b3a;
+  background: #fff;
 }
 
-.talk .where {
-  margin: 0 auto 0 0.3rem;
-  color: var(--muted);
+.talk .controls button svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+
+.talk .controls .cc {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.talk .controls .cc.on {
+  background: #e9ebff;
+  color: #171b3a;
+}
+
+.talk .track {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 6rem;
+  height: 1.6rem;
+}
+
+.talk .controls .seg {
+  flex: 1 1 0;
+  min-width: 3px;
+  height: 0.5rem;
+  padding: 0;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.talk .controls .seg:hover {
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.talk .seg i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #ffc045;
+  transition: width 0.3s ease;
+}
+
+.talk .time {
+  color: #b9bee6;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .talk .note {
-  margin: 0.7rem 0 0;
+  margin: 0.6rem 0 0;
   color: var(--muted);
   font: 0.85rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-/* All slides at once, as without the script. Only the button that leads back stays. */
+@media (max-width: 40rem) {
+  .talk .controls {
+    flex-wrap: wrap;
+  }
 
-.talk.player.all .slide {
-  display: block;
-  margin: 0 0 1.6rem;
+  .talk .track {
+    order: -1;
+    flex-basis: 100%;
+  }
 }
 
-.talk.player.all .say {
-  display: block;
+.talk:fullscreen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  background: #000;
 }
 
-.talk.player.all .frame {
-  cursor: auto;
+.talk:fullscreen .screen,
+.talk:fullscreen .controls {
+  width: min(100vw, calc((100vh - 3.2rem) * 16 / 9));
+  margin: 0 auto;
+  border-radius: 0;
 }
 
-.talk.player.all .part.wait {
-  opacity: 1;
-  transform: none;
-}
-
-.talk.player.all .bar,
-.talk.player.all .caption,
-.talk.player.all .note,
-.talk.player.all .controls > :not(.toggle) {
+.talk:fullscreen .note {
   display: none;
 }
 
-.talk.player.all .controls {
-  order: -1;
-  margin: 0 0 1rem;
+/* The text of the talk. A click on a line moves the talk there. */
+
+.transcript {
+  margin: 1.2rem 0;
 }
 
-/* On the full screen the slide is as large as the screen allows above the controls. */
+.transcript summary {
+  cursor: pointer;
+  font: 600 0.95rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
 
-.talk:fullscreen {
+.transcript ol {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+}
+
+.transcript li {
+  margin: 0 0 0.8rem;
+}
+
+.transcript h3 {
+  margin: 0 0 0.1rem;
+  color: var(--muted);
+  font: 700 0.75rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.transcript p {
   margin: 0;
-  padding: 2vh 3vw;
-  justify-content: center;
-  background: var(--bg);
-  overflow: auto;
 }
 
-.talk:fullscreen .slide.current {
-  width: min(100%, calc((100vh - 12rem) * 16 / 9));
-  margin: 0 auto;
+.talk.player ~ .transcript span {
+  cursor: pointer;
+  border-radius: 0.2em;
 }
 
-.talk:fullscreen .bar,
-.talk:fullscreen .controls,
-.talk:fullscreen .note {
-  width: min(100%, calc((100vh - 12rem) * 16 / 9));
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.talk:fullscreen .caption {
-  font-size: 1.3rem;
+.transcript span.now {
+  background: var(--soft);
+  box-shadow: 0 0 0 0.15em var(--soft);
 }

@@ -5,12 +5,13 @@ Usage: python site/build.py OUTPUT_DIR
 
 The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
 the record, the versions, the reviews, and the PDF of each paper, turns the talks in talks/ into
-pages with slides, renders RATIONALE.md and CONTRIBUTING.md, and writes a search page with its
+pages that play them, renders RATIONALE.md and CONTRIBUTING.md, and writes a search page with its
 index, search.json. Earlier versions of a paper are read from the git history at the commits
 that papers/VERSIONS records.
 
-The script only reads files. It never runs anything that a contribution contains, and HTML that
-comes from Markdown passes through an allowlist.
+The script only reads files. It never runs anything that a contribution contains. HTML that
+comes from Markdown passes through an allowlist, and so does the HTML of a talk, which the site
+shows in a frame that runs no script.
 """
 
 import html
@@ -408,128 +409,103 @@ def load_papers(numbers, versions):
 # ---------------------------------------------------------------------------------------------
 # Talks
 #
-# A talk is a Markdown file. A line `---` after an empty line separates two slides. On a slide,
-# a quotation is what is said, and everything else is what is shown. What is shown appears when
-# the quotation that follows it begins, so a slide can build up while the talk goes on.
+# A talk is an HTML file: style sheets, and a list of scenes. A scene is a <section class="scene">
+# that draws a picture and, in an <aside>, holds the lines that are said while it is shown, one
+# <p> for each. The site shows the scenes in a frame that runs no script and loads nothing from
+# outside, and its own player moves them with the voice. The HTML passes through an allowlist.
 
 TALK_NAME = re.compile(r"v(\d+)-(.+)")
-FIGURE = re.compile(r"^```(flow|stat)[ \t]*\n(.*?)^```[ \t]*$", flags=re.M | re.S)
-SENTENCE_END = re.compile(r"[.?!][\"”’)]*\s+(?=[\"“‘(]?[A-Z0-9])")
-WORDS_PER_MINUTE = 138    # measured with one voice in one browser; other voices differ
-LONGEST_SENTENCE = 40
+WORDS_PER_MINUTE = 185    # measured with one voice in one browser; other voices differ
+LONGEST_LINE = 40
+SCENE_TAGS = {
+    "section", "div", "span", "p", "b", "i", "em", "strong", "small", "sub", "sup", "br", "code",
+    "pre", "h1", "h2", "h3", "h4", "ul", "ol", "li",
+    "svg", "g", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon", "text",
+    "tspan", "defs", "lineargradient", "radialgradient", "stop", "clippath", "mask",
+}
+SCENE_ATTRIBUTES = {
+    "class", "id", "style", "role", "aria-hidden", "aria-label",
+    "viewbox", "preserveaspectratio", "d", "points", "x", "y", "x1", "y1", "x2", "y2", "cx",
+    "cy", "r", "rx", "ry", "dx", "dy", "width", "height", "transform", "fill", "fill-opacity",
+    "fill-rule", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
+    "stroke-dasharray", "stroke-dashoffset", "stroke-opacity", "opacity", "pathlength",
+    "offset", "stop-color", "stop-opacity", "gradientunits", "gradienttransform", "clip-path",
+    "mask", "text-anchor", "dominant-baseline", "font-size", "font-weight", "font-family",
+    "letter-spacing",
+}
+SCENE_DROPPED = DROPPED_WITH_CONTENT - {"style", "svg"}
+# What the frame of a talk may do: apply style sheets of this site and its own, and nothing else.
+SCENE_POLICY = ("default-src 'none'; style-src 'self' 'unsafe-inline'; img-src data:; "
+                "base-uri 'none'; form-action 'none'")
 
 
-class Blocks(Sanitizer):
-    """The top-level elements of a rendered text, each as its tag and its sanitized HTML."""
+class SceneReader(HTMLParser):
+    """Reads the source of a talk into its style sheets, its picture as HTML of allowed
+    elements and attributes, and its scenes with their titles and the lines that are said.
+    Links, scripts, forms, frames, and whatever else is not on the lists do not survive."""
 
-    def __init__(self, link):
-        super().__init__(link)
-        self.depth, self.first, self.tag, self.blocks = 0, 0, "", []
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.css, self.out, self.scenes = [], [], []
+        self.in_style, self.dropping, self.saying, self.line = False, 0, 0, None
 
     def handle_starttag(self, tag, attrs):
-        size = len(self.out)
-        super().handle_starttag(tag, attrs)
-        if len(self.out) > size and tag not in VOID_TAGS:
-            if self.depth == 0:
-                self.first, self.tag = size, tag
-            self.depth += 1
+        if tag == "style":
+            self.in_style = True
+        elif tag in SCENE_DROPPED:
+            self.dropping += 1
+        elif self.dropping:
+            pass
+        elif tag == "aside":
+            self.saying += 1
+        elif self.saying:
+            if tag == "p":
+                self.line = []
+        elif tag in SCENE_TAGS:
+            names = dict(attrs)
+            if tag == "section" and "scene" in (names.get("class") or "").split():
+                self.scenes.append({"title": text_of(names.get("data-title")), "lines": []})
+            kept = "".join(f' {name}="{esc(value or "", quote=True)}"' for name, value in attrs
+                           if name in SCENE_ATTRIBUTES or re.fullmatch(r"data-[a-z0-9-]+", name))
+            self.out.append(f"<{tag}{kept}>")
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag != "br":
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag):
-        size = len(self.out)
-        super().handle_endtag(tag)
-        if len(self.out) > size and self.depth:
-            self.depth -= 1
-            if self.depth == 0:
-                self.blocks.append((self.tag, "".join(self.out[self.first:])))
+        if tag == "style":
+            self.in_style = False
+        elif tag in SCENE_DROPPED:
+            self.dropping = max(0, self.dropping - 1)
+        elif self.dropping:
+            pass
+        elif tag == "aside":
+            self.saying = max(0, self.saying - 1)
+        elif self.saying:
+            if tag == "p" and self.line is not None:
+                said = " ".join("".join(self.line).split())
+                if said and self.scenes:
+                    self.scenes[-1]["lines"].append(said)
+                self.line = None
+        elif tag in SCENE_TAGS and tag != "br":
+            self.out.append(f"</{tag}>")
 
-
-def figure(kind, source):
-    """A figure of a slide. Its source is a few lines of text in a fenced block, and the HTML is
-    built here, so a talk brings no markup of its own.
-
-    flow  Every line is a row of boxes with arrows between them: `a -> b -> c`. A box that
-          starts with * stands out, and what follows | in a box is a note under its name.
-    stat  Every line is a number and what it counts: `48 | steps with advice`."""
-    lines = [line.strip() for line in source.splitlines() if line.strip()]
-    if kind == "stat":
-        cells = []
-        for line in lines:
-            value, _, what = line.partition("|")
-            cells.append(f"<div><strong>{esc(value.strip())}</strong>"
-                         f"<span>{esc(what.strip())}</span></div>")
-        return '<div class="fig stat">' + "".join(cells) + "</div>"
-    rows = []
-    for line in lines:
-        boxes = []
-        for item in line.split("->"):
-            name, _, note = item.strip().partition("|")
-            hot = ' hot' if name.startswith("*") else ""
-            small = f"<small>{esc(note.strip())}</small>" if note.strip() else ""
-            boxes.append(f'<span class="box{hot}">{esc(name.lstrip("*").strip())}{small}</span>')
-        rows.append('<div class="row">' + '<span class="to">→</span>'.join(boxes) + "</div>")
-    return '<div class="fig flow">' + "".join(rows) + "</div>"
-
-
-def slide_sources(text):
-    """The slides of a talk, as Markdown. A fenced block may contain the separator."""
-    slides, lines, fenced, blank = [], [], False, True
-    for line in text.splitlines():
-        if line.lstrip().startswith("```"):
-            fenced = not fenced
-        if not fenced and blank and re.fullmatch(r"-{3,}\s*", line):
-            slides.append("\n".join(lines))
-            lines = []
+    def handle_data(self, data):
+        if self.in_style:
+            self.css.append(data)
+        elif self.dropping:
+            pass
+        elif self.saying:
+            if self.line is not None:
+                self.line.append(data)
         else:
-            lines.append(line)
-        blank = not line.strip()
-    slides.append("\n".join(lines))
-    return [slide for slide in slides if slide.strip()]
-
-
-def sentences(text):
-    """A paragraph as sentences. The page hands them to the voice one at a time."""
-    found, start = [], 0
-    for match in SENTENCE_END.finditer(text):
-        found.append(text[start:match.end()].strip())
-        start = match.end()
-    found.append(text[start:].strip())
-    return [sentence for sentence in found if sentence]
-
-
-def parse_slide(source, link):
-    """One slide as units. A unit is what is shown, as blocks of HTML, and what is said about it,
-    as paragraphs of sentences. Blocks after the last quotation belong to the last unit."""
-    figures = []
-
-    def keep(match):
-        figures.append(figure(match.group(1), match.group(2)))
-        return f"\n\n@@figure-{len(figures) - 1}@@\n\n"
-
-    parser = Blocks(link)
-    parser.feed(markdown.markdown(FIGURE.sub(keep, source), extensions=["tables", "fenced_code"],
-                                  output_format="html"))
-    parser.close()
-    units = [{"shown": [], "said": []}]
-    for tag, block in parser.blocks:
-        if tag == "blockquote":
-            for paragraph in re.findall(r"<p>(.*?)</p>", block, flags=re.S):
-                said = sentences(" ".join(html.unescape(re.sub(r"<[^>]*>", "", paragraph)).split()))
-                if said:
-                    units[-1]["said"].append(said)
-            continue
-        if units[-1]["said"]:
-            units.append({"shown": [], "said": []})
-        placed = re.fullmatch(r"<p>@@figure-(\d+)@@</p>", block)
-        if placed and int(placed.group(1)) < len(figures):
-            block = figures[int(placed.group(1))]
-        units[-1]["shown"].append(block)
-    if len(units) > 1 and not units[-1]["said"]:
-        units[-2]["shown"].extend(units.pop()["shown"])
-    return {"units": units, "title": bool(parser.blocks) and parser.blocks[0][0] == "h1"}
+            self.out.append(esc(data, quote=False))
 
 
 def load_talks(papers):
-    """The talks. A file talks/<paper>/v<version>-<speaker>.md presents that version of the
+    """The talks. A file talks/<paper>/v<version>-<speaker>.html presents that version of the
     paper. Every paper gets its talks, the one about its latest version first."""
     known = {paper["slug"]: paper for paper in papers}
     for paper in papers:
@@ -543,31 +519,32 @@ def load_talks(papers):
         if paper is None:
             warn(f"skipping talks/{directory.name}: there is no paper of this name")
             continue
-        for path in sorted(directory.glob("*.md")):
+        for path in sorted(directory.glob("*.html")):
+            where = f"talks/{directory.name}/{path.name}"
             match = TALK_NAME.fullmatch(path.stem)
             if not match or not SLUG.fullmatch(path.stem):
-                warn(f"skipping talks/{directory.name}/{path.name}: unexpected file name")
+                warn(f"skipping {where}: unexpected file name")
                 continue
-            link = linker(f"talks/{directory.name}", "../../")
-            slides = [parse_slide(source, link) for source in slide_sources(read(path))]
-            slides = [slide for slide in slides
-                      if any(unit["shown"] or unit["said"] for unit in slide["units"])]
-            said = [sentence for slide in slides for unit in slide["units"]
-                    for paragraph in unit["said"] for sentence in paragraph]
-            if not slides:
-                warn(f"skipping talks/{directory.name}/{path.name}: it has no slide")
+            reader = SceneReader()
+            reader.feed(read(path))
+            reader.close()
+            said = [line for scene in reader.scenes for line in scene["lines"]]
+            if not said:
+                warn(f"skipping {where}: nothing is said in it")
                 continue
-            for sentence in said:
-                if len(sentence.split()) > LONGEST_SENTENCE:
-                    warn(f"talks/{directory.name}/{path.name}: some voices stop in the middle of "
-                         f"a sentence as long as the one that begins “{sentence[:50]}”")
-            words = sum(len(sentence.split()) for sentence in said)
+            for line in said:
+                if len(line.split()) > LONGEST_LINE:
+                    warn(f"{where}: some voices stop in the middle of a line as long as the "
+                         f"one that begins “{line[:50]}”")
+            words = sum(len(line.split()) for line in said)
             talk = {
                 "paper": paper, "file": path.name, "version": int(match.group(1)),
-                "speaker": match.group(2), "slides": slides, "words": words,
-                # the words at the pace of a voice, and the pause that follows every slide
-                "seconds": words * 60 / WORDS_PER_MINUTE + 0.45 * len(slides),
+                "speaker": match.group(2), "scenes": reader.scenes, "words": words,
+                "css": "\n".join(reader.css), "picture": "".join(reader.out),
+                # the words at the pace of a voice, and the pause that follows every scene
+                "seconds": words * 60 / WORDS_PER_MINUTE + 0.3 * len(reader.scenes),
                 "url": f"talks/{directory.name}/{path.stem}.html",
+                "frame": f"talks/{directory.name}/{path.stem}.scenes.html",
             }
             talks.append(talk)
             paper["talks"].append(talk)
@@ -893,35 +870,41 @@ def talk_entry(talk, base):
             f'{esc(paper["title"])}</a><p class="meta">{" · ".join(facts)}</p></li>')
 
 
-def slide_html(number, count, slide):
-    shown, said = [], []
-    for index, unit in enumerate(slide["units"]):
-        if unit["shown"]:
-            shown.append(f'<div class="part" data-at="{index}">\n' + "\n".join(unit["shown"])
-                         + "\n</div>")
-        for paragraph in unit["said"]:
-            said.append("<p>" + " ".join(f'<span data-at="{index}">{esc(sentence)}</span>'
-                                         for sentence in paragraph) + "</p>")
-    kind = "slide title" if slide["title"] else "slide"
-    return (f'<section class="{kind}" id="slide-{number}" aria-label="Slide {number} of {count}">\n'
-            '<div class="frame">\n' + "\n".join(shown) + '\n</div>\n'
-            '<div class="say">\n' + "\n".join(said) + "\n</div>\n</section>")
+def scenes_document(talk):
+    """The frame of a talk: its scenes, under a policy that forbids scripts and everything from
+    outside. The policy is part of the document, so it also holds when the frame is opened by
+    itself."""
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="{SCENE_POLICY}">
+<meta name="robots" content="noindex">
+<title>{esc(talk["paper"]["title"])}</title>
+<link rel="stylesheet" href="../../talk-scene.css">
+<style>
+{talk["css"]}
+</style>
+</head>
+<body>
+{talk["picture"]}
+</body>
+</html>
+"""
 
 
 def talk_page(talk):
-    """The page of a talk. Without its script the page shows every slide with what is said about
-    it. The script shows one slide at a time and has the browser speak."""
+    """The page of a talk: a frame with its scenes, and the lines that are said. The script of
+    the page plays the lines and moves the scenes. Without it the page shows the lines."""
     base = "../../"
     paper = talk["paper"]
     slug, number, version = quote(paper["slug"]), paper["number"], talk["version"]
-    count = len(talk["slides"])
     recorded = [state["version"] for state in paper["history"]]
     kicker = "Talk" + (f" · paper {number}" if number else "") + f" · version {version}"
     parts = [
         f'<p class="kicker">{kicker}</p>',
         f"<h1>{esc(paper['title'])}</h1>",
-        f'<p class="byline">A talk by {esc(talk["speaker"])}, {length_of(talk)}, '
-        f'{count} slide{"s" if count != 1 else ""}</p>',
+        f'<p class="byline">A talk by {esc(talk["speaker"])}, {length_of(talk)}</p>',
     ]
     if recorded and recorded[-1] != version:
         parts.append(f'<p class="notice">This talk presents version {version} of the paper. '
@@ -929,16 +912,25 @@ def talk_page(talk):
                      "is the latest.</p>")
     about = f"v{version}/index.html" if version in recorded else "index.html"
     source = f"{REPO_URL}/blob/main/talks/{slug}/{quote(talk['file'])}"
+    frame = quote(talk["frame"].rsplit("/", 1)[1])
+    parts.append(f'<div class="talk" data-scenes="{len(talk["scenes"])}"><div class="screen">'
+                 f'<iframe src="{frame}" sandbox="allow-same-origin" title="The scenes of the '
+                 'talk" tabindex="-1" aria-hidden="true"></iframe></div></div>')
+    lines = []
+    for index, scene in enumerate(talk["scenes"]):
+        heading = f"<h3>{esc(scene['title'])}</h3>" if scene["title"] else ""
+        said = " ".join(f'<span data-scene="{index}" data-line="{place}">{esc(line)}</span>'
+                        for place, line in enumerate(scene["lines"]))
+        lines.append(f"<li>{heading}<p>{said}</p></li>")
+    parts.append('<details class="transcript" open><summary>The text of the talk</summary>\n<ol>\n'
+                 + "\n".join(lines) + "\n</ol></details>")
     parts.append(f'<p class="actions"><a class="button" href="{base}papers/{slug}/{about}">'
                  f'Read the paper</a> <a href="{source}">Source of this talk</a></p>')
-    parts.append('<div class="talk">\n' + "\n".join(
-        slide_html(index, count, slide) for index, slide in enumerate(talk["slides"], start=1))
-        + "\n</div>")
-    parts.append('<p class="meta">The slides and the text of this talk are one file in the '
+    parts.append('<p class="meta">The scenes and the text of this talk are one file in the '
                  "repository. The voice is not in the repository: this page hands the text to "
-                 "the speech synthesis of your browser, sentence by sentence, so the talk sounds "
-                 "different from browser to browser. Where a browser has no voice, the text is "
-                 "shown at the pace of reading.</p>")
+                 "the speech synthesis of your browser, line by line, so the talk sounds "
+                 "different from browser to browser. Where a browser has no voice, the talk "
+                 "plays without one.</p>")
     parts.append(f'<script src="{base}talk.js"></script>')
     head = f'\n<link rel="stylesheet" href="{base}talk.css">'
     return page(f"Talk: {paper['title']}", "\n".join(parts), base, head)
@@ -1052,7 +1044,7 @@ def build(out):
         else:
             target.write_text(content, encoding="utf-8")
 
-    for name in ("style.css", "talk.css", "talk.js"):
+    for name in ("style.css", "talk.css", "talk.js", "talk-scene.css"):
         shutil.copyfile(ROOT / "site" / name, out / name)
     write("index.html", home_page(ideas, papers))
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
@@ -1071,12 +1063,13 @@ def build(out):
 {entries([paper_entry(paper, "../") for paper in newest_first(papers)])}""", "../"))
     count = f'<span class="count">{len(talks)}</span>'
     write("talks/index.html", page("Talks", f"""<h1>Talks {count}</h1>
-<p>A talk presents one version of a paper in a few minutes: slides, and with every slide the text
-that is said about it. The voice is the speech synthesis of the browser that shows the page. The
-number before a talk is the number of its paper.</p>
+<p>A talk presents one version of a paper in a few minutes, as a short animated film. The voice
+is the speech synthesis of the browser that shows the page. The number before a talk is the
+number of its paper.</p>
 {entries([talk_entry(talk, "../") for talk in talks])}""", "../"))
     for talk in talks:
         write(talk["url"], talk_page(talk))
+        write(talk["frame"], scenes_document(talk))
     for paper in papers:
         slug, number = paper["slug"], paper["number"]
         if number and paper["talks"]:

@@ -16,7 +16,7 @@ Agents and humans together write papers on the principles of programming languag
 | `ideas/` | Ideas to be written into papers, one file each |
 | `papers/` | Papers, each with its source, its record, and its artifact |
 | `reviews/` | Reviews of the papers |
-| `talks/` | Talks about the papers: slides with the text that is said, one file each |
+| `talks/` | Talks about the papers: short animated films with the text that is said, one file each |
 | `agents/` | Agents that write papers, check them, and choose which ones to build on |
 | `site/` | The programs that number the ideas and the papers and build the site |
 
