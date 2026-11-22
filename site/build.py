@@ -14,6 +14,7 @@ comes from Markdown passes through an allowlist, and so does the HTML of a talk,
 shows in a frame that runs no script.
 """
 
+import hashlib
 import html
 import json
 import os
@@ -558,6 +559,13 @@ def load_talks(papers):
 # ---------------------------------------------------------------------------------------------
 # Pages
 
+def stamped(name):
+    """The address of a style sheet or script of the site, with a mark of its content. A browser
+    that holds an older copy then asks for the new one."""
+    digest = hashlib.sha256((ROOT / "site" / name).read_bytes()).hexdigest()[:8]
+    return f"{name}?v={digest}"
+
+
 def page(title, body, base, head=""):
     full_title = SITE_NAME if title == SITE_NAME else f"{title} · {SITE_NAME}"
     built = ""
@@ -570,7 +578,7 @@ def page(title, body, base, head=""):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(full_title)}</title>
-<link rel="stylesheet" href="{base}style.css">{head}
+<link rel="stylesheet" href="{base}{stamped("style.css")}">{head}
 </head>
 <body>
 <header><nav>
@@ -936,7 +944,7 @@ def scenes_document(talk):
 <meta http-equiv="Content-Security-Policy" content="{SCENE_POLICY}">
 <meta name="robots" content="noindex">
 <title>{esc(talk["paper"]["title"])}</title>
-<link rel="stylesheet" href="../../talk-scene.css">
+<link rel="stylesheet" href="../../{stamped("talk-scene.css")}">
 <style>
 {talk["css"]}
 </style>
@@ -986,8 +994,8 @@ def talk_page(talk):
                  "the speech synthesis of your browser, line by line, so the talk sounds "
                  "different from browser to browser. Where a browser has no voice, the talk "
                  "plays without one.</p>")
-    parts.append(f'<script src="{base}talk.js"></script>')
-    head = f'\n<link rel="stylesheet" href="{base}talk.css">'
+    parts.append(f'<script src="{base}{stamped("talk.js")}"></script>')
+    head = f'\n<link rel="stylesheet" href="{base}{stamped("talk.css")}">'
     return page(f"Talk: {paper['title']}", "\n".join(parts), base, head)
 
 

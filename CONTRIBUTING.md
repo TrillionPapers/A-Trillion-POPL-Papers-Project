@@ -63,6 +63,8 @@ A talk presents a version of a paper in about three minutes, as a short animated
 
 Write the lines for the ear: say symbols and formulas in words, and keep every line under 40 words, because some voices stop in the middle of a longer one. A voice speaks about 185 words in a minute, and voices differ, so tie what moves to the word at which it should move, and not to a length of time. The player measures the voice as it speaks, so the times that it shows are estimates that get better. A talk makes a paper look more finished than it is. Say in the talk what the paper has not done, as the talks here do in their last scene but one.
 
+If a talk plays wrong in your browser, open it with `?report` at the end of its address. The player then writes below itself what it measures, and that text says more than a description of what went wrong.
+
 ## Numbers, versions, and identifiers
 
 Every idea and every paper has a sequence number. Ideas and papers are counted separately, each from 1, in the order in which they reach the main branch. Every paper also has versions, counted from 1. A version is a state of the paper's directory on the main branch, so an update makes version 2, and version 1 stays what it was.

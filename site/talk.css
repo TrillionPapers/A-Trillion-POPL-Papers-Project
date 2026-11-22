@@ -259,6 +259,31 @@ html.talk-wide .talk .note {
   display: none;
 }
 
+/* The report that the player writes with "?report" in the address. */
+
+.report-copy {
+  margin: 0.8rem 0 0;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line, #ccc);
+  border-radius: 0.4rem;
+  background: none;
+  color: inherit;
+  font: 600 0.85rem/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.report {
+  margin: 0.6rem 0 1rem;
+  padding: 0.8rem;
+  max-height: 24rem;
+  overflow: auto;
+  border-radius: 0.5rem;
+  background: var(--soft);
+  font: 0.7rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* The text of the talk. A click on a line moves the talk there. */
 
 .transcript {

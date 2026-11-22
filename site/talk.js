@@ -264,10 +264,15 @@
     }
   }
 
+  // Scales the stage to the frame. Says whether that changed anything.
   function fit() {
     const page = doc();
     const width = frame.clientWidth;   // none while the frame is not laid out
-    if (page && width) page.documentElement.style.setProperty("--k", String(width / 1280));
+    if (!page || !width) return false;
+    const k = String(width / 1280);
+    if (page.documentElement.style.getPropertyValue("--k") === k) return false;
+    page.documentElement.style.setProperty("--k", k);
+    return true;
   }
 
   function bind() {
@@ -283,6 +288,7 @@
     } else still(at, line + 1);
     root.classList.add("ready");   // until now the frame is hidden: it has not been told what to show
     render();
+    if (typeof report === "function") report("the frame is loaded");
   }
 
   // ---------------------------------------------------------------------------------------
@@ -635,11 +641,23 @@
   };
   let wide = false;       // whether the player fills the window
 
-  // The widest picture of 16 by 9 that fits above the controls.
+  // The widest picture of 16 by 9 that fits above the controls. Says whether it changed.
   function size() {
-    if (!wide) return;
-    const width = Math.min(root.clientWidth, (root.clientHeight - controls.offsetHeight) * 16 / 9);
-    if (width > 0) root.style.setProperty("--wide", `${Math.floor(width)}px`);
+    if (!wide) return false;
+    const width = Math.floor(Math.min(root.clientWidth, (root.clientHeight - controls.offsetHeight) * 16 / 9));
+    if (!(width > 0)) return false;
+    const value = `${width}px`;
+    if (root.style.getPropertyValue("--wide") === value) return false;
+    root.style.setProperty("--wide", value);
+    return true;
+  }
+
+  // Both sizes at once, with a word for the report on why.
+  function square(why) {
+    const sized = size();
+    const fitted = fit();
+    if (why) report(sized || fitted ? `${why}: sizes changed` : why);
+    return sized || fitted;
   }
 
   function setWide(on) {
@@ -655,6 +673,7 @@
   }
 
   function toggleWide() {
+    report(wide ? "asked to leave full screen" : "asked for full screen");
     if (wide) {
       setWide(false);
       if (inFull() && leaveFull) quietly(() => leaveFull.call(document));
@@ -662,6 +681,51 @@
       setWide(true);
       if (enterFull) quietly(() => enterFull.call(whole));
     }
+    for (const wait of [300, 1000, 2500]) setTimeout(() => report(`${wait} ms later`), wait);
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // A report. With "?report" in the address, the player writes down below itself what it
+  // measures, so that a picture that goes wrong in one browser can be told from that browser.
+
+  const notes = /[?&]report\b/.test(location.search) ? [] : null;
+  const sheet = notes ? make("pre", "report") : null;
+
+  function report(why) {
+    if (!notes) return;
+    const box = el => {
+      const b = el.getBoundingClientRect();
+      return [b.left, b.top, b.width, b.height].map(Math.round).join(",");
+    };
+    const page = doc();
+    const html = page && page.documentElement;
+    const view = page && page.defaultView;
+    const scene = stage[at];
+    const look = scene && view ? view.getComputedStyle(scene) : null;
+    const body = page && page.body && view ? view.getComputedStyle(page.body) : null;
+    notes.push([
+      `${(performance.now() / 1000).toFixed(2)} ${why}`,
+      `full=${inFull()} wide=${wide} window=${innerWidth}x${innerHeight} ratio=${devicePixelRatio} shown=${document.visibilityState}`,
+      `player=${box(root)} screen=${box(screen)} frame=${box(frame)} controls=${box(controls)}`,
+      `--wide=${root.style.getPropertyValue("--wide") || "-"} --k=${html ? html.style.getPropertyValue("--k") || "-" : "no page"}`,
+      `scenes=${stage.length}/${page ? page.querySelectorAll("section.scene").length : "-"} at=${at}:${line}:${word} ${root.dataset.state}`,
+      scene ? `scene=${scene.id} [${scene.className}]` : "no scene",
+      look ? `opacity=${look.opacity} visibility=${look.visibility} transform=${look.transform} filter=${look.filter}` : "",
+      body ? `stage=${body.transform} at ${box(page.body)}` : "",
+      html ? `root=[${html.className}]` : "",
+    ].join(" | "));
+    sheet.textContent = [navigator.userAgent, ...notes.slice(-80)].join("\n");
+  }
+
+  if (sheet) {
+    const copy = make("button", "report-copy", "Copy the report");
+    copy.addEventListener("click", () => {
+      const done = () => { copy.textContent = "Copied"; };
+      const select = () => { getSelection().selectAllChildren(sheet); copy.textContent = "Selected: copy it"; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(sheet.textContent).then(done, select);
+      else select();
+    });
+    root.after(copy, sheet);
   }
 
   // ---------------------------------------------------------------------------------------
@@ -691,7 +755,10 @@
   fullButton.addEventListener("click", toggleWide);
   // The browser gave the screen, or took it back: on Escape, for one.
   for (const name of ["fullscreenchange", "webkitfullscreenchange"]) {
-    document.addEventListener(name, () => setWide(inFull()));
+    document.addEventListener(name, () => {
+      setWide(inFull());
+      report(`the browser says: ${name}`);
+    });
   }
   if (transcript) {
     transcript.addEventListener("click", event => {
@@ -718,10 +785,14 @@
   });
   window.addEventListener("pagehide", () => { if (synth) synth.cancel(); });
   if ("ResizeObserver" in window) {
-    new ResizeObserver(fit).observe(frame);
-    new ResizeObserver(size).observe(root);
+    new ResizeObserver(() => square("the frame has a new size")).observe(frame);
+    new ResizeObserver(() => square("the player has a new size")).observe(root);
   }
-  window.addEventListener("resize", () => { size(); fit(); });
+  window.addEventListener("resize", () => square("the window has a new size"));
+  // A browser tells of a new size in its own time, above all on the way into full screen and
+  // out of it, and a size that was read too early stays wrong. So the sizes are looked at
+  // again a few times a second and put right where they are off.
+  setInterval(() => { if (square()) report("sizes were off, and were put right"); }, 250);
   frame.addEventListener("load", bind);
 
   const saved = Number(recall("talk.rate"));
@@ -740,4 +811,5 @@
   loadVoices();
   bind();
   render();
+  report("the page is ready");
 })();
