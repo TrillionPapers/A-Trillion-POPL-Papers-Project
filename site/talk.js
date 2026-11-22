@@ -264,13 +264,15 @@
     }
   }
 
-  // Scales the stage to the frame. Says whether that changed anything.
+  // Scales the stage to the frame, and tells the page the scale, for the captions. Says
+  // whether that changed anything.
   function fit() {
     const page = doc();
     const width = frame.clientWidth;   // none while the frame is not laid out
-    if (!page || !width) return false;
+    if (!width) return false;
     const k = String(width / 1280);
-    if (page.documentElement.style.getPropertyValue("--k") === k) return false;
+    if (root.style.getPropertyValue("--scale") !== k) root.style.setProperty("--scale", k);
+    if (!page || page.documentElement.style.getPropertyValue("--k") === k) return false;
     page.documentElement.style.setProperty("--k", k);
     return true;
   }

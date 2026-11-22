@@ -24,14 +24,19 @@ body:has(.talk) footer {
   border-radius: 0.8rem 0.8rem 0 0;
   background: #0e1124;
   cursor: pointer;
-  container-type: inline-size;
 }
 
+/* The frame stands in the flow of the screen and has the shape of the stage by itself. It is
+   not laid over the screen, and the screen is not a container for queries: in Safari a frame
+   laid over such a container lost its size, and the picture went black, whenever the screen
+   changed its size while nothing else in it was shown, which is so while a talk plays without
+   captions. */
+
 .talk iframe {
-  position: absolute;
-  inset: 0;
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
   border: 0;
   pointer-events: none;
   opacity: 0;
@@ -97,7 +102,8 @@ body:has(.talk) footer {
   background: rgba(8, 10, 24, 0.82);
   color: #fff;
   font: 600 1rem/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: clamp(0.72rem, 2.3cqw, 2rem);
+  /* --scale is the width of the picture in stages of 1280 pixels; the script sets it */
+  font-size: clamp(0.72rem, calc(var(--scale, 0.8) * 29.5px), 2rem);
   text-align: center;
   text-wrap: balance;
   pointer-events: none;
