@@ -1,0 +1,21 @@
+three reads: every order gives the same outcome, one round
+format a file and run the tests: the two orders differ; the meaning at once is the one with the tests first
+three files moved in a circle: no order gives the meaning at once; a snapshot of one file is enough
+two readers and two writers with the times 1, 10, 10, 1: rounds take 20, starting as soon as possible 11
+format in a first stage, test and read in a second: two rounds, the formatter first; at once: two rounds, the formatter last
+10000 random batches of two to four calls, 780 with two writers of one key (no meaning at once); of the other 9220, with 94720 orders run: 3843 independent, 1974 for which the listed order gives the meaning at once, 2818 for which only another order does, 585 for which none does; an order gives the meaning at once exactly if every reader of a key runs before its writer; the fewest rounds are the longest chain (14025 rounds in all); the fewest keys of a snapshot are found (588 in all, where 7684 keys are shared); every order works exactly under a snapshot of all shared keys
+8159 batches in which every call is before at most one other, with 367 cycles: the fewest keys are the number of cycles
+in 3274 batches some order lets two calls read different values of one key, and at once none does; a failed call changes nothing for the others at once or in an order that gives it; in the listed order of 2295 batches where that order is not the meaning at once, a failure changes the result of another call in 846; for 6621 batches with larger footprints declared, every order, number of rounds and snapshot that fits the declared footprints fits the true ones
+8635 batches with an order and random times: starting every call as soon as it may gives the meaning at once and ends with the heaviest chain; in all it takes 80015, the plan in rounds 83580, one call at a time 126526
+4000 random batches in up to three stages: every order that respects the pairs of Theorem 7.1 gives the meaning in stages, and where no key is written twice no other order does and the fewest rounds are the longest chain; in 12 batches with a key written twice some other order gives it too; with every call a stage of its own the meaning is the listed order, which runs in 7356 rounds for 11936 calls
+1500 random graphs, 593 with a cycle: the fewest keys of a snapshot of the batch of Theorem 5.2 are the fewest vertices that meet every cycle
+8 deliberate mistakes, each noticed:
+  last-writer: two calls write one key and the batch has a meaning at once
+  own-key: an order gives the meaning at once without respecting the pairs, or the reverse
+  writer-first: an order gives the meaning at once without respecting the pairs, or the reverse
+  same-round: the fewest rounds are not the longest chain
+  unit-time: starting as soon as possible does not end with the heaviest chain
+  one-cycle: the fewest keys are not the number of cycles
+  some-shared: a snapshot under which every order works, or does not
+  late-reader: an order respects the pairs and does not give the meaning in stages
+15 sentences of the paper checked: all-noticed, batches, failures, footprints, format, graphs, moves, reads, rotate, rotate-listed, stages, stages-example, time, time-example, torn
