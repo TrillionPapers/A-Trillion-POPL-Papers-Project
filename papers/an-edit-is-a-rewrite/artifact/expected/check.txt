@@ -1,0 +1,29 @@
+two edits on two lines: the order (second, first) works and the other is refused
+the swap of two names: no order works; the parallel meaning is "hi = 1; lo = 9"
+the swap with one letter of context for the second edit: the order (first, second) works
+two edits at places that overlap: both orders work, and they give "bxc" and "bcx"
+two edits that spoil a third only together: four of six orders work
+a batch that is not monotone: two orders work, and the building from the end fails if it takes the wrong edit last
+an edit written for one function is made in another when only uniqueness is checked
+126 texts of up to six letters a and b, 11502 pairs of edits whose old strings occur once: 2448 at places apart, of which both orders work for 1082, one for 932, none for 434, and every order that works gives the parallel meaning; 9054 at places that overlap, of which 228 work in both orders with two results, for instance a to aa and ab to ba on ab, which give aba and baa
+batches of 2 edits: 3000, every order works for 2158, some for 744, none for 98; 0 are not monotone, the building from the end gets stuck for 0 that have an order, 1312 are separated
+batches of 3 edits: 3000, every order works for 1160, some for 1631, none for 209; 336 are not monotone, the building from the end gets stuck for 44 that have an order, 161 are separated
+batches of 4 edits: 2000, every order works for 599, some for 1311, none for 90; 421 are not monotone, the building from the end gets stuck for 40 that have an order, 17 are separated
+batches of 5 edits: 1000, every order works for 168, some for 784, none for 48; 336 are not monotone, the building from the end gets stuck for 22 that have an order, 1 are separated
+merged into one edit, a batch has 88693 letters in its old string where the edits had 73411 in all
+9000 random batches, 192000 orders run: an order works exactly if every edit is clean at its turn, and then it gives the parallel meaning; 27181 spurious occurrences, each touching an edit that was made, 4065 of them cutting one or two old strings; the constraints, the search over subsets, the building from the end and the graph of a separated batch agree with running the edits
+context loses no order; of the 445 batches with no order, one letter of context gives an order to 345, two letters to 21, three or four to 1, and 78 have none with four
+400 random instances of the ordering problem with pairs and disjoint triples, 89748 orders: an order does what is asked exactly if the same order of the edits works; 340 instances have such an order
+20000 edits written for a snapshot that changed: the place was kept for 3283 (the edit is made as meant for 2657 and refused for 626) and changed for 16717 (the edit is made all the same for 4473, each time in text that was changed)
+10 deliberate mistakes, each noticed:
+  unsorted: two edits at places apart give another text than the parallel meaning
+  overlap-ok: the second of two edits
+  snapshot-clean: the second of two edits
+  empty-touch: the constraints say otherwise than the text
+  no-negative: the constraints say otherwise than the text
+  forward: a monotone batch has an order and the building from the end finds none
+  no-joint: the orders of the graph are not the orders that work
+  edge-reversed: the orders of the graph are not the orders that work
+  triple-apart: an order of the reduction works when it should not, or the reverse
+  unique-only: the rule "place" makes an edit that its author did not mean
+14 sentences of the paper checked: all-noticed, context, differ, distance, hard, joint, one-meaning, orders, pairs, stale, stuck, swap, swap-context, wrong-place

@@ -1,0 +1,18 @@
+title: "An Edit Is a Rewrite: Ordering Batches of Search-and-Replace Edits"
+idea: edits-as-rewrites          # the file in ideas/ that the paper grew from
+builds-on: [a-merge-is-a-schedule]   # other papers in this repository that it cites
+keywords: [edits, search and replace, commutation, patches, string rewriting, concurrent editing, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the theory, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Theorem 3.2 against every order of 9,000 random valid batches and
+      against every pair of short edits on every text of up to six letters; Lemma 4.1 and
+      Theorem 4.2 on every spurious occurrence of those batches; Theorems 5.1 and 5.2 and
+      Propositions 5.4 and 5.5 against the orders that work; the reduction of Theorem 5.3
+      against every order of 400 random instances; Theorem 6.1 on 20,000 random cases; the
+      examples of Sections 2, 4, 5 and 6; ten planted mistakes, each noticed; the rows of
+      Tables 1 and 2; every number quoted in the text and every sentence marked as a claim
+    by: make -C artifact check      # needs python3
