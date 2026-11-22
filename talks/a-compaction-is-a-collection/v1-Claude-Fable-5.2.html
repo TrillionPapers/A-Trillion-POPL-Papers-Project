@@ -1,0 +1,249 @@
+<!-- standard: 2026-11-22 -->
+<style>
+/* The context is a column of strips of glass, one for each item: its kind, its name and its
+   size. An item that is kept glows; one that is dropped fades. */
+.head { position: absolute; left: 88px; top: 60px; width: 560px; }
+.strip { position: absolute; display: flex; align-items: center; gap: 16px; height: 58px; padding: 0 22px 0 14px; border-radius: 18px; font-size: 25px; color: #fff; white-space: nowrap; }
+.tag { display: inline-flex; align-items: center; justify-content: center; height: 34px; min-width: 76px; padding: 0 12px; border-radius: 11px; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #0b0e24; }
+.t-allow { background: #4dffc3; }
+.t-ask { background: #ffc45e; }
+.c-amber { color: #ffcf7d; }
+.c-red { color: #ff8a8a; }
+.c-green { color: #7dffd2; }
+.bar { position: absolute; height: 14px; border-radius: 7px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.bar i { display: block; width: 0; height: 100%; border-radius: 7px; background: linear-gradient(90deg, #45d6ff, #4dffc3); transition: width var(--fill, 1.1s) var(--out); }
+.bar.in i { width: var(--w, 100%); }
+.bar.warm i { background: linear-gradient(90deg, #ffb84d, #ff5a5a); }
+.row { position: absolute; display: flex; align-items: baseline; gap: 16px; }
+.deco { position: absolute; left: 820px; top: 200px; rotate: -6deg; animation: bob 5s ease-in-out infinite; }
+.deco .strip { position: relative; margin-bottom: 14px; width: max-content; }
+.gone:not([data-in]), .gone.in { opacity: .28; filter: saturate(.4); }
+.gone .code { text-decoration: line-through; text-decoration-color: #ff6b6b; text-decoration-thickness: 3px; }
+.item { left: 640px; width: 500px; }
+.sz { margin-left: auto; }
+.t-said { background: #ff8fc0; }
+.t-file { background: #8fb4ff; }
+.t-made { background: #ffc45e; }
+.kept { border-color: #4dffc3; box-shadow: 0 0 30px rgba(77, 255, 195, .45); }
+.once { border-color: #ff8fc0; box-shadow: 0 0 30px rgba(255, 143, 192, .5); }
+.path { stroke: #ffc45e; stroke-width: 4; fill: none; }
+
+/* 1: the context is full */
+#full .bar { left: 88px; top: 330px; width: 1000px; height: 30px; border-radius: 15px; --fill: 2.4s; }
+#full .bar i { border-radius: 15px; }
+
+/* 6: a choice */
+#choice .item { top: 150px; }
+#choice .way { position: absolute; top: 280px; width: 236px; height: 150px; padding: 18px 22px; }
+#choice .way .d4 { font-size: 28px; }
+#choice .way .lab { margin-top: 10px; line-height: 1.5; }
+
+/* 8: dearer holding */
+#dearer .grid { position: absolute; left: 620px; top: 140px; display: grid; grid-template-columns: 190px 110px 110px 110px; gap: 14px 12px; align-items: center; }
+#dearer .grid .tag { min-width: 96px; }
+#dearer .grid .d4 { font-size: 26px; }
+#dearer .none { height: 34px; display: flex; align-items: center; justify-content: center; color: #7a83b0; font-weight: 800; }
+#dearer.c2-11 .back { box-shadow: 0 0 26px 6px rgba(77, 255, 195, .6); }
+#dearer .back { transition: box-shadow .6s ease; }
+
+/* 9: not knowing the need */
+#wait .item { top: 150px; }
+#wait .bar { left: 640px; top: 250px; width: 500px; height: 22px; border-radius: 11px; --fill: 5s; }
+#wait .bar i { border-radius: 11px; }
+#wait .row { left: 88px; top: 330px; }
+
+/* 10: six rules */
+#rules .bar { left: 640px; width: 500px; height: 24px; border-radius: 12px; }
+#rules .bar i { border-radius: 12px; }
+#rules .row { left: 88px; top: 190px; }
+</style>
+
+<section class="scene deep" id="full" data-title="The context is full" style="--light1: rgba(255, 95, 120, .3); --light2: rgba(88, 110, 255, .28)">
+  <div class="d2 words sync abs" data-in="1:1" data-out="2" style="left:88px;top:150px;width:900px">The context is <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">full.</span></div>
+  <div class="d2 words sync abs" data-in="2:8" style="left:88px;top:130px;width:1000px;font-size:66px">what can an agent afford to <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">forget?</span></div>
+  <div class="lab abs" data-in="1:1" style="left:92px;top:300px">the context window</div>
+  <div class="bar warm" data-in="1:1"><i></i></div>
+  <div class="lab abs" data-in="3:1" style="left:92px;top:384px;color:#ffcf7d">every token in it is paid for again, at every step</div>
+  <div class="pill glass" data-in="3:11" style="left:88px;top:430px">compact</div>
+  <aside>
+    <p>The context is full.</p>
+    <p>The harness has to drop something. But what can an agent afford to forget?</p>
+    <p>Every token in it is paid for again at every step. So harnesses compact.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="items" data-title="One session" style="--light1: rgba(88, 110, 255, .32); --light2: rgba(255, 143, 192, .2)">
+  <div class="d3 words head" data-in="1:5" style="width:480px">One <span class="it grad">session.</span></div>
+  <div class="strip glass item blur" data-in="2:1" style="top:110px"><span class="tag t-file">file</span><span class="code">parser.py</span><span class="lab sz">3,000 tokens</span></div>
+  <div class="strip glass item blur" data-in="2:2" style="top:174px"><span class="tag t-file">file</span><span class="code">lexer.py</span><span class="lab sz">2,500</span></div>
+  <div class="strip glass item blur" data-in="2:5" style="top:238px"><span class="tag t-file">run</span><span class="code">test output</span><span class="lab sz">1,200</span></div>
+  <div class="strip glass item blur" data-in="2:10" style="top:302px"><span class="tag t-made">made</span><span class="code">the finding</span><span class="lab sz">60</span></div>
+  <div class="strip glass item blur" data-in="2:13" style="top:366px"><span class="tag t-made">made</span><span class="code">the plan</span><span class="lab sz">120</span></div>
+  <div class="strip glass item blur once" data-in="3:10" style="top:430px"><span class="tag t-said">said</span><span class="code">the instruction</span><span class="lab sz">40</span></div>
+  <div class="strip glass item blur once" data-in="3:13" style="top:494px"><span class="tag t-said">said</span><span class="code">the decision</span><span class="lab sz">30</span></div>
+  <div class="d3 words sync abs" data-in="3:5" style="left:88px;top:330px;width:480px">that a person <span class="it grad" style="--g1:#ff8fc0;--g2:#ffc45e">said.</span></div>
+  <aside>
+    <p>Here is what stands in the context of one session.</p>
+    <p>Two big files. The output of a test. A short finding. A plan.</p>
+    <p>And two small things that a person said: an instruction, and a decision.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="title" data-title="A Compaction Is a Collection" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(255, 143, 192, .16)">
+  <div class="deco" style="left:850px;top:220px">
+    <div class="strip glass gone"><span class="tag t-file">file</span><span class="code">parser.py</span></div>
+    <div class="strip glass kept"><span class="tag t-made">made</span><span class="code">the finding</span></div>
+    <div class="strip glass once"><span class="tag t-said">said</span><span class="code">the instruction</span></div>
+  </div>
+  <div class="lab abs" data-in="1" style="left:88px;top:150px">A Trillion POPL Papers · Paper 21</div>
+  <div class="d1 words abs" data-in="1:5" style="left:84px;top:186px;width:760px;font-size:86px">A Compaction Is a <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">Collection</span></div>
+  <div class="d4 soft abs" data-in="1:9" style="left:88px;top:470px;width:640px">What a context may forget</div>
+  <aside>
+    <p>This paper is called: a compaction is a collection.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="again" data-title="Had again, or not" style="--light1: rgba(77, 255, 195, .26); --light2: rgba(255, 143, 192, .24)">
+  <div class="d3 words head" data-in="1:4" data-out="3" style="width:480px">It can be had <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">again.</span></div>
+  <div class="d3 words sync head" data-in="3:6" style="width:480px">cannot be had <span class="it grad" style="--g1:#ff8fc0;--g2:#ffc45e">again.</span></div>
+  <div class="strip glass item" style="top:110px"><span class="tag t-file">file</span><span class="code">parser.py</span><span class="lab sz c-green" data-in="2:5">read it again</span></div>
+  <div class="strip glass item" style="top:174px"><span class="tag t-file">run</span><span class="code">test output</span><span class="lab sz c-green" data-in="2:5">run it again</span></div>
+  <div class="strip glass item" style="top:238px"><span class="tag t-made">made</span><span class="code">the finding</span><span class="lab sz c-green" data-in="2:11">derive it again</span></div>
+  <svg class="over" viewBox="0 0 1280 720">
+    <path class="path draw" data-in="2:15" pathLength="1" d="M 640 267 C 590 267, 590 139, 640 139"/>
+    <path class="path draw" data-in="2:15" pathLength="1" d="M 640 267 C 606 267, 606 203, 640 203"/>
+  </svg>
+  <div class="lab abs" data-in="2:15" style="left:470px;top:196px;color:#ffcf7d">its premises</div>
+  <div class="strip glass item once" data-in="3:2" style="top:334px"><span class="tag t-said">said</span><span class="code">the instruction</span><span class="lab sz c-red" data-in="3:12">once</span></div>
+  <div class="strip glass item once" data-in="4:6" style="top:398px"><span class="tag t-said">said</span><span class="code">the decision</span><span class="lab sz c-red" data-in="4:6">once</span></div>
+  <div class="strip glass item once" data-in="4:11" style="top:462px"><span class="tag t-said">did</span><span class="code">a command that acted</span></div>
+  <aside>
+    <p>Most of this can be had again, at a price.</p>
+    <p>A file can be read again. A finding can be derived again, if its premises are at hand.</p>
+    <p>But what the user said cannot be had again. It was said once.</p>
+    <p>The same goes for a decision, or for the output of a command that changed something.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="pin" data-title="The first rule" style="--light1: rgba(255, 143, 192, .28); --light2: rgba(77, 255, 195, .24)">
+  <div class="d3 words head" data-in="1:8" data-out="2" style="width:500px">Keep what cannot be had <span class="it grad" style="--g1:#ff8fc0;--g2:#ffc45e">again.</span></div>
+  <div class="d3 words sync head" data-in="2:10" style="width:480px">It never costs <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">the task.</span></div>
+  <div class="strip glass item once" data-in="1:4" style="top:150px"><span class="tag t-said">said</span><span class="code">the instruction</span><span class="lab sz c-green" data-in="1:8">kept</span></div>
+  <div class="strip glass item once" data-in="1:4" style="top:214px;--d:.1s"><span class="tag t-said">said</span><span class="code">the decision</span><span class="lab sz c-green" data-in="1:8">kept</span></div>
+  <div class="pill glass" data-in="2:2" style="left:640px;top:320px">a wrong guess about the future</div>
+  <div class="lab abs" data-in="2:8" style="left:644px;top:404px;color:#ffcf7d">costs money: fetch again, derive again</div>
+  <div class="mark yes pop" data-in="2:11" style="left:640px;top:440px"></div>
+  <div class="d4 abs c-green" data-in="2:11" style="left:700px;top:446px">the task survives</div>
+  <aside>
+    <p>So the first rule needs no forecast: keep what cannot be had again.</p>
+    <p>Then a wrong guess about the future costs money. It never costs the task.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="choice" data-title="Hold it, or have it again" style="--light1: rgba(255, 184, 77, .26); --light2: rgba(88, 110, 255, .3)">
+  <div class="d3 words head" data-in="1:5" data-out="4" style="width:480px">Hold it, or have it <span class="it grad">again?</span></div>
+  <div class="d2 words abs" data-in="4:9" style="left:88px;top:180px;width:520px;font-size:70px">a minimum <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">cut.</span></div>
+  <div class="strip glass item" data-in="1:2"><span class="tag t-made">made</span><span class="code">the finding</span><span class="lab sz">60</span></div>
+  <div class="slab glass way blur" data-in="1:8" style="left:640px"><div class="d4 c-green">hold it</div><div class="lab" data-in="2:1">tokens,<br>at every step</div></div>
+  <div class="slab glass way blur" data-in="1:11" style="left:904px"><div class="d4 c-amber">have it again</div><div class="lab" data-in="2:7">a call,<br>or some thinking</div></div>
+  <div class="lab abs" data-in="3:6" style="left:908px;top:470px;color:#ffcf7d">…and its premises at hand</div>
+  <div class="strip glass" data-in="3:8" style="left:904px;top:500px;height:46px;font-size:20px"><span class="tag t-file">file</span><span class="code">parser.py</span></div>
+  <aside>
+    <p>For everything else, there is a choice: hold it, or have it again later.</p>
+    <p>Holding costs tokens at every step. Having again costs a call, or some thinking.</p>
+    <p>Having a finding again means having its premises too. One choice forces others.</p>
+    <p>The cheapest way through all these choices is a minimum cut.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="cut" data-title="What the cut keeps" style="--light1: rgba(77, 255, 195, .28); --light2: rgba(88, 110, 255, .26)">
+  <div class="d3 words head" data-in="1:4" style="width:480px">What the cut <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">keeps.</span></div>
+  <div class="strip glass item" data-fade="1:11" style="top:130px"><span class="tag t-file">file</span><span class="code">parser.py</span><span class="lab sz" data-in="1:11">dropped</span></div>
+  <div class="strip glass item" data-fade="1:11" style="top:194px"><span class="tag t-file">run</span><span class="code">test output</span><span class="lab sz" data-in="1:11">dropped</span></div>
+  <div class="strip glass item kept" data-in="1:6" style="top:258px"><span class="tag t-made">made</span><span class="code">the finding</span><span class="lab sz c-green" data-in="1:6">kept</span></div>
+  <div class="row" data-in="1:8" style="left:88px;top:230px"><div class="num good">60</div><div class="lab">tokens kept</div></div>
+  <div class="row" data-in="1:13" style="left:88px;top:360px"><div class="num warn" data-in="1:13" data-count="4200" data-ms="900">0</div><div class="lab">tokens dropped</div></div>
+  <div class="pill glass" data-in="2:6" style="left:640px;top:350px">a good summary is worth this much</div>
+  <div class="lab abs" data-in="3:5" style="left:644px;top:430px;color:#ffcf7d">garbage: nothing needs it any more</div>
+  <aside>
+    <p>In our session, the cut keeps the short finding, and drops the big file it came from.</p>
+    <p>That is why a good summary is worth so much.</p>
+    <p>The big file is garbage, as soon as the finding is kept.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="dearer" data-title="Dearer holding" data-cues="2:11" style="--light1: rgba(255, 184, 77, .26); --light2: rgba(255, 95, 120, .2)">
+  <div class="d3 words head" data-in="1:2" style="width:480px">Make holding <span class="it grad">dearer.</span></div>
+  <div class="grid">
+    <span></span><span class="lab" data-in="1:1">cheap</span><span class="lab" data-in="1:2">dearer</span><span class="lab" data-in="1:3">dearest</span>
+    <span class="d4" data-in="1:5">lexer.py</span><span class="tag t-allow pop" data-in="1:5">kept</span><span class="tag t-ask pop" data-in="1:6">again</span><span class="tag t-ask pop" data-in="1:7">again</span>
+    <span class="d4" data-in="2:2">the plan</span><span class="tag t-allow pop" data-in="2:2">kept</span><span class="tag t-allow pop" data-in="2:2">kept</span><span class="tag t-ask pop" data-in="2:4">again</span>
+    <span class="d4" data-in="2:10">the instruction</span><span class="none" data-in="2:10">–</span><span class="none" data-in="2:10">–</span><span class="tag t-allow pop back" data-in="2:15">kept</span>
+  </div>
+  <div class="d3 words sync abs" data-in="2:15" style="left:88px;top:300px;width:480px">has to come <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">back.</span></div>
+  <aside>
+    <p>Make holding dearer, and less is held. But not always a part of what was held before.</p>
+    <p>The plan is dropped, to be made again. And the instruction it came from has to come back.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="wait" data-title="Not knowing the need" style="--light1: rgba(88, 110, 255, .3); --light2: rgba(255, 184, 77, .22)">
+  <div class="d3 words head" data-in="1:3" style="width:480px">And if nobody <span class="it grad">knows?</span></div>
+  <div class="strip glass item" data-in="2:2" data-fade="2:16"><span class="tag t-file">file</span><span class="code">lexer.py</span><span class="lab sz">idle</span></div>
+  <div class="lab abs" data-in="2:5" style="left:644px;top:222px">what holding it has cost</div>
+  <div class="bar warm" data-in="2:5"><i></i></div>
+  <div class="lab abs" data-in="2:10" style="left:960px;top:284px;color:#ffcf7d">= reading it again</div>
+  <div class="row" data-in="3:8"><div class="num good">2×</div><div class="lab">the best possible,<br>at worst</div></div>
+  <div class="pill glass" data-in="4:11" style="left:640px;top:360px">about ten idle steps</div>
+  <aside>
+    <p>And if nobody knows what will be needed?</p>
+    <p>Hold an idle file until the holding has cost as much as reading it again. Then let it go.</p>
+    <p>That rule stays within a factor of two of the best possible.</p>
+    <p>With held tokens at a tenth of the price, that is about ten idle steps.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="rules" data-title="Six rules" style="--light1: rgba(255, 95, 120, .26); --light2: rgba(77, 255, 195, .24)">
+  <div class="d3 words head" data-in="1:3" style="width:480px">Six <span class="it grad">rules.</span></div>
+  <div class="row" data-in="1:6"><div class="num" data-in="1:6" data-count="2000" data-ms="900">0</div><div class="lab">invented sessions</div></div>
+  <div class="lab abs" data-in="2:1" style="left:640px;top:166px">keep the newest half: lost something needed</div>
+  <div class="bar warm" data-in="2:9" style="top:194px;--w:48%"><i></i></div>
+  <div class="lab abs" data-in="2:9" style="left:1156px;top:198px;color:#ff8a8a">48%</div>
+  <div class="lab abs" data-in="3:1" style="left:640px;top:276px">the cut, and what cannot be had again: extra cost</div>
+  <div class="bar" data-in="3:11" style="top:304px;--w:8%"><i></i></div>
+  <div class="lab abs" data-in="3:11" style="left:1156px;top:308px;color:#7dffd2">8%</div>
+  <div class="mark yes pop" data-in="3:20" style="left:640px;top:370px"></div>
+  <div class="d4 abs c-green" data-in="3:20" style="left:700px;top:376px">safe against every surprise</div>
+  <aside>
+    <p>We compared six rules on two thousand invented sessions.</p>
+    <p>Keeping the newest half lost something needed in forty-eight percent of them.</p>
+    <p>The cut, plus everything that cannot be had again, cost eight percent more than the cheapest. And it was safe against every surprise.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="caveat" data-title="Caveats" style="--light1: rgba(255, 184, 77, .22); --light2: rgba(88, 110, 255, .22)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:84px;color:#ffc45e">before you believe it</div>
+  <div class="d3 words abs" data-in="1:3" style="left:88px;top:120px">The need is <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">a guess.</span> The sessions are invented.</div>
+  <div class="d3 words abs" data-in="2:1" style="left:88px;top:210px">Had again is not always <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">the same again.</span></div>
+  <div class="d3 words abs" data-in="3:2" style="left:88px;top:300px">Proofs on <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">paper.</span> No machine, no reviewer.</div>
+  <aside>
+    <p>Some caveats. The need of a task is a guess, and the sessions here are invented.</p>
+    <p>What is had again may not be the same again: a file may have changed.</p>
+    <p>And the proofs are on paper. No machine has checked them, and no human has reviewed the paper.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="end" data-title="Said only once" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(255, 143, 192, .16)">
+  <div class="deco" style="left:850px;top:240px">
+    <div class="strip glass gone"><span class="tag t-file">file</span><span class="code">parser.py</span></div>
+    <div class="strip glass kept"><span class="tag t-made">made</span><span class="code">the finding</span></div>
+    <div class="strip glass once"><span class="tag t-said">said</span><span class="code">the instruction</span></div>
+  </div>
+  <div class="d3 words sync abs" data-in="1:1" style="left:88px;top:160px;width:700px;font-size:58px">A context may forget what it can have <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">again.</span></div>
+  <div class="d3 words sync abs" data-in="2:1" style="left:88px;top:330px;width:700px;font-size:40px">It must never forget what was said <span class="it grad" style="--g1:#ff8fc0;--g2:#ffc45e">only once.</span></div>
+  <div class="lab abs" data-in="2:6" style="left:92px;top:500px">Paper 21 · tpp:21 · A Trillion POPL Papers</div>
+  <aside>
+    <p>A context may forget what it can have again.</p>
+    <p>It must never forget what was said only once.</p>
+  </aside>
+</section>

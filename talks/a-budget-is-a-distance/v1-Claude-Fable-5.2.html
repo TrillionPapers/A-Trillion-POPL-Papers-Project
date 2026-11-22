@@ -1,0 +1,269 @@
+<!-- standard: 2026-11-22 -->
+<style>
+/* The output is a row of tokens, each a small tile of glass. Under the row run two numbers: the
+   tokens that are left, and the distance to the end. */
+.head { position: absolute; left: 88px; top: 60px; width: 560px; }
+.me { transform: scale(.62); transform-origin: 50% 100%; z-index: 14; }
+.strip { position: absolute; display: flex; align-items: center; gap: 16px; height: 58px; padding: 0 22px 0 14px; border-radius: 18px; font-size: 25px; color: #fff; white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; height: 50px; padding: 0 14px; border-radius: 13px; border: 1.5px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .1); font-size: 27px; color: #fff; }
+.chips { position: absolute; display: flex; gap: 8px; align-items: center; }
+.edge-bad { border-color: #ff6b6b; box-shadow: 0 0 34px rgba(255, 90, 90, .55); }
+.edge-good { border-color: #4dffc3; box-shadow: 0 0 34px rgba(77, 255, 195, .5); }
+.edge-ask { border-color: #ffc45e; box-shadow: 0 0 34px rgba(255, 196, 94, .5); }
+.c-dim { color: #7a83b0; }
+.c-red { color: #ff8a8a; }
+.bar { position: absolute; height: 14px; border-radius: 7px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.bar i { display: block; width: 0; height: 100%; border-radius: 7px; background: linear-gradient(90deg, #45d6ff, #4dffc3); transition: width var(--fill, 1.1s) var(--out); }
+.bar.in i { width: var(--w, 100%); }
+.bar.warm i { background: linear-gradient(90deg, #ffb84d, #ff5a5a); }
+.row { position: absolute; display: flex; align-items: baseline; gap: 16px; }
+.deco { position: absolute; left: 820px; top: 200px; rotate: -6deg; animation: bob 5s ease-in-out infinite; }
+.deco .strip { position: relative; margin-bottom: 14px; width: max-content; }
+.gone:not([data-in]), .gone.in { opacity: .28; filter: saturate(.4); }
+.gone .code { text-decoration: line-through; text-decoration-color: #ff6b6b; text-decoration-thickness: 3px; }
+.chips { flex-wrap: wrap; row-gap: 10px; }
+.stop { position: absolute; width: 5px; border-radius: 3px; background: #ff6b6b; box-shadow: 0 0 22px 5px rgba(255, 90, 90, .75); }
+.unit { display: inline-flex; flex-direction: column; align-items: center; gap: 10px; }
+.far { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 34px; border-radius: 10px; font-size: 20px; font-weight: 800; color: #0b0e24; background: #8fb4ff; }
+.last-ok { border-color: #4dffc3; color: #7dffd2; box-shadow: 0 0 26px rgba(77, 255, 195, .5); }
+
+/* 1: cut */
+#cut .chips { left: 88px; top: 330px; width: 1100px; }
+#cut .chip { height: 62px; font-size: 34px; padding: 0 16px; }
+#cut .stop { left: 1004px; top: 316px; height: 90px; }
+
+/* 2: the question */
+#mask .a1 { left: 1040px; top: 60px; }
+#mask .chips { left: 640px; top: 250px; width: 420px; }
+
+/* 4: the distance */
+#distance .chips { left: 88px; top: 230px; }
+#distance .chip { height: 58px; font-size: 30px; }
+#distance .row { left: 88px; top: 410px; }
+#distance .wide { border-color: #ffc45e; box-shadow: 0 0 22px rgba(255, 196, 94, .5); }
+
+/* 5: the rule */
+#rule .law { position: absolute; left: 620px; top: 160px; display: flex; align-items: center; gap: 16px; }
+#rule .law .pill { position: static; }
+#rule .bar { left: 620px; width: 520px; height: 18px; border-radius: 9px; }
+#rule .bar i { border-radius: 9px; }
+
+/* 6: the last step */
+#last .chips { left: 88px; }
+#last .pick { left: 620px; top: 250px; width: 560px; }
+#last .strip { left: 88px; top: 440px; }
+
+/* 7: three promises */
+#promise .vow { top: 190px; width: 330px; height: 150px; padding: 22px 24px; }
+#promise .vow .d4 { margin-top: 12px; font-size: 28px; line-height: 1.2; }
+
+/* 8: before the first token */
+#before .pill { left: 620px; }
+
+/* 9: tokens, not characters */
+#tokens .row .num { font-size: 120px; }
+#tokens .chips { left: 88px; top: 420px; }
+
+/* 10: nested */
+#nested .chips { left: 620px; }
+#nested .chip { height: 66px; font-size: 38px; width: 60px; justify-content: center; }
+#nested .two { width: 100px; border-color: #4dffc3; color: #7dffd2; }
+#nested .row { left: 88px; top: 330px; }
+
+/* 11: runs */
+#runs .bar { left: 620px; width: 520px; height: 26px; border-radius: 13px; }
+#runs .bar i { border-radius: 13px; }
+#runs .row { left: 88px; top: 190px; }
+</style>
+
+<section class="scene deep" id="cut" data-title="Valid, up to here" style="--light1: rgba(255, 95, 120, .3); --light2: rgba(88, 110, 255, .28)">
+  <div class="d2 words sync abs" data-in="1:1" style="left:88px;top:120px;width:900px">This answer is <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">valid JSON.</span></div>
+  <div class="d2 words sync abs" data-in="2:1" style="left:88px;top:214px;width:900px"><span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">Up to here.</span></div>
+  <div class="chips"><span class="chip code pop" data-in="1:1">{"</span><span class="chip code pop" data-in="1:1" style="--d:.08s">name</span><span class="chip code pop" data-in="1:1" style="--d:.16s">":"</span><span class="chip code pop" data-in="1:1" style="--d:.24s">ab</span><span class="chip code pop" data-in="1:1" style="--d:.32s">","</span><span class="chip code pop" data-in="1:1" style="--d:.4s">tags</span><span class="chip code pop" data-in="1:1" style="--d:.48s">":[</span><span class="chip code pop" data-in="1:1" style="--d:.56s">"a</span><span class="chip code pop" data-in="1:1" style="--d:.64s">b</span></div>
+  <div class="stop" data-in="2:1"></div>
+  <div class="lab abs" data-in="3:4" style="left:1024px;top:350px;color:#ff8a8a">out of tokens</div>
+  <div class="mark no pop" data-in="3:19" style="left:88px;top:440px"></div>
+  <div class="d4 abs c-red" data-in="3:19" style="left:150px;top:446px">does not parse</div>
+  <aside>
+    <p>This answer is valid JSON.</p>
+    <p>Up to here.</p>
+    <p>The model ran out of tokens in the middle of a string. And a prefix of valid JSON does not parse.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="mask" data-title="One question" style="--light1: rgba(179, 140, 255, .32); --light2: rgba(69, 214, 255, .2)">
+  <div class="d3 words head" data-in="1:1" data-out="2" style="width:480px">Constrained <span class="it grad">decoding.</span></div>
+  <div class="d3 words sync head" data-in="2:7" data-out="3" style="width:480px">can this still be <span class="it grad">completed?</span></div>
+  <div class="d3 words sync head" data-in="3:7" style="width:500px">can it be completed in the tokens <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">that are left?</span></div>
+  <div class="ai violet me a1" data-in="1:6"><div class="body"><div class="visor"><i></i><i></i></div></div></div>
+  <div class="lab abs" data-in="1:10" style="left:644px;top:220px">the next token</div>
+  <div class="chips"><span class="chip code pop" data-in="1:10">"a</span><span class="chip code pop gone" data-in="1:10" style="--d:.1s">}</span><span class="chip code pop" data-in="1:10" style="--d:.2s">"b</span><span class="chip code pop gone" data-in="1:10" style="--d:.3s">123</span><span class="chip code pop" data-in="1:10" style="--d:.4s">]</span><span class="chip code pop gone" data-in="1:10" style="--d:.5s">name</span></div>
+  <div class="pill glass" data-in="3:2" style="left:640px;top:400px">tokens left: 1</div>
+  <aside>
+    <p>Constrained decoding promises valid output. At every step, it forbids the tokens that cannot continue.</p>
+    <p>But it asks only one question: can this still be completed?</p>
+    <p>With a limit, the question is: can it be completed in the tokens that are left?</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="title" data-title="A Budget Is a Distance" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(69, 214, 255, .18)">
+  <div class="deco" style="left:860px;top:230px">
+    <div class="chips" style="position:relative;width:330px"><span class="chip code">{"</span><span class="chip code">name</span><span class="chip code">":"</span><span class="chip code">ab</span><span class="chip code last-ok">"}</span></div>
+  </div>
+  <div class="lab abs" data-in="1" style="left:88px;top:176px">A Trillion POPL Papers · Paper 20</div>
+  <div class="d1 words abs" data-in="1:5" style="left:84px;top:212px;width:760px;font-size:94px">A Budget Is a <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">Distance</span></div>
+  <div class="d4 soft abs" data-in="1:8" style="left:88px;top:440px;width:640px">Structured output that finishes in time</div>
+  <aside>
+    <p>This paper is called: a budget is a distance.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="distance" data-title="The distance" style="--light1: rgba(88, 110, 255, .32); --light2: rgba(77, 255, 195, .22)">
+  <div class="d3 words head" data-in="1:7" style="width:900px">One number for <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">every state.</span></div>
+  <div class="chips"><span class="unit"><span class="chip code wide pop" data-in="1:9">{"</span><span class="far pop" data-in="3:6" style="--d:0.00s">7</span></span><span class="unit"><span class="chip code pop" data-in="1:9" style="--d:.08s">name</span><span class="far pop" data-in="3:6" style="--d:0.08s">6</span></span><span class="unit"><span class="chip code wide pop" data-in="1:9" style="--d:.16s">":"</span><span class="far pop" data-in="3:6" style="--d:0.16s">5</span></span><span class="unit"><span class="chip code pop" data-in="1:9" style="--d:.24s">a</span><span class="far pop" data-in="3:6" style="--d:0.24s">4</span></span><span class="unit"><span class="chip code wide pop" data-in="1:9" style="--d:.32s">","</span><span class="far pop" data-in="3:6" style="--d:0.32s">3</span></span><span class="unit"><span class="chip code pop" data-in="1:9" style="--d:.4s">tags</span><span class="far pop" data-in="3:6" style="--d:0.40s">2</span></span><span class="unit"><span class="chip code wide pop" data-in="1:9" style="--d:.48s">":[</span><span class="far pop" data-in="3:6" style="--d:0.48s">1</span></span><span class="unit"><span class="chip code wide pop" data-in="1:9" style="--d:.56s">]}</span><span class="far pop" data-in="3:6" style="--d:0.56s">0</span></span></div>
+  <div class="lab abs" data-in="2:2" style="left:92px;top:200px;color:#ffcf7d">a token can be several characters</div>
+  <div class="lab abs" data-in="3:6" style="left:92px;top:346px">tokens to the end, after each token</div>
+  <div class="row" data-in="3:7"><div class="num good">8</div><div class="lab">tokens from the start<br>to the end</div></div>
+  <div class="d3 words sync abs" data-in="4:1" style="left:520px;top:412px;width:640px">That number is <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">the distance.</span></div>
+  <aside>
+    <p>Give every state of the schema one number: the fewest tokens that reach the end.</p>
+    <p>A token can be several characters, so the path is counted token by token.</p>
+    <p>For our schema, the start is eight tokens from the end.</p>
+    <p>That number is the distance.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="rule" data-title="The rule" style="--light1: rgba(77, 255, 195, .28); --light2: rgba(255, 184, 77, .2)">
+  <div class="d3 words head" data-in="1:2" style="width:480px">The <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">rule.</span></div>
+  <div class="law"><span class="pill glass" data-in="1:9">distance after the token</span><span class="d3 c-dim pop" data-in="1:13">≤</span><span class="pill glass" data-in="1:16">tokens left</span></div>
+  <div class="lab abs" data-in="2:1" style="left:620px;top:276px">far from the limit</div>
+  <div class="bar" data-in="2:1" style="top:304px"><i></i></div>
+  <div class="lab abs" data-in="2:5" style="left:1156px;top:304px;color:#7dffd2">nothing new</div>
+  <div class="lab abs" data-in="3:1" style="left:620px;top:366px">near the limit</div>
+  <div class="bar warm" data-in="3:1" style="top:394px;--w:30%"><i></i></div>
+  <div class="lab abs" data-in="3:4" style="left:790px;top:394px;color:#ffcf7d">only what still reaches the end</div>
+  <div class="d3 words sync abs" data-in="3:4" style="left:88px;top:330px;width:480px">it steers the model <span class="it grad">towards an end.</span></div>
+  <aside>
+    <p>Now the rule. Allow a token only if the distance after it is at most the tokens that remain.</p>
+    <p>Far from the limit, this forbids nothing new.</p>
+    <p>Near the limit, it steers the model towards an end.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="last" data-title="The last step" style="--light1: rgba(255, 184, 77, .26); --light2: rgba(77, 255, 195, .24)">
+  <div class="d3 words head" data-in="1:3" style="width:480px">The <span class="it grad">last step.</span></div>
+  <div class="chips" style="top:150px;width:480px"><span class="chip code">{"</span><span class="chip code">name</span><span class="chip code">":"</span><span class="chip code">ab</span><span class="chip code">","</span><span class="chip code">tags</span><span class="chip code">":[</span><span class="chip code">"a</span></div>
+  <div class="pill glass edge-ask" data-in="1:9" style="left:88px;top:300px">tokens left: 1</div>
+  <div class="lab abs" data-in="2:2" style="left:624px;top:216px">what the usual mask allows</div>
+  <div class="chips pick"><span class="chip code pop" data-in="2:5" data-fade="3:4">a</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.04s">b</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.08s">aa</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.12s">ab</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.16s">ba</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.2s">bb</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.24s">a"</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.28s">b"</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.32s">"</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.36s">",</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.4s">","</span><span class="chip code pop" data-in="2:5" data-fade="3:4" style="--d:.44s">"]</span><span class="chip code last-ok pop" data-in="2:5" style="--d:.48s">"]}</span></div>
+  <div class="row" data-in="2:6" style="left:624px;top:400px"><div class="num" style="font-size:72px">13</div><div class="lab">tokens</div></div>
+  <div class="row" data-in="3:4" style="left:880px;top:400px"><div class="num good" style="font-size:72px">1</div><div class="lab">token that ends it</div></div>
+  <div class="strip glass edge-good" data-in="3:9"><span class="code">{"name":"ab","tags":["a"]}</span></div>
+  <div class="mark yes pop" data-in="3:16" style="left:520px;top:446px"></div>
+  <aside>
+    <p>Here is the last step of our run. One token is left.</p>
+    <p>The usual mask would allow thirteen tokens. Twelve of them leave the output unfinished.</p>
+    <p>The budget mask allows one: the token that closes the string, the list, and the object.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="promise" data-title="Three things are proved" style="--light1: rgba(77, 255, 195, .28); --light2: rgba(88, 110, 255, .3)">
+  <div class="d3 words head" data-in="1:1" style="width:700px">Three things are <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">proved.</span></div>
+  <div class="slab glass vow blur" data-in="2:1" style="left:88px"><div class="mark yes sm" style="position:static"></div><div class="d4">always complete</div></div>
+  <div class="slab glass vow blur" data-in="3:1" style="left:454px"><div class="mark yes sm" style="position:static"></div><div class="d4">nothing is lost</div></div>
+  <div class="slab glass vow blur" data-in="4:1" style="left:820px"><div class="mark yes sm" style="position:static"></div><div class="d4">no safe mask allows more</div></div>
+  <div class="lab abs" data-in="2:6" style="left:92px;top:404px">whatever the model picks</div>
+  <div class="lab abs" data-in="3:4" style="left:458px;top:404px">every output that fits can be written</div>
+  <aside>
+    <p>Three things are proved.</p>
+    <p>The output is always complete, whatever the model picks.</p>
+    <p>Nothing is lost: every valid output that fits the limit can still be written.</p>
+    <p>And no mask that guarantees an end allows more.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="before" data-title="Before the first token" style="--light1: rgba(255, 184, 77, .26); --light2: rgba(88, 110, 255, .28)">
+  <div class="d3 words head" data-in="1:9" style="width:480px">The smallest <span class="it grad">limit.</span></div>
+  <div class="row" data-in="1:5" style="left:88px;top:240px"><div class="num good">8</div><div class="lab">the distance<br>of the start</div></div>
+  <div class="pill glass" data-in="2:3" style="top:170px">request · limit: 6 tokens</div>
+  <div class="pill glass edge-bad" data-in="2:10" style="top:250px">refused: this schema needs 8</div>
+  <div class="lab abs" data-in="2:13" style="left:624px;top:326px;color:#7dffd2">before it costs a token</div>
+  <div class="pill glass" data-in="3:4" style="top:390px"><span class="code c-dim">{"name":"ab","ta</span></div>
+  <div class="lab abs" data-in="3:6" style="left:624px;top:462px;color:#ff8a8a">today: runs, is paid for, comes back broken</div>
+  <aside>
+    <p>The distance of the start state is the smallest limit that can work.</p>
+    <p>So a request with a smaller limit can be refused at once, before it costs a single token.</p>
+    <p>Today, such a request runs, is paid for, and comes back broken.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="tokens" data-title="Tokens, not characters" style="--light1: rgba(88, 110, 255, .3); --light2: rgba(255, 95, 162, .2)">
+  <div class="d3 words head" data-in="1:1" style="width:900px">Count in tokens, <span class="it grad">not in characters.</span></div>
+  <div class="row" data-in="2:5" style="left:88px;top:170px"><div class="num warn" data-in="2:5" data-count="22" data-ms="700">0</div><div class="lab">characters</div></div>
+  <div class="row" data-in="2:9" style="left:520px;top:170px"><div class="num good">8</div><div class="lab">tokens</div></div>
+  <div class="chips" data-in="2:9"><span class="chip code">{"</span><span class="chip code">name</span><span class="chip code">":"</span><span class="chip code">a</span><span class="chip code">","</span><span class="chip code">tags</span><span class="chip code">":[</span><span class="chip code">]}</span></div>
+  <div class="lab abs" data-in="3:7" style="left:760px;top:334px;color:#ffcf7d">too early, or too late</div>
+  <aside>
+    <p>Count in tokens, not in characters.</p>
+    <p>The shortest answer has twenty-two characters, but only eight tokens.</p>
+    <p>A decoder that counts characters either stops the model far too early, or lets it fail.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="nested" data-title="Nested data" style="--light1: rgba(179, 140, 255, .3); --light2: rgba(77, 255, 195, .24)">
+  <div class="d3 words head" data-in="1:1" style="width:480px">Nested <span class="it grad">data.</span></div>
+  <div class="lab abs" data-in="1:3" style="left:624px;top:136px">four brackets are open</div>
+  <div class="chips" style="top:164px"><span class="chip code pop" data-in="1:3">[</span><span class="chip code pop" data-in="1:3" style="--d:.1s">[</span><span class="chip code pop" data-in="1:3" style="--d:.2s">[</span><span class="chip code pop" data-in="1:3" style="--d:.3s">[</span></div>
+  <div class="lab abs" data-in="1:8" style="left:624px;top:266px;color:#7dffd2">one token closes two</div>
+  <div class="chips" style="top:294px"><span class="chip code two pop" data-in="1:9">]]</span><span class="chip code two pop" data-in="1:13">]]</span></div>
+  <div class="row" data-in="2:6"><div class="num good">2</div><div class="lab">tokens, not four</div></div>
+  <div class="pill glass" data-in="2:15" style="left:620px;top:410px">one pass over the stack</div>
+  <aside>
+    <p>Nested data needs one more idea. A single token can close two brackets at once.</p>
+    <p>So the distance is not a sum over the open levels. It is computed in one pass over the stack.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="runs" data-title="Two thousand runs" style="--light1: rgba(255, 95, 120, .26); --light2: rgba(77, 255, 195, .24)">
+  <div class="d3 words head" data-in="1:4" style="width:480px">A model that picks <span class="it grad">at random.</span></div>
+  <div class="row" data-in="1:9"><div class="num" data-in="1:9" data-count="2000" data-ms="900">0</div><div class="lab">runs</div></div>
+  <div class="lab abs" data-in="2:2" style="left:620px;top:176px">the usual mask: runs cut off</div>
+  <div class="bar warm" data-in="2:5" style="top:204px"><i></i></div>
+  <div class="lab abs" data-in="2:7" style="left:1156px;top:210px;color:#ff8a8a">all</div>
+  <div class="lab abs" data-in="3:2" style="left:620px;top:276px">the budget mask: runs cut off</div>
+  <div class="bar" data-in="3:2" style="top:304px;--w:0%"><i></i></div>
+  <div class="lab abs" data-in="3:5" style="left:1156px;top:310px;color:#7dffd2">none</div>
+  <div class="pill glass" data-in="4:9" style="left:620px;top:390px">it acts only in the last nine steps</div>
+  <aside>
+    <p>We ran a model that picks at random, two thousand times, with the tightest limit.</p>
+    <p>With the usual mask, every single run was cut off.</p>
+    <p>With the budget mask, none.</p>
+    <p>And it changed the model's choices only in the last nine steps.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="caveat" data-title="Caveats" style="--light1: rgba(255, 184, 77, .22); --light2: rgba(88, 110, 255, .22)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:84px;color:#ffc45e">before you believe it</div>
+  <div class="d3 words abs" data-in="1:2" style="left:88px;top:120px">The form, not <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">the sense.</span></div>
+  <div class="lab abs" data-in="1:9" style="left:92px;top:182px">a list may end early because the budget ended</div>
+  <div class="d3 words abs" data-in="2:1" style="left:88px;top:230px">A random model, small <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">vocabularies.</span></div>
+  <div class="d3 words abs" data-in="3:2" style="left:88px;top:320px">Proofs on <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">paper.</span> No machine, no reviewer.</div>
+  <aside>
+    <p>The mask guarantees the form, not the sense. A list may end early because the budget ended.</p>
+    <p>The model here picks at random, and the vocabularies are small.</p>
+    <p>And the proofs are on paper. No machine has checked them, and no human has reviewed the paper.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="end" data-title="A distance to keep" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(69, 214, 255, .18)">
+  <div class="deco" style="left:860px;top:250px">
+    <div class="chips" style="position:relative;width:330px"><span class="chip code">{"</span><span class="chip code">name</span><span class="chip code">":"</span><span class="chip code">ab</span><span class="chip code last-ok">"}</span></div>
+  </div>
+  <div class="d3 words sync abs" data-in="1:1" style="left:88px;top:170px;width:700px;font-size:60px">A limit on tokens is a distance <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">to keep.</span></div>
+  <div class="d4 words sync abs soft" data-in="2:1" style="left:88px;top:350px;width:640px">One number for every state, and structured output always finishes.</div>
+  <div class="lab abs" data-in="2:7" style="left:92px;top:500px">Paper 20 · tpp:20 · A Trillion POPL Papers</div>
+  <aside>
+    <p>A limit on tokens is a distance to keep.</p>
+    <p>One number for every state, and structured output always finishes.</p>
+  </aside>
+</section>

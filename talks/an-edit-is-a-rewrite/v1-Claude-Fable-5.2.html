@@ -1,0 +1,302 @@
+<!-- standard: 2026-11-22 -->
+<style>
+/* A file is a pane of glass with lines of code. An edit is a slip with the old text, an arrow
+   and the new text. The place of an edit is lit in the file. */
+.head { position: absolute; left: 88px; top: 60px; width: 560px; }
+.strip { position: absolute; display: flex; align-items: center; gap: 16px; height: 58px; padding: 0 22px 0 14px; border-radius: 18px; font-size: 25px; color: #fff; white-space: nowrap; }
+.tag { display: inline-flex; align-items: center; justify-content: center; height: 34px; min-width: 76px; padding: 0 12px; border-radius: 11px; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #0b0e24; }
+.t-info { background: #8fb4ff; }
+.chip { display: inline-flex; align-items: center; height: 50px; padding: 0 14px; border-radius: 13px; border: 1.5px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .1); font-size: 27px; color: #fff; }
+.edge-bad { border-color: #ff6b6b; box-shadow: 0 0 34px rgba(255, 90, 90, .55); }
+.edge-good { border-color: #4dffc3; box-shadow: 0 0 34px rgba(77, 255, 195, .5); }
+.edge-ask { border-color: #ffc45e; box-shadow: 0 0 34px rgba(255, 196, 94, .5); }
+.c-dim { color: #7a83b0; }
+.c-amber { color: #ffcf7d; }
+.c-red { color: #ff8a8a; }
+.c-green { color: #7dffd2; }
+.bar { position: absolute; height: 14px; border-radius: 7px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.bar i { display: block; width: 0; height: 100%; border-radius: 7px; background: linear-gradient(90deg, #45d6ff, #4dffc3); transition: width var(--fill, 1.1s) var(--out); }
+.bar.in i { width: var(--w, 100%); }
+.bar.warm i { background: linear-gradient(90deg, #ffb84d, #ff5a5a); }
+.row { position: absolute; display: flex; align-items: baseline; gap: 16px; }
+.deco { position: absolute; left: 820px; top: 200px; rotate: -6deg; animation: bob 5s ease-in-out infinite; }
+.deco .strip { position: relative; margin-bottom: 14px; width: max-content; }
+.file { position: absolute; padding: 16px 26px 18px; border-radius: 22px; }
+.file .code { font-size: 30px; line-height: 1.7; color: #fff; }
+.edit { position: absolute; display: flex; align-items: center; gap: 14px; height: 60px; padding: 0 20px; border-radius: 18px; font-size: 26px; color: #fff; white-space: nowrap; }
+.to { color: #7a83b0; }
+.hl { border-radius: 7px; box-shadow: 0 0 0 4px rgba(255, 196, 94, .3); background: rgba(255, 196, 94, .3); }
+.hl-r { border-radius: 7px; box-shadow: 0 0 0 4px rgba(255, 90, 90, .34); background: rgba(255, 90, 90, .34); }
+.hl-g { border-radius: 7px; box-shadow: 0 0 0 4px rgba(77, 255, 195, .28); background: rgba(77, 255, 195, .28); }
+.mk { border-radius: 7px; transition: background .5s ease, box-shadow .5s ease; }
+.big { height: 76px; font-size: 38px; padding: 0 28px; }
+
+/* 1: an edit that was refused */
+#refused .file { left: 660px; top: 120px; width: 300px; }
+#refused.c2-10 .mk { background: rgba(255, 196, 94, .34); box-shadow: 0 0 0 4px rgba(255, 196, 94, .34); }
+#refused .edit { left: 660px; top: 330px; }
+#refused .row { left: 664px; top: 430px; }
+
+/* 2: exactly once */
+#once .file { left: 720px; top: 120px; width: 440px; }
+#once .file .code { font-size: 25px; }
+#once.c3-5 .file { border-color: #ffc45e; box-shadow: 0 0 44px rgba(255, 196, 94, .5); }
+#once .file { transition: box-shadow .6s ease, border-color .6s ease; }
+
+/* 3: the title */
+#title .deco .file, #end .deco .file { position: relative; width: max-content; }
+#title .deco .edit, #end .deco .edit { position: relative; margin-top: 16px; width: max-content; }
+
+/* 4 and 5 */
+#order .file { left: 88px; top: 180px; width: 280px; }
+#order .edit { left: 600px; }
+#order .try { position: absolute; left: 600px; display: flex; align-items: center; gap: 12px; }
+#atonce .file { left: 660px; width: 330px; }
+#atonce.c1-6 .mk { background: rgba(255, 196, 94, .34); box-shadow: 0 0 0 4px rgba(255, 196, 94, .34); }
+
+/* 6: a swap */
+#swap .strip { left: 620px; }
+#swap .edit { top: 250px; }
+
+/* 7: places that overlap */
+#overlap .word { position: absolute; left: 640px; top: 130px; display: flex; gap: 6px; }
+#overlap .word .chip { height: 84px; width: 74px; justify-content: center; font-size: 46px; }
+#overlap .e1 { border-color: #45d6ff; }
+#overlap .e2 { border-color: #ff5fa2; }
+#overlap .e12 { border-color: #ffc45e; box-shadow: 0 0 24px rgba(255, 196, 94, .5); }
+#overlap .edit { left: 900px; }
+#overlap .strip { left: 640px; }
+
+/* 8: finding an order */
+#find .edit { left: 600px; }
+#find .path { stroke: #ffc45e; stroke-width: 5; fill: none; }
+
+/* 9 and 10 */
+#repair .edit { top: 180px; }
+#repair .strip { left: 620px; top: 290px; }
+#repair .row { left: 620px; top: 400px; }
+#stale .file .code { font-size: 24px; }
+#stale .fa { left: 600px; top: 120px; width: 270px; }
+#stale .fb { left: 910px; top: 120px; width: 270px; }
+#stale .edit { left: 600px; top: 330px; font-size: 22px; }
+#stale.c2-9 .fb { border-color: #ff6b6b; box-shadow: 0 0 40px rgba(255, 90, 90, .55); }
+#stale .fb { transition: box-shadow .6s ease, border-color .6s ease; }
+
+/* 11: numbers */
+#numbers .bar { left: 700px; width: 440px; height: 22px; border-radius: 11px; }
+#numbers .bar i { border-radius: 11px; }
+#numbers .row { left: 88px; }
+#numbers .row .num { font-size: 84px; }
+</style>
+
+<section class="scene deep" id="refused" data-title="An edit that was refused" data-cues="2:10" style="--light1: rgba(255, 95, 120, .3); --light2: rgba(88, 110, 255, .28)">
+  <div class="d2 words sync abs" data-in="1:1" data-out="2" style="left:88px;top:196px;width:480px">This edit was <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">refused.</span></div>
+  <div class="d3 words sync abs" data-in="2:5" data-out="3" style="left:88px;top:196px;width:480px">Another edit, two lines away, wrote <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">the same words.</span></div>
+  <div class="d2 words sync abs" data-in="3:7" style="left:88px;top:216px;width:480px">is there <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">twice.</span></div>
+  <div class="file glass blur" data-in="1:1"><div class="code">a = <span class="hl">f(x)</span></div><div class="code c-dim">…</div><div class="code">b = <span class="mk">f(x)</span></div></div>
+  <div class="edit glass edge-bad" data-in="1:2"><span class="code">f(x)</span><span class="to">to</span><span class="code">f(x, 0)</span></div>
+  <div class="mark no pop" data-in="1:4" style="left:972px;top:337px"></div>
+  <div class="lab abs" data-in="2:10" style="left:980px;top:262px;color:#ffcf7d">written a moment ago</div>
+  <div class="row" data-in="3:8"><div class="num warn">2</div><div class="lab">places where the text stands</div></div>
+  <aside>
+    <p>This edit was refused.</p>
+    <p>Nobody touched its line. Another edit, two lines away, wrote the same words.</p>
+    <p>Now the text it looks for is there twice.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="once" data-title="Exactly once" data-cues="3:5" style="--light1: rgba(77, 255, 195, .26); --light2: rgba(88, 110, 255, .3)">
+  <div class="d3 words head" data-in="2:10" style="width:520px">Exactly <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">once.</span></div>
+  <div class="lab abs" data-in="1:8" style="left:92px;top:226px">a piece of text</div>
+  <div class="edit glass" data-in="1:8" style="left:88px;top:250px"><span class="code">return total</span></div>
+  <div class="lab abs" data-in="1:14" style="left:92px;top:336px">its replacement</div>
+  <div class="edit glass" data-in="1:14" style="left:88px;top:360px"><span class="code">return total + tax</span></div>
+  <div class="file glass blur" data-in="2:2"><div class="code">def price(items):</div><div class="code">    total = sum(items)</div><div class="code">    <span class="hl-g">return total</span></div><div class="code c-dim">…</div></div>
+  <div class="pill glass" data-in="2:10" style="left:720px;top:340px">found: 1</div>
+  <div class="mark yes pop" data-in="2:12" style="left:880px;top:347px"></div>
+  <div class="d3 words sync abs" data-in="3:9" style="left:88px;top:450px;width:900px">So it can be broken <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">from anywhere.</span></div>
+  <aside>
+    <p>A coding agent edits a file by naming a piece of text, and its replacement.</p>
+    <p>The harness makes the edit only if the text occurs exactly once.</p>
+    <p>That is a condition on the whole file. So it can be broken from anywhere.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="title" data-title="An Edit Is a Rewrite" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(69, 214, 255, .18)">
+  <div class="deco" style="left:850px">
+    <div class="file glass"><div class="code">a = <span class="hl">f(x)</span></div><div class="code">b = g(y)</div></div>
+    <div class="edit glass"><span class="code">f(x)</span><span class="to">to</span><span class="code">f(x, 0)</span></div>
+  </div>
+  <div class="lab abs" data-in="1" style="left:88px;top:176px">A Trillion POPL Papers · Paper 19</div>
+  <div class="d1 words abs" data-in="1:5" style="left:84px;top:212px;width:720px;font-size:98px">An Edit Is a <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">Rewrite</span></div>
+  <div class="d4 soft abs" data-in="1:8" style="left:88px;top:446px;width:640px">Ordering batches of search-and-replace edits</div>
+  <aside>
+    <p>This paper is called: an edit is a rewrite.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="order" data-title="Two edits, one file" style="--light1: rgba(255, 184, 77, .24); --light2: rgba(88, 110, 255, .3)">
+  <div class="d3 words head" data-in="1:2" data-out="4" style="width:480px">Two edits, <span class="it grad">one file.</span></div>
+  <div class="file glass blur" data-in="1:6"><div class="code">a = f(x)</div><div class="code">b = g(y)</div></div>
+  <div class="edit glass" data-in="2:2" style="top:130px"><span class="tag t-info">1</span><span class="code">g(y)</span><span class="to">to</span><span class="code">f(x)</span></div>
+  <div class="edit glass" data-in="2:13" style="top:206px"><span class="tag t-info">2</span><span class="code">f(x)</span><span class="to">to</span><span class="code">f(x, 0)</span></div>
+  <div class="try" data-in="3:2" style="top:316px"><span class="tag t-info">1</span><span class="tag t-info">2</span><span class="d4 c-red">the second is refused</span></div>
+  <div class="mark no pop" data-in="3:7" style="left:1110px;top:306px"></div>
+  <div class="try" data-in="3:9" style="top:392px"><span class="tag t-info">2</span><span class="tag t-info">1</span><span class="d4 c-green">both go through</span></div>
+  <div class="mark yes pop" data-in="3:13" style="left:1110px;top:382px"></div>
+  <div class="d2 words sync abs" data-in="4:2" style="left:88px;top:360px;width:500px;font-size:60px">what does the batch <span class="it grad">mean?</span></div>
+  <aside>
+    <p>Take two edits, written for the same file.</p>
+    <p>The first edit writes f of x into the second line. The second edit looks for f of x in the first.</p>
+    <p>In one order, the second is refused. In the other order, both go through.</p>
+    <p>So what does the batch mean?</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="atonce" data-title="All at once" data-cues="1:6" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(88, 110, 255, .26)">
+  <div class="d3 words head" data-in="1:9" data-out="2" style="width:480px">All <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">at once.</span></div>
+  <div class="lab abs" data-in="2:4" data-out="3" style="left:92px;top:150px;color:#7dffd2">the theorem</div>
+  <div class="d3 words sync abs" data-in="2:12" data-out="3" style="left:88px;top:180px;width:500px">every order that works gives <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">exactly that text.</span></div>
+  <div class="d2 words sync abs" data-in="3:1" style="left:88px;top:180px;width:520px;font-size:66px">An order decides whether. <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">Never what.</span></div>
+  <div class="file glass" style="top:120px"><div class="code">a = <span class="mk">f(x)</span></div><div class="code">b = <span class="mk">g(y)</span></div></div>
+  <div class="lab abs" data-in="1:6" style="left:1010px;top:170px;color:#ffcf7d">two places</div>
+  <div class="file glass edge-good blur" data-in="1:9" style="top:320px"><div class="code">a = <span class="hl-g">f(x, 0)</span></div><div class="code">b = <span class="hl-g">f(x)</span></div></div>
+  <div class="mark yes pop" data-in="1:11" style="left:1010px;top:372px"></div>
+  <aside>
+    <p>It means: make every edit at its place, all at once.</p>
+    <p>And here is the theorem. If the places do not overlap, every order that works gives exactly that text.</p>
+    <p>An order decides whether. Never what.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="swap" data-title="A swap" style="--light1: rgba(255, 95, 120, .28); --light2: rgba(77, 255, 195, .2)">
+  <div class="d3 words head" data-in="1:4" data-out="3" style="width:480px">No order <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">at all.</span></div>
+  <div class="d3 words sync abs" data-in="3:1" style="left:88px;top:300px;width:480px">At once, the swap just <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">works.</span></div>
+  <div class="strip glass big blur" data-in="1:8" style="top:130px"><span class="code">lo = 1; hi = 9</span></div>
+  <div class="edit glass" data-in="1:11" style="left:620px"><span class="code">lo</span><span class="to">to</span><span class="code">hi</span></div>
+  <div class="edit glass" data-in="1:15" style="left:850px"><span class="code">hi</span><span class="to">to</span><span class="code">lo</span></div>
+  <div class="strip glass big edge-bad" data-in="2:4" data-fade="3" style="top:350px"><span class="code"><span class="hl-r">hi</span> = 1; <span class="hl-r">hi</span> = 9</span></div>
+  <div class="lab abs" data-in="2:6" data-fade="3" style="left:1010px;top:378px;color:#ff8a8a">twice: refused</div>
+  <div class="strip glass big edge-good" data-in="3:4" style="top:460px"><span class="code">hi = 1; lo = 9</span></div>
+  <div class="mark yes pop" data-in="3:6" style="left:1010px;top:475px"></div>
+  <aside>
+    <p>Some batches have no order at all. Swap two names: lo becomes hi, and hi becomes lo.</p>
+    <p>Whichever goes first writes a second copy of the other one's text.</p>
+    <p>At once, the swap just works.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="overlap" data-title="When places overlap" style="--light1: rgba(255, 95, 162, .26); --light2: rgba(69, 214, 255, .22)">
+  <div class="d3 words head" data-in="1:2" style="width:480px">When places <span class="it grad" style="--g1:#ff8fc0;--g2:#45d6ff">overlap.</span></div>
+  <div class="word" data-in="1:2"><span class="chip code e1">a</span><span class="chip code e12">b</span><span class="chip code e2">c</span></div>
+  <div class="edit glass" data-in="1:3" style="top:130px"><span class="code">ab</span><span class="to">to</span><span class="code">bcx</span></div>
+  <div class="edit glass" data-in="1:4" style="top:204px"><span class="code">bc</span><span class="to">to</span><span class="code">b</span></div>
+  <div class="strip glass big" data-in="2:4" style="top:310px"><span class="lab">one order</span><span class="code">bxc</span></div>
+  <div class="strip glass big" data-in="2:8" style="top:402px"><span class="lab">the other</span><span class="code">bcx</span></div>
+  <div class="lab abs" data-in="2:11" style="left:960px;top:384px;color:#ffcf7d">nothing refused</div>
+  <div class="d3 words sync abs" data-in="3:9" style="left:88px;top:300px;width:480px">do the places <span class="it grad">overlap?</span></div>
+  <div class="pill glass" data-in="3:13" style="left:88px;top:420px">a harness can check that</div>
+  <aside>
+    <p>When two places overlap, it gets worse.</p>
+    <p>Both orders can go through, and give two different files. Nothing is refused, and nobody is told.</p>
+    <p>The line between safe and unsafe is simple: do the places overlap? A harness can check that.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="find" data-title="Finding an order" style="--light1: rgba(255, 184, 77, .26); --light2: rgba(179, 140, 255, .28)">
+  <div class="d3 words head" data-in="1:1" data-out="4" style="width:480px">Finding <span class="it grad">an order.</span></div>
+  <div class="d2 words abs" data-in="4:6" style="left:88px;top:180px;width:520px;font-size:70px"><span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">NP-complete.</span></div>
+  <div class="pill glass" data-in="4:13" style="left:88px;top:300px">small batches: a search will do</div>
+  <div class="lab abs" data-in="1:7" data-fade="3" style="left:604px;top:116px;color:#ffcf7d">the culprit: it was made</div>
+  <div class="edit glass edge-ask" data-in="1:7" data-fade="3" style="top:140px"><span class="code">g(y)</span><span class="to">to</span><span class="code">f(x)</span></div>
+  <div class="lab abs" data-in="1:13" data-fade="3" style="left:604px;top:256px">the spoiled one</div>
+  <div class="edit glass" data-in="1:13" data-fade="3" style="top:280px"><span class="code">f(x)</span><span class="to">to</span><span class="code">f(x, 0)</span></div>
+  <svg class="over" viewBox="0 0 1280 720">
+    <path class="path draw" data-in="2:11" data-fade="3" pathLength="1" d="M 920 310 C 1010 310, 1010 170, 920 170"/>
+    <path class="path draw" data-in="3:2" pathLength="1" d="M 760 440 C 790 400, 850 400, 880 440"/>
+    <path class="path draw" data-in="3:2" pathLength="1" d="M 880 500 C 850 540, 790 540, 760 500"/>
+  </svg>
+  <div class="lab abs" data-in="2:13" data-fade="3" style="left:1020px;top:230px;color:#ffcf7d">goes before</div>
+  <div class="edit glass" data-in="3:1" style="top:440px"><span class="code">lo</span><span class="to">to</span><span class="code">hi</span></div>
+  <div class="edit glass" data-in="3:1" style="left:880px;top:440px"><span class="code">hi</span><span class="to">to</span><span class="code">lo</span></div>
+  <div class="mark no pop" data-in="3:7" style="left:1100px;top:447px"></div>
+  <aside>
+    <p>A spoiled edit always has a culprit: an edit that was made, and wrote the stray copy.</p>
+    <p>For edits that stand apart, there is a simple rule: an edit goes before the edits that would spoil it.</p>
+    <p>A cycle, like the swap, has no order.</p>
+    <p>In general, finding an order is NP-complete. But batches are small, and a search will do.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="repair" data-title="More context" style="--light1: rgba(77, 255, 195, .28); --light2: rgba(88, 110, 255, .26)">
+  <div class="d3 words head" data-in="1:9" style="width:480px">More <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">context.</span></div>
+  <div class="edit glass" data-in="1:6" style="left:620px"><span class="code">lo</span><span class="to">to</span><span class="code">hi</span></div>
+  <div class="edit glass edge-good" data-in="1:8" style="left:850px"><span class="code"><span class="hl-g">;&nbsp;</span>hi</span><span class="to">to</span><span class="code"><span class="hl-g">;&nbsp;</span>lo</span></div>
+  <div class="lab abs" data-in="1:9" style="left:854px;top:156px;color:#7dffd2">with what stands before it</div>
+  <div class="strip glass big edge-good" data-in="1:10"><span class="code">hi = 1; lo = 9</span></div>
+  <div class="mark yes pop" data-in="1:10" style="left:1010px;top:305px"></div>
+  <div class="row" data-in="2:1"><div class="num good" data-in="2:1" data-count="345" data-ms="900">0</div><div class="lab">of 445 stuck batches:<br>one letter was enough</div></div>
+  <aside>
+    <p>And when no order exists, give an edit more context.</p>
+    <p>One more letter was enough for three quarters of the stuck batches.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="stale" data-title="The file changed" data-cues="2:9" style="--light1: rgba(255, 95, 120, .28); --light2: rgba(255, 184, 77, .22)">
+  <div class="d3 words head" data-in="1:4" data-out="3" style="width:460px">The file <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">changed.</span></div>
+  <div class="d3 words sync abs" data-in="3:1" style="left:88px;top:180px;width:470px">Occurring once is not <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">proof.</span></div>
+  <div class="pill glass" data-in="3:17" style="left:88px;top:330px">remember what changed</div>
+  <div class="file glass fa"><div class="code">def f():</div><div class="code" data-out="1:6">  return total</div><div class="code c-amber" data-in="1:6" style="margin-top:-41px">  return 0</div></div>
+  <div class="file glass fb blur" data-in="1:6"><div class="code">def g():</div><div class="code">  <span class="hl">return total</span></div></div>
+  <div class="lab abs" data-in="1:6" style="left:914px;top:96px;color:#ffcf7d">new</div>
+  <div class="edit glass" data-in="2:2"><span class="code">return total</span><span class="to">to</span><span class="code">return total + tax</span></div>
+  <div class="lab abs" data-in="2:4" style="left:604px;top:404px;color:#7dffd2">occurs once: accepted</div>
+  <div class="lab abs" data-in="2:9" style="left:914px;top:250px;color:#ff8a8a">the wrong function</div>
+  <aside>
+    <p>One more trap. The file changed after the agent read it.</p>
+    <p>The text still occurs once. But now it stands in another function.</p>
+    <p>Occurring once is not proof that it is the text the author saw. The harness has to remember what changed.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="numbers" data-title="Every order" style="--light1: rgba(88, 110, 255, .3); --light2: rgba(255, 95, 120, .22)">
+  <div class="d3 words head" data-in="1:3" style="width:480px">Every <span class="it grad">order.</span></div>
+  <div class="row" data-in="1:6" style="top:150px"><div class="num" data-in="1:6" data-count="9000" data-ms="900">0</div><div class="lab">random batches</div></div>
+  <div class="lab abs" data-in="2:1" style="left:700px;top:150px">batches in which every order works</div>
+  <div class="lab abs" data-in="2:2" style="left:590px;top:204px">2 edits</div><div class="bar" data-in="2:7" style="top:200px;--w:72%"><i></i></div>
+  <div class="lab abs" data-in="2:7" style="left:1150px;top:204px;color:#7dffd2">72%</div>
+  <div class="lab abs" data-in="2:13" style="left:590px;top:264px">5 edits</div><div class="bar warm" data-in="2:15" style="top:260px;--w:17%"><i></i></div>
+  <div class="lab abs" data-in="2:15" style="left:1150px;top:264px;color:#ffcf7d">17%</div>
+  <div class="row" data-in="3:5" style="top:300px"><div class="num warn">5</div><div class="lab">percent:<br>no order at all</div></div>
+  <div class="pill glass" data-in="4:3" style="left:590px;top:340px">random texts over a few letters</div>
+  <aside>
+    <p>We ran every order of nine thousand random batches.</p>
+    <p>With two edits, every order worked seventy-two times in a hundred. With five edits, seventeen.</p>
+    <p>In one batch in twenty, no order worked at all.</p>
+    <p>These are random texts over a few letters, where strings repeat far more than in code.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="caveat" data-title="A caveat" style="--light1: rgba(255, 184, 77, .22); --light2: rgba(88, 110, 255, .22)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:100px;color:#ffc45e">before you believe it</div>
+  <div class="d2 words abs" data-in="1:2" style="left:88px;top:140px">The proofs are on <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">paper.</span></div>
+  <div class="d3 words sync abs" data-in="1:7" style="left:88px;top:270px">No <span class="it">machine</span> has checked them,</div>
+  <div class="d3 words sync abs" data-in="1:13" style="left:88px;top:340px">no <span class="it">human</span> has reviewed the paper.</div>
+  <aside>
+    <p>And the proofs are on paper. No machine has checked them, and no human has reviewed the paper.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="end" data-title="Find the places first" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(69, 214, 255, .18)">
+  <div class="deco" style="left:850px;top:240px">
+    <div class="file glass"><div class="code">a = <span class="hl-g">f(x, 0)</span></div><div class="code">b = <span class="hl-g">f(x)</span></div></div>
+    <div class="edit glass"><span class="code">f(x)</span><span class="to">to</span><span class="code">f(x, 0)</span></div>
+  </div>
+  <div class="d3 words sync abs" data-in="1:1" style="left:88px;top:170px;width:660px;font-size:56px">An edit names its place by its <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">content.</span></div>
+  <div class="d4 words sync abs soft" data-in="2:1" style="left:88px;top:330px;width:640px">So find all the places first. Then replace them, at once.</div>
+  <div class="lab abs" data-in="2:7" style="left:92px;top:500px">Paper 19 · tpp:19 · A Trillion POPL Papers</div>
+  <aside>
+    <p>An edit names its place by its content.</p>
+    <p>So find all the places first. Then replace them, at once.</p>
+  </aside>
+</section>
