@@ -25,6 +25,7 @@
   const PACE = 60 / 185;   // seconds for a word, until the voice in use has been measured
   const GAP = 0.3;         // seconds between two scenes
   const MEMORY = 400;      // words of earlier visits that count when the pace is measured
+  const TRUST = 40;        // words that a pace counts for before this visit has measured any
   const rates = [0.85, 1, 1.2, 1.5];
   const textOf = span => span.textContent.trim();
   const startsOf = text => Array.from(text.matchAll(/\S+/g), match => match.index);
@@ -96,7 +97,7 @@
   function forget() {
     const [known, count] = String((voice && recall(`talk.pace.${voice.name}`)) || "").split(" ").map(Number);
     const good = known > 0.1 && known < 1.5;
-    const weight = good ? Math.min(count || 0, MEMORY) : 0;
+    const weight = good ? Math.max(TRUST, Math.min(count || 0, MEMORY)) : TRUST;
     pace = good ? known : PACE;
     measured = { seconds: pace * weight, words: weight };
     schedule();
@@ -265,7 +266,8 @@
 
   function fit() {
     const page = doc();
-    if (page) page.documentElement.style.setProperty("--k", String(frame.clientWidth / 1280));
+    const width = frame.clientWidth;   // none while the frame is not laid out
+    if (page && width) page.documentElement.style.setProperty("--k", String(width / 1280));
   }
 
   function bind() {
@@ -291,6 +293,7 @@
     pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>',
     again: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1.5L6.5 6 12 10.5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>',
     full: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h5v2H7v3H5zm9 0h5v5h-2V7h-3zM5 14h2v3h3v2H5zm12 0h2v5h-5v-2h3z"/></svg>',
+    small: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h2v5H5V8h3zm6 0h2v3h3v2h-5zM5 14h5v5H8v-3H5zm9 0h5v2h-3v3h-2z"/></svg>',
   };
   const make = (tag, name, text) => {
     const el = document.createElement(tag);
@@ -617,6 +620,51 @@
   }
 
   // ---------------------------------------------------------------------------------------
+  // Full screen. The player fills the window, and the page asks the browser for the whole
+  // screen. It is the page that goes full screen, not the player: a browser that lifts one
+  // part of a page out has to draw that part anew, the frame included, and browsers differ in
+  // how well they do. Where a browser does not give the screen, the player still fills the
+  // window.
+
+  const whole = document.documentElement;
+  const enterFull = whole.requestFullscreen || whole.webkitRequestFullscreen;
+  const leaveFull = document.exitFullscreen || document.webkitExitFullscreen;
+  const inFull = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  const quietly = call => {
+    try { Promise.resolve(call()).catch(() => {}); } catch (error) { /* refused: the window it is */ }
+  };
+  let wide = false;       // whether the player fills the window
+
+  // The widest picture of 16 by 9 that fits above the controls.
+  function size() {
+    if (!wide) return;
+    const width = Math.min(root.clientWidth, (root.clientHeight - controls.offsetHeight) * 16 / 9);
+    if (width > 0) root.style.setProperty("--wide", `${Math.floor(width)}px`);
+  }
+
+  function setWide(on) {
+    if (on !== wide) {
+      wide = on;
+      whole.classList.toggle("talk-wide", on);
+      if (!on) root.style.removeProperty("--wide");
+      fullButton.innerHTML = on ? icons.small : icons.full;
+      fullButton.setAttribute("aria-label", on ? "Leave full screen" : "Full screen");
+    }
+    size();
+    fit();
+  }
+
+  function toggleWide() {
+    if (wide) {
+      setWide(false);
+      if (inFull() && leaveFull) quietly(() => leaveFull.call(document));
+    } else {
+      setWide(true);
+      if (enterFull) quietly(() => enterFull.call(whole));
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------
   // Wiring
 
   playButton.addEventListener("click", toggle);
@@ -640,13 +688,11 @@
     lay();
     if (playing) go(at, line);
   });
-  const enterFull = root.requestFullscreen || root.webkitRequestFullscreen;
-  const leaveFull = document.exitFullscreen || document.webkitExitFullscreen;
-  if (!enterFull || !leaveFull) fullButton.hidden = true;
-  fullButton.addEventListener("click", () => {
-    if (document.fullscreenElement || document.webkitFullscreenElement) leaveFull.call(document);
-    else enterFull.call(root);
-  });
+  fullButton.addEventListener("click", toggleWide);
+  // The browser gave the screen, or took it back: on Escape, for one.
+  for (const name of ["fullscreenchange", "webkitfullscreenchange"]) {
+    document.addEventListener(name, () => setWide(inFull()));
+  }
   if (transcript) {
     transcript.addEventListener("click", event => {
       const span = event.target.closest("[data-scene]");
@@ -666,13 +712,16 @@
     else if (key === "PageDown") nextScene();
     else if (key === "PageUp") backScene();
     else if (key === "c") captionButton.click();
-    else if (key === "f" && !fullButton.hidden) fullButton.click();
+    else if (key === "f" || (key === "Escape" && wide)) toggleWide();
     else return;
     event.preventDefault();
   });
   window.addEventListener("pagehide", () => { if (synth) synth.cancel(); });
-  if ("ResizeObserver" in window) new ResizeObserver(fit).observe(frame);
-  else window.addEventListener("resize", fit);
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(fit).observe(frame);
+    new ResizeObserver(size).observe(root);
+  }
+  window.addEventListener("resize", () => { size(); fit(); });
   frame.addEventListener("load", bind);
 
   const saved = Number(recall("talk.rate"));

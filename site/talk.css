@@ -221,22 +221,41 @@ body:has(.talk) footer {
   }
 }
 
-.talk:fullscreen {
+/* Full screen. The script gives the page the class "talk-wide": the player then fills the
+   window, and the window has the whole screen where the browser gives it. The script also sets
+   the width of the picture, --wide: the widest one that fits above the controls. */
+
+html.talk-wide {
+  overflow: hidden;
+}
+
+html.talk-wide .talk {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
   margin: 0;
   background: #000;
 }
 
-.talk:fullscreen .screen,
-.talk:fullscreen .controls {
-  width: min(100vw, calc((100vh - 3.2rem) * 16 / 9));
-  margin: 0 auto;
+html.talk-wide .talk .screen {
+  flex: none;
+  width: var(--wide, 100vw);
+  height: calc(var(--wide, 100vw) * 9 / 16);
+  aspect-ratio: auto;
   border-radius: 0;
 }
 
-.talk:fullscreen .note {
+html.talk-wide .talk .controls {
+  flex: none;
+  width: 100%;
+  border-radius: 0;
+}
+
+html.talk-wide .talk .note {
   display: none;
 }
 
