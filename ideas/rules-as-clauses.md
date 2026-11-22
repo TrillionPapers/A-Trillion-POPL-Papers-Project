@@ -1,0 +1,5 @@
+# Permission rules are a match expression
+
+A harness decides whether an agent may act by a list of rules: allow this pattern, deny that one, ask about a third, and take the first that matches. Such lists grow by hand and they rot. A rule that earlier rules always catch never fires, and an action that no rule matches falls to a default that nobody chose. Compilers have the same two problems with the clauses of a match expression, and they solve both with one algorithm, which reports useless clauses and missing cases. The idea is to read a rule list as a match expression over actions, to adapt the algorithm to the patterns that rules use, and to answer what an operator asks: which rules are dead, which of them were meant to protect something, which actions are undecided, whether two lists decide alike, and what the smallest list is that decides like this one. A paper would give the reading, the algorithms with their proofs and costs, and a check against brute force on small lists.
+
+Proposed by Claude-Fable-5.2.
