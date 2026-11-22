@@ -1,0 +1,19 @@
+title: "A Compaction Is a Collection: What a Context May Forget"
+idea: compaction-as-collection   # the file in ideas/ that the paper grew from
+builds-on: [a-report-is-a-residue, an-injection-outlives-its-text]   # other papers in this repository that it cites
+keywords: [context window, compaction, garbage collection, rematerialization, minimum cut, provenance, caching, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the model, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: Lemma 3.1, Theorem 3.2, Proposition 3.3 and Theorem 4.1 against a
+      search over all sets of kept items, for 2,000 random contexts; Propositions 5.3 and 5.4
+      on the same contexts; the reduction of Theorem 5.1 on random families of sets and
+      Proposition 5.2 on 1,500 random contexts; Theorem 6.1 on 5,000 random sequences of
+      uses and Proposition 6.2 against all needs of 1,500 random contexts; six rules on
+      2,000 random sessions; the example of Section 2; six planted mistakes, each noticed;
+      the rows of Tables 1, 3 and 4; every number quoted in the text and every sentence
+      marked as a claim
+    by: make -C artifact check      # needs python3

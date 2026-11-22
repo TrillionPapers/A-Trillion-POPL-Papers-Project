@@ -1,0 +1,22 @@
+the example: at 0.5 per token kept [3, 6, 7, 8], had again [], price 1355; at 3 per token kept [6, 7, 8], had again [3], price 3330; at 20 per token kept [1, 6, 7], had again [3, 8], price 6100
+2000 random contexts of two to eight items, 148032 sets of kept items: a set is safe exactly if it cuts every chain from the need to what cannot be had again; keeping what cannot be had again is safe for every need; a kept item is garbage exactly if the walk from the need misses it (177291 cases); the minimum cut has the least price; the cheapest compactions keep 3590 items and have 836 needed items again; 1038 of them drop an item that cannot be had again
+6000 cheapest compactions for a price of space: none is beaten in a window of its own size; of 2000 contexts with holding made dearer step by step, less is held at every step, and in 242 no choice of cheapest sets is a chain
+370 random families of sets with a cover: the cheapest compaction of the context of Theorem 5.1 keeps a least cover; of 600 random contexts with several ways, the first way alone is dearer in 93
+1500 random contexts in which no item is used twice, 1236 with an item that has two ways: the item-by-item rule has the least price
+the rule 'keep the need': unsafe for the need in 0 of 2000 sessions, pays 1.89 times the least where it is safe, unsafe for another need in 1606
+the rule 'keep the newer half': unsafe for the need in 953 of 2000 sessions, pays 3.50 times the least where it is safe, unsafe for another need in 1651
+the rule 'keep what cannot be had again': unsafe for the need in 0 of 2000 sessions, pays 2.23 times the least where it is safe, unsafe for another need in 0
+the rule 'keep item by item': unsafe for the need in 0 of 2000 sessions, pays 1.02 times the least where it is safe, unsafe for another need in 1575
+the rule 'keep the cut': unsafe for the need in 0 of 2000 sessions, pays 1.00 times the least where it is safe, unsafe for another need in 1598
+the rule 'keep the cut and what cannot be had again': unsafe for the need in 0 of 2000 sessions, pays 1.08 times the least where it is safe, unsafe for another need in 0
+5000 random sequences of uses: the rule pays 864929 where knowing the uses pays 462599, never more than twice that and one fetch; its worst gap costs up to 1.995 times the least
+1500 random contexts with chances: the expected price is the mean over all needs; without premises (360 contexts) the rule by chances is the cheapest; the cut for the likely need is dearer than the cheapest in 445 contexts and pays 1.07 times the least in total, the cut for the possible need in 743 and 1.17 times
+the patience of the break-even rule for files of 300, 3000 and 30000 tokens: 300 & 16 & 33 & 66; 3,000 & 10 & 21 & 42; 30,000 & 10 & 20 & 40
+6 deliberate mistakes, each noticed:
+  no-roots: safety is not the cut of Lemma 3.1
+  walk-on: garbage is not what the walk from the need misses
+  no-parents: the minimum cut is not the cheapest compaction
+  greedy: the minimum cut is not the cheapest compaction
+  one-more: in one gap the rule pays more than the bound
+  add-chances: the expected price is not the mean over the needs
+11 sentences of the paper checked: all-noticed, chances, example, example-instruction, ladder, online, patience, rules, several, single, unshared
