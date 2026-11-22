@@ -5,9 +5,9 @@ Usage: python site/build.py OUTPUT_DIR
 
 The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
 the record, the versions, the reviews, and the PDF of each paper, turns the talks in talks/ into
-pages that play them, renders RATIONALE.md and CONTRIBUTING.md, and writes a search page with its
-index, search.json. Earlier versions of a paper are read from the git history at the commits
-that papers/VERSIONS records.
+pages that play them, and shows highlights of all three on the home page. It renders RATIONALE.md
+and CONTRIBUTING.md, and writes a search page with its index, search.json. Earlier versions of a
+paper are read from the git history at the commits that papers/VERSIONS records.
 
 The script only reads files. It never runs anything that a contribution contains. HTML that
 comes from Markdown passes through an allowlist, and so does the HTML of a talk, which the site
@@ -643,9 +643,9 @@ def talk_badge(paper, base):
             f'title="Watch the talk, {length_of(talks[0])}">Talk</a>')
 
 
-def paper_entry(paper, base):
+def paper_entry(paper, base, note=""):
     count = len(paper["verified"])
-    facts = [byline(paper)]
+    facts = [note, byline(paper)]
     if paper["version"]:
         facts.append(f"version {paper['version']}")
     facts.append(f"{count} verified claim{'s' if count != 1 else ''}")
@@ -678,22 +678,69 @@ def entries(items):
     return '<ul class="entries">\n' + "\n".join(items) + "\n</ul>" if items else "<p>None yet.</p>"
 
 
-def home_page(ideas, papers):
+HOME_PAPERS, HOME_TALKS, HOME_BUILT, HOME_IDEAS = 4, 3, 3, 4
+
+
+def home_page(ideas, papers, talks):
+    """The home page shows where to go and a few highlights. The full lists have pages of their
+    own, so this page stays short however many papers there are."""
     readme = read(ROOT / "README.md") if (ROOT / "README.md").is_file() else ""
     heading = re.search(r"^#\s+(.+?)\s*$", readme, flags=re.M)
     name = plain(heading.group(1)) if heading else SITE_NAME
     lead = first_sentence(readme[heading.end():] if heading else readme, limit=400)
     count = max([paper["number"] or 0 for paper in papers] + [0])
-    body = f"""<h1>{esc(name)}</h1>
+
+    def card(href, number, title, what):
+        return (f'<a class="section-card" href="{href}"><strong>{number:,}</strong>'
+                f"<span>{title}</span><small>{what}</small></a>")
+
+    def section(title, href, more, content):
+        return (f'<div class="heading"><h2>{title}</h2><a href="{href}">{more}</a></div>\n'
+                + content)
+
+    parts = [f"""<h1>{esc(name)}</h1>
 <p class="lead">{esc(lead)}</p>
 <p class="progress"><strong>{count:,}</strong> of {GOAL:,} papers</p>
-<p class="actions"><a href="rationale.html">Why the project exists</a>
-<a href="contributing.html">How to take part</a></p>
-<h2>Papers <span class="count">{len(papers)}</span></h2>
-{entries([paper_entry(paper, "") for paper in newest_first(papers)])}
-<h2>Ideas <span class="count">{len(ideas)}</span></h2>
-{entries([idea_entry(idea, "", papers) for idea in newest_first(ideas)])}"""
-    return page(SITE_NAME, body, "")
+<nav class="sections">
+{card("papers/index.html", len(papers), "Papers", "with their records, versions, and reviews")}
+{card("talks/index.html", len(talks), "Talks", "short animated films about the papers")}
+{card("ideas/index.html", len(ideas), "Ideas", "to be written into papers")}
+</nav>"""]
+
+    # a paper that was retracted or replaced is not a highlight
+    current = [paper for paper in newest_first(papers)
+               if not paper["retracted"] and not paper["superseded_by"]]
+    parts.append(section("Latest papers", "papers/index.html", f"All {len(papers)} papers",
+                         entries([paper_entry(paper, "") for paper in current[:HOME_PAPERS]])))
+    if talks:
+        cards = []
+        for talk in talks[:HOME_TALKS]:
+            number = talk["paper"]["number"]
+            kicker = "Talk" + (f" · paper {number}" if number else "")
+            cards.append(f'<a class="talk-card" href="{talk["url"]}"><span>{kicker}</span>'
+                         f'<strong>{esc(talk["paper"]["title"].split(":")[0])}</strong>'
+                         f"<small>{length_of(talk)}</small></a>")
+        parts.append(section("Talks", "talks/index.html", f"All {len(talks)} talks",
+                             '<div class="talk-cards">\n' + "\n".join(cards) + "\n</div>"))
+    uses = {paper["slug"]: sum(paper["slug"] in other["builds_on"] for other in papers)
+            for paper in papers}
+    built = sorted((paper for paper in current if uses[paper["slug"]]),
+                   key=lambda paper: (-uses[paper["slug"]], -(paper["number"] or 0)))
+    if built:
+        items = [paper_entry(paper, "", f"{uses[paper['slug']]} papers build on it"
+                             if uses[paper["slug"]] != 1 else "1 paper builds on it")
+                 for paper in built[:HOME_BUILT]]
+        parts.append(section("Most built upon", "papers/index.html", "All papers", entries(items)))
+    taken = {paper["idea"] for paper in papers}
+    waiting = [idea for idea in newest_first(ideas) if idea["slug"] not in taken]
+    shown, title = (waiting, "Ideas waiting for a paper") if waiting else (newest_first(ideas),
+                                                                         "Latest ideas")
+    parts.append(section(title, "ideas/index.html", f"All {len(ideas)} ideas",
+                         entries([idea_entry(idea, "", papers) for idea in shown[:HOME_IDEAS]])))
+    parts.append('<p class="actions"><a href="rationale.html">Why the project exists</a>\n'
+                 '<a href="contributing.html">How to take part</a>\n'
+                 '<a href="search.html">Search everything</a></p>')
+    return page(SITE_NAME, "\n".join(parts), "")
 
 
 def idea_page(idea, papers):
@@ -1062,7 +1109,7 @@ def build(out):
 
     for name in ("style.css", "talk.css", "talk.js", "talk-scene.css"):
         shutil.copyfile(ROOT / "site" / name, out / name)
-    write("index.html", home_page(ideas, papers))
+    write("index.html", home_page(ideas, papers, talks))
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
     write("contributing.html", doc_page("CONTRIBUTING.md", "Contributing"))
     write("search.html", search_page())
