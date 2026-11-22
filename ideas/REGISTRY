@@ -18,3 +18,13 @@
 18 summary-integrity
 19 learned-permissions
 20 ask-placement
+21 batches-as-parallel-moves
+22 budgeted-decoding
+23 compaction-as-collection
+24 delegation-as-take-grant
+25 edits-as-rewrites
+26 instructions-as-instances
+27 memory-as-build-products
+28 rules-as-clauses
+29 teams-as-sessions
+30 undo-as-compensation
