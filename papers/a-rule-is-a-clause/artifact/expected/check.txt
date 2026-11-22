@@ -1,0 +1,23 @@
+the list of Section 2: dead [3, 6, 11, 13], masked [3, 11], redundant [5, 8], undecided for instance Bash(), Read()
+the same list in the order of classes: dead [1, 4, 6, 13], masked [1, 4, 6], redundant [8]
+the 10 rules for Bash in normal form: Bash(git status) allow; Bash(ls *) allow; Bash(npm test) allow; Bash(rm -rf *) deny
+2500 random lists with 12318 rules, tried on 5093247 actions: usefulness, the meet, the four diagnoses, the tree and both tests of equivalence agree with brute force; 3781 rules are dead, 2695 of them masked, 1459 of those loosened, 2283 rules redundant; a list and the list without one rule decide alike for 6064 rules and not for 6254; 5 of the pairs of random lists decide alike
+the reduced tree of the list of n pairs has 6, 22, 68, 192, 512, 1312, 3264, 7936 nodes for n = 1 to 8
+3000 random lists of prefix patterns: the normal form decides alike and has 46 percent fewer rules; for 60 lists of at most three rules no shorter list of prefix patterns decides alike
+lists of 4 rules: dead 117/800, masked 71, loosened 31, redundant 239, clean lists 21/200; the rule that was put last is dead in 61 lists and loosened in 18; the first rule kills 52 rules
+lists of 8 rules: dead 509/1600, masked 335, loosened 164, redundant 332, clean lists 0/200; the rule that was put last is dead in 115 lists and loosened in 37; the first rule kills 116 rules
+lists of 16 rules: dead 1582/3200, masked 1102, loosened 563, redundant 477, clean lists 0/200; the rule that was put last is dead in 151 lists and loosened in 52; the first rule kills 144 rules
+lists of 32 rules: dead 4400/6400, masked 3058, loosened 1586, redundant 601, clean lists 0/200; the rule that was put last is dead in 184 lists and loosened in 70; the first rule kills 200 rules
+1000 lists of 8 rules in the order of classes: no rule is loosened; 1300 of 2786 permissions permit nothing
+400 random formulas, 77 of which cannot be satisfied: the last rule of the list of the reduction is dead exactly for those, when the words are t and f only; with an open alphabet it is never dead
+9 deliberate mistakes, each noticed:
+  end-covers: usefulness differs from brute force
+  no-rest: usefulness differs from brute force
+  known-word: usefulness differs from brute force
+  meet-length: redundant rules differ from brute force
+  no-default: redundant rules differ from brute force
+  one-sided: equivalence by usefulness differs from brute force
+  floor-last: the tree decides otherwise
+  keep-all: the normal form decides otherwise
+  no-exact: the normal form decides otherwise
+9 sentences of the paper checked: all-noticed, blowup, classes, closed, example, example-classes, force, growth, normal

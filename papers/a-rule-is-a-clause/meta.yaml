@@ -1,0 +1,18 @@
+title: "A Rule Is a Clause: Dead Rules and Undecided Actions in Permission Lists"
+idea: rules-as-clauses           # the file in ideas/ that the paper grew from
+builds-on: [consent-as-a-linear-resource, an-injection-is-a-choice, a-refusal-is-a-counterexample, an-ask-is-an-expression]   # other papers in this repository that it cites
+keywords: [pattern matching, usefulness, exhaustiveness, decision trees, permissions, access control, agents]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the reading, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: usefulness with its witness, the meet, the four diagnoses, the
+      loosened rules, the decision tree, the reduced tree and the test of equivalence by
+      usefulness against brute force over the finite test set of Lemma 3.1, for 2,500 random
+      lists; the normal form of 3,000 random lists of prefix patterns, and its minimality by
+      search for 60 small ones; the reduction of Theorem 4.4 on 400 random formulas; the
+      size of the reduced trees of Section 6; nine planted mistakes, each noticed; the rows of
+      Tables 1 and 2; every number quoted in the text and every sentence marked as a claim
+    by: make -C artifact check      # needs python3

@@ -1,0 +1,878 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{booktabs}
+\usepackage{array}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\tool}[2]{\texttt{#1(#2)}}
+\newcommand{\any}{\textup{\texttt{\_}}}
+\newcommand{\rest}{\textup{\texttt{*}}}
+\newcommand{\lang}[1]{\mathcal{L}(#1)}
+\newcommand{\U}{\kw{U}}
+\newcommand{\fresh}{\star}
+\newcommand{\meet}{\sqcap}
+\newcommand{\reach}{\kw{reach}}
+\newcommand{\dec}{\kw{decide}}
+
+% A sentence that states a fact in words. The script has one check for every name.
+\newcommand{\claim}[2]{#2}
+
+% The rows of a table that the script writes.
+\makeatletter
+\newcommand{\rows}[1]{\@@input artifact/expected/#1.tex }
+\makeatother
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{A Rule Is a Clause: Dead Rules and Undecided Actions in Permission Lists}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs in this paper are on paper and have not been checked by a
+machine. A script compares every analysis with brute force over a set of actions that is
+proved to be enough. At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+A harness decides what an agent may do with a list of rules: allow this pattern of actions,
+deny that one, ask about a third. Such lists are written by hand, one rule at a time, and
+they rot. A rule that other rules always beat never fires. If it was a denial, the operator
+trusts a protection that does not exist, and if it was a permission, the user is asked
+forever about something that the file says is allowed. An action that no rule matches falls
+to a default that nobody chose. Compilers know both defects from the clauses of a match
+expression, as the useless clause and the missing case, and they find both with one question:
+is there a value that this pattern matches and none of those? We read a permission list as a
+match expression over actions. Because the words of a command come from an open alphabet, the
+question is answered in one pass over the patterns. Four diagnoses of a list follow from
+polynomially many such questions (a rule is dead, a dead rule is masked, a live rule is
+redundant, an action is undecided), and so does the question whether two lists decide alike.
+Over a closed alphabet the first diagnosis is already coNP-complete. Compiling a list to a
+decision tree gives a canonical form, which can be exponentially large. For lists of prefix
+patterns it is small, and it gives the smallest list that decides the same, which is unique
+up to the order of rules that do not overlap. A script compares every analysis with brute
+force on \exLists{} random lists and \exActions{} actions, and it notices \exMutants{}
+deliberate mistakes.
+\end{abstract}
+
+\keywords{pattern matching, usefulness, exhaustiveness, decision trees, permissions, access control, agents}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+An agent acts through tools. It runs a command, reads a file, fetches a page. The program
+around the model, the harness, decides for each such action whether it happens. The usual
+means is a list of rules. A rule names a pattern of actions and a decision, and the decisions
+are three: the action is allowed, it is denied, or the user is asked. One rule may say that
+\tool{Bash}{git status} is allowed, another that \tool{Bash}{git push \rest} needs a
+question. When several rules match an action, one of them wins, and when none does, a default
+applies.
+
+These lists are written by people, and they are written over time. A question comes up too
+often, and somebody adds a permission. Something goes wrong, and somebody adds a denial.
+Nobody reads the list as a whole, and nothing tells its authors what the list as a whole
+decides. Two defects follow, and both are silent.
+
+The first is a rule that never fires. Suppose that the rules are read in the order in which
+they are written, that the list says early on that every \texttt{git} command needs a
+question, and that somebody later adds below it that a forced push is denied. The old rule
+matches every forced push first. The denial is in the file, it reads well in a review, and it
+decides nothing. Harnesses that read by the kind of decision have the mirror image of this
+defect. If a question beats a permission wherever the two stand, then a permission for
+\texttt{git status} beside a question for every \texttt{git} command permits nothing, and the
+user is asked each time. The second defect is an action that no rule matches. It gets the
+default, and the default was chosen for the harness as a whole, not for this action.
+
+Compilers have met both defects. A match expression is a list of clauses, each a pattern and
+a result, and the first clause that matches is taken. A clause that no value can reach is
+called useless, and a value that no clause matches shows that the match is not exhaustive.
+Compilers warn about both, and since the work of \citet{Maranget2007} the warnings rest on
+one question, usefulness: given some patterns and one more, is there a value that the one
+matches and none of the others? A clause is useless if the answer is no for the clauses
+before it. A match is not exhaustive if the answer is yes for the pattern that matches
+everything.
+
+This paper reads a permission list as a match expression over actions and asks what the
+reading gives. It gives more than the two warnings, for three reasons.
+
+\emph{The alphabet is open.} The values that a pattern of a programming language inspects are
+built from the constructors of a data type, and there are finitely many. The words of a
+command are not like that: any string can stand after \texttt{git}. This makes usefulness
+easier, not harder. Where a pattern allows any word, a word that no rule mentions is always
+the best choice, so the search never branches. One pass over the patterns answers the
+question (Theorem~\ref{thm:cost}). If the alphabet is closed, as it is for a field with a
+fixed set of options, the question is NP-complete, as it is for data types
+(Theorem~\ref{thm:closed}).
+
+\emph{Decisions repeat.} A match expression has a different result in every clause. A list
+has three decisions, so a rule can be reached and still change nothing, because the rules
+below it and the default decide the same for everything that it catches. Such a rule is
+redundant. A compiler has no word for it.
+
+\emph{Rules have an intent.} A useless clause is clutter. A dead rule may be a hole. The rule
+that denies a forced push wanted its actions denied, and they are asked about. We call a dead
+rule \emph{masked} if some action that it matches gets another decision than the rule's, and
+\emph{loosened} if it gets a less strict one. A loosened rule is what an operator needs to
+hear about first.
+
+The paper makes these contributions.
+\begin{itemize}
+\item A reading of permission lists as match expressions, for both orders in which harnesses
+  read rules, with a lemma that reduces every question about a list to finitely many actions
+  (Section~\ref{sec:lists}).
+\item Usefulness for the patterns of rules, in one pass when words are open and NP-complete
+  when they are closed (Section~\ref{sec:clauses}).
+\item Four diagnoses of a list and a test whether two lists decide alike, each with
+  polynomially many questions of usefulness, and an account of what reading by the kind of
+  decision does to the diagnoses (Section~\ref{sec:diagnoses}).
+\item A decision tree for a list, whose reduced form is canonical. It can be exponentially
+  large. For lists of prefix patterns it is small, and the unique smallest list is read off
+  from it (Section~\ref{sec:tree}).
+\item A script of about \exSize{} lines that implements all of it and compares each analysis
+  with brute force (Section~\ref{sec:experiments}).
+\end{itemize}
+
+The paper does not say which actions an agent should be allowed. It also does not look below
+the words of a command. A rule about the words \texttt{git push} is not a rule about pushing,
+and Section~\ref{sec:limits} says what follows from that. Earlier papers of this collection
+treat what an approval is \citep{tpp4}, where in a program to ask for one \citep{tpp17}, and
+how a policy that remembers what happened before is learned from the answers of a user
+\citep{tpp16}. This one treats the plain list, which is what harnesses have, once it is
+written.
+
+\section{A List That Rotted}\label{sec:example}
+
+Table~\ref{tab:example} shows a list of \exExampleRules{} rules. It is invented, but each of
+its defects is of a kind that the history of a real settings file produces. An action that no
+rule matches is asked about. The two columns on the right say what the analyses of this paper
+find, once for each of the two orders in which harnesses read such a list.
+
+\begin{table}
+\caption{A permission list and what the analyses of this paper say about each rule, if the
+rules are read in the order written and the first match decides, and if a denial beats a
+question and a question beats a permission wherever they stand. A pattern names a tool and
+the words of its argument; \texttt{*} stands for any words that follow and \texttt{\_} for
+any one word.}\label{tab:example}
+\begin{tabular}{rllll}
+\toprule
+ & pattern & decision & in the order written & by the kind of decision \\
+\midrule
+\rows{example}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{In the order written.} Rule~2 asks about every \texttt{git} command. Rule~3 was
+added later, after a forced push destroyed somebody's work, and it was added below rule~2. It
+is dead: rule~2 matches every forced push before rule~3 is looked at. The author wanted a
+denial and got a question, which an agent that runs with its questions answered in advance
+will pass. Rule~11 is the same mistake with a worse outcome. Rule~10 allows reading
+everything under \texttt{src}, the denial for the secrets below it never fires, and the
+secrets are read without a question. Rule~6 and the last rule are dead as well, but
+harmlessly: rule~6 repeats rule~4, and the last rule asks where rule~2 already asks. Rules~5
+and~8 are alive and change nothing. They ask, and without them the default would ask.
+
+\claim{example}{The analyses report exactly this. Rules 3, 6 and 11 and the last rule are
+dead. Rules 3 and 11 are masked, and both are loosened. Rules 5 and 8 are redundant, and both
+tools have undecided actions. A forced push is asked about, and a secret is read. The
+\exExampleBash{} rules for \texttt{Bash} decide like a list of \exExampleShort{}.} The four
+are \tool{Bash}{git status}, \tool{Bash}{npm test} and \tool{Bash}{ls \rest}, which allow,
+and \tool{Bash}{rm -rf \rest}, which denies. Everything else that the ten rules say is what
+the default says. A reader of the four sees at once that no rule mentions a push. A reader of
+the ten does not.
+
+\paragraph{By the kind of decision.} Now let every denial beat every question, and every
+question beat every permission. The two denials fire, and the holes are closed. Other rules
+die instead. Rule~1 allows \texttt{git status}, and the question of rule~2 beats it. Rules~4
+and~6 allow \texttt{npm test}, and the question of rule~5 beats them. The user is asked about
+both commands every time, and the file says that they are allowed. Rule~5, which changed
+nothing before, now decides that \texttt{npm test} is asked about.
+
+\claim{example-classes}{Read in this way, rules 1, 4 and 6 and the last rule are dead, and
+the first three of them are masked. No rule is loosened. Rule~8 alone is redundant. A forced
+push and the reading of a secret are denied, and \texttt{git status} and \texttt{npm test}
+are asked about.}
+
+Neither order is free of dead rules. The first kills denials, which is dangerous. The second
+kills permissions, which is costly, because a user who is asked about what is allowed learns
+to answer without reading.
+
+\section{Lists}\label{sec:lists}
+
+We fix a set of \emph{tools} and a set $\mathcal{W}$ of \emph{words}. The set of words is
+infinite: it holds every string that can stand in a command or a path. An \emph{action}
+$t(w_1 \ldots w_n)$ is a tool $t$ and a sequence of $n \ge 0$ words. For a shell command the
+words are the words of the command, and for a file they are the parts of its path.
+
+A \emph{pattern} $t(\pi_1 \ldots \pi_k)$ or $t(\pi_1 \ldots \pi_k\,\rest)$ is a tool and a
+sequence of $k \ge 0$ \emph{items}, each a word or the wildcard~\any, and it may end
+in~\rest. The pattern $t(\pi_1 \ldots \pi_k)$ matches the action $t(w_1 \ldots w_n)$ if $n =
+k$ and every item $\pi_i$ is $w_i$ or \any. The pattern $t(\pi_1 \ldots \pi_k\,\rest)$
+matches it if $n \ge k$ and the same holds for the first $k$ words. We write $\lang{p}$ for
+the set of actions that $p$ matches and $|p|$ for its number of items, and we say that $p$
+\emph{has a rest} if it ends in~\rest. Every pattern matches some action. A \emph{prefix
+pattern} is a pattern without a wildcard.
+
+A \emph{rule} is a pattern and a \emph{decision}, one of $\kw{allow}$, $\kw{ask}$ and
+$\kw{deny}$. We order the decisions by strictness, $\kw{allow} < \kw{ask} < \kw{deny}$. A
+\emph{list} $L$ is a sequence of rules $(p_1, d_1), \ldots, (p_n, d_n)$ and a default
+decision $d_0$. It decides an action $a$ by the first rule that matches:
+\[
+  \dec(L, a) \;=\; d_i \quad\text{for the least $i$ with } a \in \lang{p_i},
+  \qquad\text{and } d_0 \text{ if there is none.}
+\]
+The actions that reach rule $i$ are $\reach(i) = \lang{p_i} \setminus \bigcup_{j < i}
+\lang{p_j}$.
+
+\paragraph{Two orders.} Harnesses differ in which of several matching rules wins. Some read
+the rules in the order in which they are written, as a match expression and a firewall do.
+Others go by the kind of decision: a denial beats a question, and a question beats a
+permission, wherever the rules stand and however specific they are. Claude Code documents
+the second order \citep{claudecodepermissions}. It is the first order applied to another
+list, the one that has been sorted by decision, the strictest first, with a stable sort. We
+call that list the list \emph{in the order of classes}. Everything below is said about lists
+read by the first match and so applies to both, and Section~\ref{sec:diagnoses} says what the
+sorting changes.
+
+\paragraph{Finitely many actions are enough.} A list is a statement about infinitely many
+actions. The following lemma makes it a statement about finitely many, which is what lets a
+script check the rest of the paper by brute force.
+
+\begin{lemma}[A finite test set]\label{lem:finite}
+Let $P$ be a finite set of patterns, $W$ the set of words that occur in them, $m$ the
+greatest number of items of a pattern of $P$, and $\fresh$ a word that is not in $W$. For an
+action $a = t(w_1 \ldots w_n)$ let $\bar{a} = t(w'_1 \ldots w'_{n'})$ with $n' = \min(n, m +
+1)$, and $w'_i = w_i$ if $w_i \in W$ and $w'_i = \fresh$ otherwise. Then every pattern of $P$
+matches $a$ exactly if it matches $\bar{a}$.
+\end{lemma}
+
+\begin{proof}
+Let $p \in P$ have $k \le m$ items. An item that is a word is in $W$, so it equals $w_i$
+exactly if it equals $w'_i$, and a wildcard matches both. It remains to compare the lengths.
+If $p$ has a rest, it needs $n \ge k$, and $\min(n, m + 1) \ge k$ says the same because $k <
+m + 1$. If it has none, it needs $n = k$, and $\min(n, m + 1) = k$ says the same for the same
+reason.
+\end{proof}
+
+So two lists that agree on all actions with at most $m + 1$ words over $W \cup \{\fresh\}$
+agree on all actions of the tools that they mention, where $W$ and $m$ are taken over the
+patterns of both. On every other tool they agree exactly if their defaults are equal.
+
+\section{Clauses}\label{sec:clauses}
+
+Read a list as a match expression. The value that is matched is the action, a rule is a
+clause, its pattern is the pattern of the clause, and its decision is the result. The tool is
+a constructor at the head, and the words form a list, which a pattern takes apart from the
+left: a word item is a literal, \any{} is the wildcard for one element, an end without a rest
+is the pattern for the empty list, and \rest{} is the wildcard for the remaining list.
+
+\subsection{Usefulness}
+
+Let $P$ be a sequence of patterns, the \emph{rows}, and $q$ a pattern. We say that $q$ is
+\emph{useful} against $P$ if some action is matched by $q$ and by no row, and we call such an
+action a \emph{witness}. Rows for another tool than that of $q$ match no action that $q$
+matches, so we drop them and the tool, and we write a row as its items $r_1 \ldots r_k$.
+
+The function $\U_i(R, q)$ decides usefulness after $i$ words have been chosen. Its argument
+$R$ is the set of rows that can still match: the rows with at least $i$ items whose first $i$
+items match the chosen words. It returns a witness or $\bot$, and it is defined by cases, of
+which the first that applies is taken.
+\begin{enumerate}
+\item If some row of $R$ has exactly $i$ items and a rest, the result is $\bot$.
+\item If $i \ge |q|$ and no row of $R$ has exactly $i$ items, the result is the action of
+  the $i$ chosen words.
+\item If $i \ge |q|$ and $q$ has no rest, the result is $\bot$.
+\item If $i \ge |q|$, or if $q_{i+1}$ is the wildcard, the next word is $\fresh$, a word that
+  occurs in no pattern, and the result is $\U_{i+1}(\{r \in R : |r| > i \text{ and } r_{i+1}
+  = \any\},\, q)$.
+\item Otherwise $q_{i+1}$ is a word $s$, the next word is $s$, and the result is
+  $\U_{i+1}(\{r \in R : |r| > i \text{ and } r_{i+1} \in \{s, \any\}\},\, q)$.
+\end{enumerate}
+We write $\U(P, q)$ for $\U_0(R, q)$, where $R$ is the set of rows of $P$ for the tool of
+$q$.
+
+In case~1 a row has matched all its items and takes whatever follows, so nothing is left for
+$q$. In case~2 the action may end here, and no row wants an action that ends here. In case~3
+the action must end here, because $q$ says so, and some row wants it. Cases~4 and~5 read one
+more word.
+
+\begin{theorem}[Usefulness]\label{thm:useful}
+$\U(P, q)$ returns a witness if $q$ is useful against $P$, and $\bot$ if it is not.
+\end{theorem}
+
+\begin{proof}
+The computation ends, because a row leaves $R$ at the latest when $i$ exceeds its number of
+items, and with no rows left and $i \ge |q|$ case~2 applies.
+
+Fix $i$ chosen words, and let $A$ be the set of actions that begin with them and that $q$
+matches. We show the following by induction on the number of steps that are left. Suppose
+that $A$ is not empty and that $R$ is the set of all rows that match some action beginning
+with the chosen words, each of them with at least $i$ items. Then $\U_i(R, q)$ returns an
+element of $A$ that no row matches if there is one, and $\bot$ otherwise. At the start this
+is the theorem: no words are chosen, $A$ is $\lang{q}$, and every row matches some action.
+
+In case~1 the row matches every action that begins with the chosen words. In case~2 the
+action of the chosen words is in $A$: the set $A$ is not empty, so $q$ matches the chosen
+words on its first $|q|$ items, and it has a rest if $i > |q|$. A row that matches this
+action is in $R$ and has exactly $i$ items, and there is none. In case~3 that action is the
+only element of $A$, and a row of $R$ with exactly $i$ items matches it.
+
+In cases~4 and~5 the action of the chosen words is not in $A$, or it is matched by a row as
+in case~3. So a witness has at least one more word. A row that matches an action with more
+than $i$ words has more than $i$ items, because the rows of $R$ with exactly $i$ items have
+no rest. In case~5 the next word of every action of $A$ is $s$, and the rows that match some
+action beginning with the longer sequence are those named. In case~4 the next word can be any
+word. Suppose that a witness $a$ has the word $w$ there, and let $a'$ be $a$ with $\fresh$ in
+place of $w$. Then $q$ matches $a'$, because $q$ has a wildcard or a rest at this place. A
+row that matches $a'$ has a wildcard at this place, because $\fresh$ occurs in no pattern, so
+it matches $a$ too, and there is no such row. So $a'$ is a witness as well, and it is enough
+to look for witnesses that continue with $\fresh$. The rows that match some action beginning
+with the chosen words and $\fresh$ are those named. In both cases the longer sequence
+satisfies the suppositions, and the induction hypothesis gives the claim.
+\end{proof}
+
+The step from $a$ to $a'$ is the whole difference to data types. For a type with finitely
+many constructors there is no fresh one, and the search must try them all.
+\citet{Maranget2007} makes the same step for a signature that the patterns do not exhaust.
+Here that is always so.
+
+\begin{theorem}[One pass]\label{thm:cost}
+$\U(P, q)$ takes time linear in the size of $P$ and $q$, counted in items.
+\end{theorem}
+
+\begin{proof}
+There is one step for every position, up to one more than the longest row and $|q|$. In a
+step each row of $R$ is looked at once, and a row with $k$ items is in $R$ for at most $k +
+1$ steps.
+\end{proof}
+
+\subsection{The Meet of Two Patterns}
+
+The diagnoses of Section~\ref{sec:diagnoses} ask about actions that two rules both match.
+These actions are again the actions of a pattern. Let $p$ and $q$ be patterns for the same
+tool with $|p| \le |q|$. Their \emph{meet} $p \meet q$ is undefined if at some position both
+have a word and the words differ, or if $|p| < |q|$ and $p$ has no rest. Otherwise it has the
+items of $q$, with the word of $p$ wherever $q$ has a wildcard and $p$ has a word, and it has
+a rest if both have one. Patterns for different tools have no meet.
+
+\begin{lemma}[Meet]\label{lem:meet}
+If $p \meet q$ is defined, then $\lang{p \meet q} = \lang{p} \cap \lang{q}$. If it is not,
+the intersection is empty.
+\end{lemma}
+
+\begin{proof}
+An action that both match has the word of either pattern wherever one of them has a word, so
+two different words exclude it. Its length is $|p|$ if $p$ has no rest, which $q$ accepts
+only if $|q| = |p|$. Conversely, an action with the words of both and a length that both
+accept is matched by both, and these are the conditions that $p \meet q$ imposes.
+\end{proof}
+
+\subsection{A Closed Alphabet}
+
+Not every field of an action is open. A tool may take options from a fixed set, such as a
+sandbox that is on or off. Suppose that the words come from a finite set that is given with
+the list. Then Lemma~\ref{lem:finite} holds without the fresh word, and usefulness is still
+decidable, by trying every word in case~4. The single pass is lost for good.
+
+\begin{theorem}[Closed alphabets]\label{thm:closed}
+If the words come from a given set of two words, it is coNP-complete to decide whether a rule
+of a list is dead, that is, whether no action reaches it.
+\end{theorem}
+
+\begin{proof}
+A rule that is not dead has a witness with at most one word more than the longest pattern, by
+the argument of Lemma~\ref{lem:finite}, and a witness is checked in polynomial time. So it is
+in NP to decide that a rule is not dead.
+
+For the hardness, take a formula in conjunctive normal form with variables $x_1, \ldots,
+x_n$, in which no clause contains a variable and its negation, and let the words be
+$\texttt{t}$ and $\texttt{f}$. An assignment is an action of $n$ words. For every clause of
+the formula the list has a rule whose pattern has $n$ items and no rest: the item at position
+$j$ is $\texttt{f}$ if the clause contains $x_j$, it is $\texttt{t}$ if the clause contains
+the negation of $x_j$, and it is the wildcard otherwise. This pattern matches exactly the
+assignments that make the clause false. The last rule of the list has $n$ wildcards and no
+rest. An action reaches it exactly if it is an assignment that makes no clause false. So the
+last rule is dead exactly if the formula cannot be satisfied, and satisfiability is
+NP-complete \citep{Cook1971}.
+\end{proof}
+
+With an open alphabet the same list is harmless. The action of $n$ fresh words reaches the
+last rule, whatever the formula is.
+
+\section{Four Diagnoses}\label{sec:diagnoses}
+
+Let $L$ be a list with rules $(p_1, d_1), \ldots, (p_n, d_n)$ and default $d_0$. We write
+$P_{<i}$ for the patterns of the rules before rule $i$, and $P \setminus i$ for a sequence of
+patterns without that of rule $i$.
+
+\begin{itemize}
+\item Rule $i$ is \emph{dead} if $\reach(i)$ is empty, and \emph{alive} otherwise.
+\item A dead rule $i$ is \emph{masked} if $\dec(L, a) \ne d_i$ for some $a \in \lang{p_i}$,
+  and \emph{loosened} if $\dec(L, a) < d_i$ for some such $a$.
+\item A live rule $i$ is \emph{redundant} if the list without it decides every action as $L$
+  does.
+\item An action is \emph{undecided} if no rule matches it.
+\end{itemize}
+
+A dead rule that is not masked repeats what the rules above it say. A masked rule contradicts
+them and loses. A loosened rule loses to a weaker decision: it asked for a denial where the
+list asks or allows, or for a question where the list allows. The opposite mask, a permission
+that never permits, costs the user a question or the agent an action. A loosened rule costs
+the protection that its author believes in.
+
+\begin{theorem}[The diagnoses]\label{thm:diagnoses}
+For a list with $n$ rules:
+\begin{enumerate}
+\item Rule $i$ is dead exactly if $\U(P_{<i}, p_i) = \bot$.
+\item For $j < i$, some action that $p_i$ matches is decided by rule $j$ exactly if $p_i
+  \meet p_j$ is defined and useful against $P_{<j}$. So a dead rule $i$ is masked exactly if
+  this holds for some $j < i$ with $d_j \ne d_i$, and loosened exactly if it holds for some
+  $j < i$ with $d_j < d_i$.
+\item A live rule $i$ is redundant exactly if neither of the following holds: $d_0 \ne d_i$
+  and $p_i$ is useful against $P \setminus i$; or there is a $k > i$ with $d_k \ne d_i$ such
+  that $p_i \meet p_k$ is defined and useful against $P_{<k} \setminus i$.
+\item A tool $t$ has an undecided action exactly if $t(\rest)$ is useful against the patterns
+  of $L$.
+\end{enumerate}
+All four are decided with $O(n^2)$ questions of usefulness.
+\end{theorem}
+
+\begin{proof}
+Parts~1 and~4 restate the definitions. For part~2, the actions that $p_i$ and $p_j$ both
+match are those of $p_i \meet p_j$ by Lemma~\ref{lem:meet}, and rule $j$ decides such an
+action exactly if no rule before $j$ matches it. An action of a dead rule is decided by an
+earlier rule, the first that matches it, which gives the rest of part~2.
+
+For part~3, removing rule $i$ changes the decision only of actions in $\reach(i)$. Such an
+action is then decided by the first later rule that matches it, or by the default. It goes to
+the default exactly if no other rule matches it, and an action with this property exists
+exactly if $p_i$ is useful against $P \setminus i$. It goes to rule $k > i$ exactly if it is
+in $\lang{p_i \meet p_k}$ and no rule before $k$ other than $i$ matches it. The rule is
+redundant exactly if no action of $\reach(i)$ gets another decision than $d_i$ in this way.
+\end{proof}
+
+Part~4 says whether a tool has undecided actions and gives one. Section~\ref{sec:tree}
+describes all of them.
+
+\begin{remark}[Exceptions]
+A live rule can lose some of its actions to an earlier rule with another decision, by the
+question of part~2. We do not call that a defect. It is how an exception is written: a
+permission for \texttt{git status} above a question for every \texttt{git} command takes one
+command out of the question, on purpose. A dead rule is an exception to nothing. Part~2 can
+still be asked for a live denial, and its witnesses then list what the denial does not deny.
+\end{remark}
+
+\paragraph{What the order of classes does.} Sorting a list by decision is a policy about
+masks.
+
+\begin{proposition}[Classes]\label{prop:classes}
+In a list in the order of classes no rule is loosened.
+\end{proposition}
+
+\begin{proof}
+A rule before rule $i$ has a decision that is at least as strict as $d_i$. An action that
+$p_i$ matches and that does not reach rule $i$ is decided by such a rule.
+\end{proof}
+
+So the order of classes removes the dangerous defect by construction, and the forced push of
+Section~\ref{sec:example} is denied under it. It pays in two ways. Rules still die, and the
+ones that die are permissions and questions: a permission inside a region that is asked about
+or denied permits nothing, and its author is not told. And an exception to a denial cannot be
+written at all, because the denial of the larger region wins wherever the exception stands.
+The diagnoses apply to the sorted list as they are, and Section~\ref{sec:experiments} counts
+how many permissions of a random list survive the sorting.
+
+\paragraph{Two lists.} The same questions decide whether a change to a list changes what it
+decides.
+
+\begin{theorem}[Equivalence]\label{thm:equivalence}
+Let $L$ and $L'$ be lists with rules $(p_i, d_i)$ and $(p'_j, d'_j)$, defaults $d_0$ and
+$d'_0$, and patterns $P$ and $P'$. Some action is decided differently by the two exactly if
+one of the following is useful:
+\begin{enumerate}
+\item $p_i \meet p'_j$ against $P_{<i}$ and $P'_{<j}$ together, for some $i$ and $j$ with
+  $d_i \ne d'_j$;
+\item $p_i$ against $P_{<i}$ and all of $P'$, for some $i$ with $d_i \ne d'_0$, or the same
+  with the two lists exchanged;
+\item $t(\rest)$ against $P$ and $P'$ together, for some tool $t$, if $d_0 \ne d'_0$.
+\end{enumerate}
+Every witness is an action on which the lists differ. So whether two lists with $n$ and $n'$
+rules decide alike is decided with $O(n\,n')$ questions of usefulness.
+\end{theorem}
+
+\begin{proof}
+An action is decided in each list by its first matching rule or by the default. The three
+cases are the three ways in which the two outcomes can be a rule and a rule, a rule and a
+default, and two defaults, and in each the question describes the actions with this pair of
+outcomes, by Lemma~\ref{lem:meet} and the definition of usefulness.
+\end{proof}
+
+Part~3 of Theorem~\ref{thm:diagnoses} is the case in which $L'$ is $L$ without one rule.
+
+\section{One Tree for Every Question}\label{sec:tree}
+
+The questions of Section~\ref{sec:diagnoses} are asked rule by rule. A compiler does not
+answer a match expression clause by clause. It compiles the clauses to a decision tree that
+inspects every part of the value once \citep{Augustsson1985,Maranget2008}. The tree of a
+permission list is an object of its own interest, because it shows what the list decides
+without showing how the list was written.
+
+\subsection{The Tree of a List}
+
+Fix a tool. A node of the tree stands for a sequence of words that has been read. It is built
+from a set of \emph{rows}, the rules for the tool that match these words on their first
+items, and from a \emph{floor}, the first rule that has matched all its items and has a rest.
+A rule after the floor decides nothing below the node, so the rows are only the rules before
+the floor. The node has three parts:
+\begin{itemize}
+\item the rule that decides if the action \emph{ends here}: the first among the floor and the
+  rows with exactly as many items as words have been read, or no rule;
+\item a child for every word that some row has as its next item, built from the rows whose
+  next item is that word or the wildcard;
+\item a child for \emph{every other word}, built from the rows whose next item is the
+  wildcard.
+\end{itemize}
+A node without rows that have a next item is a \emph{leaf} if the floor also decides for the
+end. A leaf names the floor, or no rule, for everything that begins with the words read. The
+root is built from all rules for the tool, with no words read and no floor. The tree of a
+tool that the list does not mention is the leaf of no rule.
+
+\begin{theorem}[The tree]\label{thm:tree}
+Following an action through the tree of its tool, by the child for its next word if there is
+one and by the child for other words if not, ends at the rule that decides the action, or at
+no rule if the action is undecided. The rules that occur in the trees of a list are its live
+rules.
+\end{theorem}
+
+\begin{proof}
+By induction along the walk, the rows of a node are the rules before the floor that match the
+words read so far on their first items, and the floor is the first rule that matches every
+action beginning with these words by having a rest. The first rule that matches the action is
+the first among the floor and the rows that match all of it. When the action ends, these rows
+are the ones with exactly as many items as the action has words, because a row with fewer
+items and a rest would be the floor or come after it. So the walk ends at the first matching
+rule. Every rule in a tree is reached by the action that leads to it, read with fresh words
+on the edges for other words, and conversely the walk of a witness of a live rule ends at
+that rule.
+\end{proof}
+
+For a list of prefix patterns the tree has at most one node for every prefix of a pattern,
+and one leaf below each, so it is linear in the size of the list.
+
+\subsection{A Canonical Form}
+
+Two trees can differ and decide alike: they name different rules for the same decision, and
+they can have a child for a word under which the same happens as under every other word. The
+\emph{reduced tree} removes both. It has decisions in place of rules, with the default where
+no rule decides. It is built from the leaves up. A child for a word is dropped if its reduced
+tree equals that of the child for other words. A node that has no child for a word left, and
+whose child for other words is a leaf with the node's own decision for the end, is replaced
+by that leaf.
+
+\begin{theorem}[Canonical form]\label{thm:canonical}
+Two lists decide every action alike exactly if, for every tool, their reduced trees are
+equal.
+\end{theorem}
+
+\begin{proof}
+Equal trees decide alike by Theorem~\ref{thm:tree}, since the reduction does not change the
+decision at which a walk ends. For the converse, call a tree with decisions \emph{reduced} if
+no child for a word equals the child for other words beside it, and no node could be replaced
+by a leaf as above. We show that two reduced trees that represent the same function $f$ from
+sequences of words to decisions are equal, by induction on the size of the two together.
+
+For a word $z$ let $f_z$ be the function that maps $u$ to $f(z\,u)$. In a node, all words
+without a child have the same $f_z$, and these are all words but finitely many. Because the
+alphabet is infinite, at most one function $g$ equals $f_z$ for all but finitely many $z$, so
+$g$ is determined by $f$, and the child for other words represents it.
+
+Suppose that one tree is a leaf, so that $f$ is constant, and the other is a node. The
+children of the node represent the same constant function, so by induction all of them equal
+the leaf. Then the node has no child for a word, since such a child would equal the child for
+other words, and it could be replaced by the leaf, which contradicts that the tree is
+reduced. So if one tree is a leaf, both are, and they are equal. Now let both be nodes. Their
+decisions for the end are both $f$ of the empty sequence. Their children for other words both
+represent $g$ and are equal by induction. A word $z$ without a child has $f_z = g$. A word
+with a child has $f_z \ne g$, because the child differs from the child for other words, and by
+induction two reduced trees that differ represent different functions. So both nodes have
+children for the same words, the words with $f_z \ne g$, and the two children for a word
+represent the same function and are equal by induction.
+\end{proof}
+
+The proof uses the open alphabet once more. Over a closed alphabet there is no child for
+other words to compare with, and a canonical form needs a fixed order of the words, as the
+decision diagrams of \citet{Bryant1986} need a fixed order of the variables.
+
+The reduced tree answers what Theorem~\ref{thm:diagnoses} left open. If ``no rule'' is kept
+as a fourth decision, the paths that end there describe all undecided actions of a tool, each
+as a sequence of words, with the words that are excluded where the path takes a child for
+other words. A change to a list changes what it decides exactly if it changes a reduced tree,
+and the subtrees that differ are the actions whose decision changed. This is the
+change-impact analysis of \citet{Fisler2005} for this kind of policy.
+
+\paragraph{The price.} A canonical form is not free. Take $n$ rules, each with $2n$ items
+and no rest, where rule $j$ has the word \texttt{a} at the places $j$ and $n + j$ and
+wildcards elsewhere. All of them allow, and the default denies. After $n$ words the tree must
+know at which of the first $n$ places an \texttt{a} stood, because every such set of places
+allows other continuations. So among the first $n$ levels no child for \texttt{a} equals the
+child beside it, and the reduced tree has at least $2^n$ nodes. \claim{blowup}{The script
+builds these trees for $n$ up to \exBlowupLargest{}. The largest has \exBlowupNodes{} nodes,
+where $2^n$ is \exBlowupPower{}, and each tree has more than twice the nodes of the one
+before. The questions of Theorems~\ref{thm:diagnoses} and~\ref{thm:equivalence} answer for
+the same lists without a tree: no rule is dead or redundant, the list read backwards decides
+alike, and the list without its first rule does not.} Decision trees for the patterns of
+programming languages have the same property \citep{Sekar1995}. So the tree is the right
+means for showing a list and for comparing many lists with one, and the questions of
+Section~\ref{sec:diagnoses} are the right means for a single answer.
+
+\subsection{The Smallest List of Prefix Patterns}
+
+For prefix patterns the reduced tree is small, and it is close to a list already. No rule has
+a wildcard, so the child for other words is built from no rows and is a leaf. Call its
+decision the decision \emph{below} the node, and for a leaf call its own decision the
+decision below it. The \emph{normal form} of a list of prefix patterns has, for every node of
+the reduced tree with prefix $w$ and tool $t$,
+\begin{itemize}
+\item the rule $t(w\,\rest)$ with the decision below the node, if that differs from the
+  decision below the parent, or from the default at the root; and
+\item the rule $t(w)$ with the node's decision for the end, if that differs from the decision
+  below the node.
+\end{itemize}
+A rule for a longer prefix stands before a rule for a shorter one, and $t(w)$ before
+$t(w\,\rest)$.
+
+\begin{theorem}[Normal form]\label{thm:normal}
+Let $L$ be a list of prefix patterns and $N$ its normal form.
+\begin{enumerate}
+\item $N$ decides like $L$.
+\item Every list of prefix patterns that decides like $L$ contains every pattern of $N$.
+\item So no list of prefix patterns that decides like $L$ has fewer rules than $N$. One with
+  as many has the rules of $N$, and its order differs from that of $N$ only between rules
+  that match no common action.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Part 1.} Call a node \emph{marked} if $N$ has a rule $t(w\,\rest)$ for it. Going up
+from a node to the nearest marked node at or above it, the decision below does not change, by
+the definition of a mark, and if there is no marked node it is the default. Let $t(u)$ be an
+action, and let $w$ be the longest prefix of $u$ that has a node. The rules of $N$ that match
+the action are $t(u)$ itself, if it is a rule, and the rules $t(v\,\rest)$ of the marked
+nodes at or above the node of $w$, the nearest of them first. If $u$ is longer than $w$, or
+the node of $w$ is a leaf, the tree says the decision below that node, and so does the first
+matching rule, or the default if there is none. If $u$ is $w$, the tree says the node's
+decision for the end. If that differs from the decision below, $t(w)$ is a rule, stands
+first, and says it. If not, the case is as before.
+
+\emph{Part 2.} Let $L'$ be a list of prefix patterns that decides like $L$, and let $z$ be a
+word that occurs in neither list. Because $z$ occurs in no pattern, the patterns of $L'$ that
+match an action $t(u\,z)$ are those of the form $t(v\,\rest)$ with $v$ a prefix of $u$.
+Consider a rule $t(w\,\rest)$ of $N$. If $w$ is empty, the action $t(z)$ gets the decision
+below the root, which is not the default, and only $t(\rest)$ can match it, so $t(\rest)$ is
+in $L'$. Otherwise $w$ is $v\,s$ for a word $s$. The action $t(w\,z)$ gets the decision below
+the node of $w$, and $t(v\,z)$ gets the decision below its parent, and these differ. If
+$t(w\,\rest)$ were not in $L'$, the same patterns of $L'$ would match both actions, the first
+of them would decide both, and the two would get the same decision. Now consider a rule
+$t(w)$ of $N$. The actions $t(w)$ and $t(w\,z)$ get different decisions. The patterns of $L'$
+that match $t(w\,z)$ match $t(w)$ as well, and the only other pattern that can match $t(w)$
+is $t(w)$ itself. If it were not in $L'$, both actions would get the same decision.
+
+\emph{Part 3.} The patterns of $N$ are different from one another, so by part~2 a list $L'$
+that decides like $L$ has at least as many rules, and one with as many has exactly the
+patterns of $N$. No rule of such a list is dead, since the list without a dead rule would
+decide alike with fewer rules. So $t(w)$ stands before every $t(v\,\rest)$ with $v$ a prefix
+of $w$, and $t(w\,\rest)$ before every $t(v\,\rest)$ with $v$ a shorter prefix of $w$,
+because in the other order the first would be dead. These are all the pairs of patterns that
+match a common action, and $N$ has them in the same order. Then $t(w)$ decides the action
+$t(w)$ and $t(w\,\rest)$ decides $t(w\,z)$ in both lists, so the decisions of the rules are
+those of $N$.
+\end{proof}
+
+A smallest list is thus not found by search. It is forced, and it is forced by the open
+alphabet: the word $z$ that no rule mentions pins every pattern down. For routing tables,
+whose alphabet has two letters, the decision that a prefix carries is a choice, and the
+smallest table needs the algorithm of \citet{Draves1999}, which carries sets of candidates up
+the tree. The normal form is also what a list should look like after a cleanup. It has no
+dead and no redundant rule, and two lists of prefix patterns decide alike exactly if their
+normal forms are the same list up to the order of rules that do not overlap. For lists with
+wildcards we know no such form, and we do not know how hard the smallest list is to find.
+
+\section{Experiments}\label{sec:experiments}
+
+The script \texttt{rules.py} implements Sections~\ref{sec:lists} to~\ref{sec:tree}. It trusts
+one function, the one that says whether a pattern matches an action, and compares everything
+else with it by brute force over the actions of Lemma~\ref{lem:finite}. It needs nothing but
+Python, and \texttt{make -C artifact check} runs it and compares its output with the numbers
+in this paper.
+
+\paragraph{Against brute force.} The script draws \exLists{} random lists of two to eight
+rules, \exRules{} rules in all. A pattern follows a path through a small tree of commands
+(\texttt{git push origin main}, \texttt{npm test}, \texttt{rm -rf} and the like), stops after
+one to four words, has a wildcard in place of a word with some probability, and has a rest
+more often than not. \claim{force}{For every list the script tries every action of the finite
+test set, \exActions{} in all, and finds that usefulness with its witness, the meet, the four
+diagnoses with the loosened rules, the tree, and both tests of equivalence agree with what
+the definitions say. Of the rules, \exDead{} are dead, \exMasked{} of them masked and
+\exLoose{} of those loosened, and \exRedundant{} are redundant. Each list is compared with
+every list that lacks one of its rules: the two decide alike for \exSpare{} rules, the dead
+and the redundant ones, and differently for \exNeeded{}. Each list is also compared with a
+second random list, and they decide alike in \exAlike{} cases.} The high share of dead rules
+says something about the generator, which draws from few commands, and nothing about real
+lists.
+
+\paragraph{The normal form.} \claim{normal}{For \exPrefix{} random lists of prefix patterns,
+the normal form decides like the list, is its own normal form, has no pattern that the list
+has not, and has \exSaved{} percent fewer rules in total. For \exTiny{} lists with at most
+three rules in normal form, a search over lists of prefix patterns with fewer rules finds
+none that decides alike.} The search is over every sequence of rules whose patterns use the
+words and lengths of the list, and it is feasible only for the smallest cases.
+
+\paragraph{Lists that grow.} How fast does a list rot? The script writes lists of four to
+\exGrowthLargest{} rules, each rule drawn as above without wildcards, \exGrowthRuns{} lists
+of each length, with a default that asks. Because the rules are drawn independently, it makes
+no difference to the list as a whole whether a new rule is put last, as by an author who
+appends to a file, or first, as by an author who wants the new rule to win. It makes a
+difference to the new rule. Put last, it can be dead on arrival. Put first, it is alive, and
+it can kill rules that were alive before. Table~\ref{tab:growth} shows both.
+
+\begin{table}
+\caption{Lists written one random rule at a time. Left: the percentage of rules with each
+diagnosis, and the percentage of lists with no dead and no redundant rule. Right: the
+percentage of lists in which the rule that was put last is dead, or dead and loosened, and
+the mean number of live rules that the rule that was put first kills.}\label{tab:growth}
+\begin{tabular}{r@{\qquad}rrrrr@{\qquad}rr@{\qquad}r}
+\toprule
+ & \multicolumn{4}{c}{rules} & lists & \multicolumn{2}{c}{the last rule} & the first \\
+\cmidrule(r){2-5}\cmidrule(lr){7-8}
+rules & dead & masked & loosened & redundant & clean & dead & loosened & kills \\
+\midrule
+\rows{growth}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{growth}{The shares of dead, of masked and of loosened rules grow with the length of
+the list, and more than half of the dead rules are masked at every length. At
+\exGrowthLargest{} rules \exGrowthDead{} percent of the rules are dead and no list is clean.
+A rule that is put last is dead on arrival in \exGrowthArrivalSmall{} percent of the lists of
+four rules and in \exGrowthArrival{} percent of the lists of \exGrowthLargest{}, and in
+\exGrowthArrivalLoose{} percent of the lists of that length it is loosened as well. A rule that is put first kills more
+rules the longer the list is, \exGrowthKilled{} on average at that length.} Of the lists of
+four rules, \exGrowthSmallClean{} percent are clean. These numbers come from random rules
+over a dozen commands and are far above what a careful author produces. The direction is
+what carries over. A rule that is added without looking at the list is more likely to be dead
+the longer the list is, and the author who appends loses the rule that was just meant to
+change something.
+
+\paragraph{The order of classes.} \claim{classes}{The script sorts \exClassLists{} random
+lists of eight rules by decision. No rule of a sorted list is loosened, as
+Proposition~\ref{prop:classes} says, and \exClassNever{} percent of the permissions are
+dead.} Again the share is a property of the generator. The point is that the order of classes
+moves the defect from denials to permissions and does not remove it.
+
+\paragraph{A closed alphabet.} \claim{closed}{For \exFormulas{} random formulas with three
+to seven variables, of which \exUnsat{} cannot be satisfied, the last rule of the list of
+Theorem~\ref{thm:closed} is dead exactly for those when the words are \texttt{t} and
+\texttt{f} only, and it is never dead when the alphabet is open.}
+
+\paragraph{Planted mistakes.} A check that never fails checks nothing. The script has
+\exMutants{} switches, each of which plants one mistake in an analysis: usefulness that lets
+a row that ends take what follows, that forgets a row with a rest, or that keeps the rows
+that ask for a known word where a fresh one is chosen; a meet that ignores lengths;
+redundancy that forgets the default; a test of equivalence that forgets the rules of the
+second list that the first leaves to its default; a tree whose floor is the last rule instead
+of the first; a reduction that keeps every child; a normal form without rules for a prefix
+alone. \claim{all-noticed}{Each of them is noticed by a comparison that fails.}
+
+\section{Related Work}\label{sec:related}
+
+\paragraph{Pattern matching.} The warnings of compilers for useless clauses and missing cases
+are as old as pattern matching. \citet{Maranget2007} gives the algorithm on which this paper
+rests and proves it correct, and \citet{Karachalias2015} extend the question to guards and
+indexed types. Compilation to decision trees goes back to \citet{Augustsson1985}, and
+\citet{Maranget2008} studies how to keep the trees small. \citet{Sekar1995} show that such
+trees can be exponential and that the order of inspection matters. The reduction of
+Theorem~\ref{thm:closed} is the standard one for patterns over a finite signature. What is
+new here is the object, and with it the open alphabet, which turns the hard question into an
+easy one and forces the smallest list, and the diagnoses that a match expression has no use
+for. A clause of a program is not redundant, because clauses have different results, and it
+has no intent that a mask could defeat.
+
+\paragraph{Firewalls and access control.} Lists of rules with a first match decide which
+packets pass a firewall, and their defects have been classified. \citet{AlShaer2004} define
+shadowing, correlation, generalization and redundancy for pairs of rules, and
+\citet{Yuan2006} check a rule against all rules before it with decision diagrams. A packet
+has a fixed number of fields over finite ranges, and that is the closed case of this paper.
+Our dead rule is a shadowed rule, taken against all earlier rules together, which matters
+here as there: the rule $t(w\,\rest)$ is dead below $t(w)$ and $t(w\,\any\,\rest)$, and
+neither of the two covers it alone. The masked and the loosened rule refine the shadowed one
+by what its author wanted. \citet{Fisler2005} verify access-control policies and compute the
+impact of a change with decision diagrams, as Section~\ref{sec:tree} does with reduced trees.
+\citet{Draves1999} find the smallest routing table, and the comparison with
+Theorem~\ref{thm:normal} shows what the open alphabet buys. That a default should deny is one
+of the principles of \citet{Saltzer1975}. The undecided actions are where that principle
+applies, and a harness that asks by default follows it in a weaker form.
+
+\paragraph{Decision lists.} A list of rules with a first match and a default is a decision
+list in the sense of \citet{Rivest1987}, who studies how to learn one from examples. The
+diagnoses of this paper apply to a learned list as to a written one, since a learner that
+appends a rule can append a dead one.
+
+\paragraph{Approvals.} Other papers of this collection treat the approval that a rule asks
+for: as a resource that an action consumes \citep{tpp4}, as something that only actions under
+untrusted influence need \citep{tpp7}, and as a computation to be placed in a program
+\citep{tpp17}. \citet{tpp16} learn a policy with memory, an automaton over histories, because
+a rule of the kind studied here cannot say that a push is allowed only after the tests have
+run. All of them take the list of rules as given. This paper is about the list.
+
+\section{Limits}\label{sec:limits}
+
+\paragraph{Words are not effects.} A rule matches the words of a command, and the command
+does what it does. A forced push can be written with a short option, through an alias, inside
+a script, or after a change of directory, and a rule about three words catches none of these.
+No analysis of the list can repair that, and this paper does not try to. What it says is that
+the list decides what its author thinks it decides, for the patterns that the list has.
+
+\paragraph{The patterns of real harnesses.} We treat words, a wildcard for one word, and a
+rest. The rules of Claude Code match the text of a command, and a star in them can stand
+inside a word; its rules for files are patterns for paths, in which a part can be matched in
+part \citep{claudecodepermissions}. For such patterns usefulness is the inclusion of regular
+languages, and the single pass is lost. Rules can also come from several files, of a user, a
+project and an organization, that are merged before they are read. The merged list is a list,
+and the diagnoses apply to it. Saying which file a dead rule came from, and whose rule killed
+it, needs more than this paper has.
+
+\paragraph{No real lists.} The experiments use random lists. We have not collected the lists
+that people write, and the shares in Table~\ref{tab:growth} should not be read as rates of
+defects in practice. The example of Section~\ref{sec:example} is invented.
+
+\paragraph{Exceptions and accidents.} We report a rule only if it is dead or changes
+nothing. A denial that is alive can still lose a part of what it matches to a permission
+above it, and whether that is an exception or an accident is not in the list.
+
+\paragraph{Proofs on paper.} The proofs here are short, and none has been checked by a
+machine. The script checks their statements on small lists, and exhaustively only by
+Lemma~\ref{lem:finite}. That lemma itself is tested only in so far as the comparisons that
+rely on it are between an analysis and a definition.
+
+\section{Conclusion}
+
+A permission list is a program, a small one in a small language, and it deserves the warnings
+that compilers give for programs. The warnings are cheaper here than there, because commands
+are made of words that no list can exhaust. A harness could run the four diagnoses whenever a
+rule is added and say at once that the new rule is dead, which rule killed it, and whether
+that loosens what the author asked for. It could show the list in normal form, where what is
+decided is not hidden behind what was written. Neither needs anything that a compiler does
+not already do for a match expression.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

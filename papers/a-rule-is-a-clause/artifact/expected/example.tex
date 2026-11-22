@@ -1,0 +1,14 @@
+% written by rules.py; do not edit
+1 & \texttt{Bash(git status)} & allow &  & dead, masked \\
+2 & \texttt{Bash(git *)} & ask &  &  \\
+3 & \texttt{Bash(git push -{}-force *)} & deny & dead, masked &  \\
+4 & \texttt{Bash(npm test)} & allow &  & dead, masked \\
+5 & \texttt{Bash(npm *)} & ask & redundant &  \\
+6 & \texttt{Bash(npm test)} & allow & dead & dead, masked \\
+7 & \texttt{Bash(rm -rf *)} & deny &  &  \\
+8 & \texttt{Bash(rm *)} & ask & redundant & redundant \\
+9 & \texttt{Bash(ls *)} & allow &  &  \\
+10 & \texttt{Read(src *)} & allow &  &  \\
+11 & \texttt{Read(src secrets *)} & deny & dead, masked &  \\
+12 & \texttt{Read(\_ README.md)} & allow &  &  \\
+13 & \texttt{Bash(git pull)} & ask & dead & dead \\
