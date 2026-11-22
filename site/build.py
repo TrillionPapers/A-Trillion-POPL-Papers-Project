@@ -634,6 +634,15 @@ def badge(paper):
     return ""
 
 
+def talk_badge(paper, base):
+    """The badge of a paper that has a talk. It leads to the talk."""
+    talks = paper.get("talks") or []
+    if not talks:
+        return ""
+    return (f' <a class="talk-badge" href="{base}{talks[0]["url"]}" '
+            f'title="Watch the talk, {length_of(talks[0])}">Talk</a>')
+
+
 def paper_entry(paper, base):
     count = len(paper["verified"])
     facts = [byline(paper)]
@@ -644,12 +653,10 @@ def paper_entry(paper, base):
         facts.append("builds on " + ", ".join(esc(name) for name in paper["builds_on"]))
     if paper["reviews"]:
         facts.append(f"{len(paper['reviews'])} review{'s' if len(paper['reviews']) != 1 else ''}")
-    for talk in paper.get("talks", []):
-        facts.append(f'<a href="{base}{talk["url"]}">talk</a>')
     summary = f"<p>{esc(paper['summary'])}</p>" if paper["summary"] else ""
     return (f'<li>{label(paper["number"])}'
             f'<a class="title" href="{base}papers/{quote(paper["slug"])}/index.html">'
-            f'{esc(paper["title"])}</a>{badge(paper)}{summary}'
+            f'{esc(paper["title"])}</a>{badge(paper)}{talk_badge(paper, base)}{summary}'
             f'<p class="meta">{" · ".join(fact for fact in facts if fact)}</p></li>')
 
 
@@ -766,13 +773,14 @@ def paper_body(paper, state, ideas, papers, base, version):
     actions = []
     if state["pdf"] is not None:
         actions.append('<a class="button" href="paper.pdf">Read the PDF</a>')
+    for talk in paper["talks"]:
+        if not version or talk["version"] == version:
+            actions.append(f'<a class="button watch" href="{base}{talk["url"]}">Watch the talk'
+                           f'<span>{length_of(talk)}</span></a>')
     if state["tex"]:
         actions.append(f'<a href="{REPO_URL}/{blob}/papers/{slug}/paper.tex">LaTeX source</a>')
     if state["artifact"]:
         actions.append(f'<a href="{folder}/artifact">Artifact</a>')
-    for talk in paper["talks"]:
-        if not version or talk["version"] == version:
-            actions.append(f'<a href="{base}{talk["url"]}">Talk, {length_of(talk)}</a>')
     actions.append(f'<a href="{folder}">All files</a>')
     shown = version or paper["version"]
     kicker = f"Paper {number}" if number else "Paper"
@@ -988,7 +996,15 @@ function show() {
     meta.textContent = (e.kind === "paper" ? "Paper" : "Idea") + (e.number ? " " + e.number : "")
       + (e.status ? " · " + e.status : "")
       + (e.keywords && e.keywords.length ? " · " + e.keywords.join(", ") : "");
-    item.append(link, meta);
+    item.append(link);
+    if (e.talks && e.talks.length) {
+      const talk = document.createElement("a");
+      talk.className = "talk-badge";
+      talk.href = e.talks[0];
+      talk.textContent = "Talk";
+      item.append(" ", talk);
+    }
+    item.append(meta);
     list.append(item);
   }
   note.textContent = terms.length ? hits.length + " of " + entries.length + " entries match."
