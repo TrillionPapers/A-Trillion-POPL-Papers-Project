@@ -1,0 +1,22 @@
+the example: 30 states, 33 tokens; the shortest output has 22 characters and 8 tokens; no state is further than 9 tokens from the end
+lists of lists: with k brackets open the end is (k + 1) // 2 tokens away after a value, and 1 + k // 2 before one; with a budget of 2, 4, 6 tokens the decoder opens at most 2, 4, 6 brackets
+the schema ab with the tokens a, ab, bb: after a the usual mask has no token; the budget mask allows only ab
+5000 random automata and vocabularies: the distance in tokens is what trying every sequence gives; with enough budget (3080 cases) no run under the budget mask fails; its outputs are the 22413 accepted sequences within the budget; each of the 29676 tokens it forbids has no completion in what is left; far from the end it is the usual mask; 1284 states can be completed by characters and not by tokens; the usual mask has a failing run in 1198 cases
+of 1813 cases in which every character is a token and the budget suffices: the mask by characters loses outputs in 23; the mask by characters over the longest token fails in 77
+with prices for the tokens: the decoder with a budget in that unit has exactly the 10655 accepted sequences within it as outputs, and with a budget in tokens as well exactly the 5903 within both; no run fails where an output fits
+600 random pushdown schemas, 16184 configurations with up to three symbols on the stack: the distance from summaries is what the search gives (1970 with a stack have a completion); the decoder never fails within its budget, its outputs are the accepted sequences, and its stack is never deeper than the budget can close (it gets 2 deep)
+budget 8: of 2000 runs under the usual mask 2000 end incomplete; under the budget mask none does, the budget changes 2000 runs, at most 8 tokens before the end
+budget 10: of 2000 runs under the usual mask 1971 end incomplete; under the budget mask none does, the budget changes 2000 runs, at most 9 tokens before the end
+budget 12: of 2000 runs under the usual mask 1886 end incomplete; under the budget mask none does, the budget changes 1971 runs, at most 6 tokens before the end
+budget 16: of 2000 runs under the usual mask 1300 end incomplete; under the budget mask none does, the budget changes 1636 runs, at most 5 tokens before the end
+budget 24: of 2000 runs under the usual mask 247 end incomplete; under the budget mask none does, the budget changes 341 runs, at most 5 tokens before the end
+budget 40: of 2000 runs under the usual mask 7 end incomplete; under the budget mask none does, the budget changes 13 runs, at most 2 tokens before the end
+7 deliberate mistakes, each noticed:
+  off-by-one: a run under the budget mask fails
+  forward: the distance in tokens differs from trying every sequence
+  first-character: the distance in tokens differs from trying every sequence
+  stop-alive: the outputs under the budget mask are not the accepted sequences
+  cheapest-only: a run with a budget in another unit fails
+  whole-tokens: the distance of a configuration differs from the search
+  top-first: the distance of a configuration differs from the search
+12 sentences of the paper checked: all-noticed, characters, example, example-characters, example-cut, example-trace, lists, nested, priced, regular, runs, stuck

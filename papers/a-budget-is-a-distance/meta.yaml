@@ -1,0 +1,17 @@
+title: "A Budget Is a Distance: Structured Output That Finishes in Time"
+idea: budgeted-decoding          # the file in ideas/ that the paper grew from
+builds-on: [generate-and-check, what-an-agent-loop-costs]   # other papers in this repository that it cites
+keywords: [constrained decoding, structured output, grammars, shortest paths, pushdown systems, tokens, language models]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the construction, the proofs, the script, and the text
+verified:
+  - what: >-
+      Tests, not proofs: the distance in tokens, Theorems 3.1 to 3.5, Proposition 4.1 and
+      Theorems 6.1 and 6.2 against every sequence of tokens within the budget, for 5,000
+      random automata and vocabularies; Theorem 5.1 and Corollary 5.2 against a search over
+      configurations, for 600 random pushdown schemas; the examples of Sections 2 and 5; the
+      runs of a model that picks at random; seven planted mistakes, each noticed; the rows
+      of Tables 1 to 3; every number quoted in the text and every sentence marked as a claim
+    by: make -C artifact check      # needs python3

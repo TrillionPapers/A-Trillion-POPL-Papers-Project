@@ -1,0 +1,709 @@
+\documentclass[acmsmall,nonacm,screen]{acmart}
+
+\usepackage{booktabs}
+\usepackage{array}
+
+\citestyle{acmauthoryear}
+\settopmatter{printacmref=false}
+
+\AtEndPreamble{\theoremstyle{acmdefinition}\newtheorem{remark}[theorem]{Remark}}
+
+\newcommand{\kw}[1]{\mathsf{#1}}
+\newcommand{\str}[1]{\texttt{#1}}
+\newcommand{\far}{d}
+\newcommand{\Down}{\kw{Down}}
+\newcommand{\Level}{\kw{Level}}
+\newcommand{\Finish}{\kw{Finish}}
+
+% A sentence that states a fact in words. The script has one check for every name.
+\newcommand{\claim}[2]{#2}
+
+% The rows of a table that the script writes.
+\makeatletter
+\newcommand{\rows}[1]{\@@input artifact/expected/#1.tex }
+\makeatother
+
+\input{artifact/expected/numbers.tex}
+
+\begin{document}
+
+\title{A Budget Is a Distance: Structured Output That Finishes in Time}
+
+\author{Claude-Fable-5.2}
+\authornote{An AI model. The proofs in this paper are on paper and have not been checked by a
+machine. A script compares the decoder with what trying every sequence of tokens gives, on
+small automata and vocabularies. At the time of writing nobody has reviewed the paper.}
+
+\begin{abstract}
+Constrained decoding makes the output of a language model follow a schema. At every step it
+forbids the tokens after which no valid output could follow. It does not make the output
+finish. A model has a limit on the tokens that it may emit, and when the limit is reached in
+the middle of a string or an array, what arrives is a valid beginning and nothing more. We
+close this gap with one number for every state of the schema's automaton: its distance, the
+fewest tokens of the vocabulary that complete the output from there. A decoder that allows a
+token only if the distance after it is no more than the tokens that remain always ends with a
+complete output, whatever the model chooses, and it loses nothing: every sequence of tokens
+within the limit that spells a valid output is still possible. No mask that guarantees
+completion allows more. The distance of the start state is the least limit that a request
+with the schema can be given, known before a token is generated. The distance must be counted
+in tokens. Counted in characters, it gives a decoder that either fails or forbids outputs
+without need. The same holds for a budget in any other unit, such as characters, and for
+two budgets at once. For regular schemas the distance is a shortest path, and the budget
+changes only the last few tokens of an output. For nested schemas a token can close several levels at
+once, and the distance of a configuration is computed from summaries by one pass over its
+stack. A script checks all of this against brute force on \exAutomata{} random automata and
+\exPushdown{} random pushdown schemas, and it notices \exMutants{} deliberate mistakes.
+\end{abstract}
+
+\keywords{constrained decoding, structured output, grammars, shortest paths, pushdown systems, tokens, language models}
+
+\authorsaddresses{}
+
+\maketitle
+
+\section{Introduction}
+
+A program that calls a language model usually wants an answer that it can parse: an object
+with certain fields, a call to a tool with arguments of certain types. Constrained decoding
+gives it one. The schema is compiled to an automaton, and at every step of the generation
+the decoder forbids the tokens that the automaton cannot read, or after which it could never
+reach an accepting state. Whatever the model writes is then a prefix of a valid output, and
+when the model stops, the output is valid
+\citep{Willard2023,Geng2023,Koo2024}.
+
+The last clause hides a condition. The model stops by its own choice only where the schema
+allows it. But every request also has a limit on the number of tokens, and when that limit
+is reached, the generation is cut where it stands. If that is in the middle of a string, the
+caller receives a prefix of a valid output, which is not a valid output and does not parse.
+The documentation of one vendor says so in as many words: if the answer is cut at the limit,
+it may be incomplete and may not match the schema, and the remedy is to ask again with a
+higher limit \citep{claudestructured}. For a caller this is the worst of both: the tokens are
+paid for, and the guarantee for which constrained decoding was chosen does not hold.
+
+The gap has a simple reason. The decoder asks of every token whether the output \emph{can}
+still be completed after it. With a limit, the question is whether it can be completed
+\emph{in the tokens that remain}. That is a question of distance. For every state of the
+automaton, let its distance be the fewest tokens that lead from it to an accepting state. A
+decoder that knows the distances allows a token only if the distance after it is at most the
+number of tokens left after it. Far from the limit this forbids nothing more than before.
+Near the limit it steers the model towards an end, and at the last token it allows only what
+closes the output.
+
+This paper works the idea out and proves what it promises.
+
+\begin{itemize}
+\item \emph{The budget mask} (Section~\ref{sec:mask}). If the limit is at least the distance
+  of the start state, every run of the decoder ends with a complete output, whatever the
+  model chooses (Theorem~\ref{thm:safe}). Nothing is lost: every sequence of tokens within
+  the limit that spells a valid output is a run (Theorem~\ref{thm:lost}). No mask that
+  guarantees completion allows a token that this one forbids (Theorem~\ref{thm:greatest}). A
+  limit below the distance of the start state cannot be met, and the request can be refused
+  before it costs anything (Theorem~\ref{thm:before}). For regular schemas the budget changes
+  the mask only in the last $D$ steps, where $D$ is the largest distance of a state
+  (Theorem~\ref{thm:end}).
+\item \emph{Tokens, not characters} (Section~\ref{sec:characters}). The distance has to be
+  measured in the tokens of the vocabulary. The distance in characters is easier to compute
+  and gives two tempting masks, of which one loses outputs and the other fails
+  (Proposition~\ref{prop:characters}).
+\item \emph{Nested schemas} (Section~\ref{sec:nested}). For schemas with a stack the
+  distance depends on the whole stack, and a token such as \str{]\}} closes two levels at
+  once, so the distance is not a sum over the levels. It is computed from summaries of the
+  schema, with one step for every entry of the stack (Theorem~\ref{thm:nested}). The mask
+  then bounds the depth of nesting by what the budget can still close
+  (Corollary~\ref{cor:depth}).
+\item \emph{Other budgets} (Section~\ref{sec:other}). A limit on characters, or on any price
+  that tokens have, is met in the same way with the distance in that unit
+  (Theorem~\ref{thm:priced}). Two limits at once need more than one number per state, and a
+  small table is enough (Theorem~\ref{thm:two}).
+\end{itemize}
+
+Section~\ref{sec:example} shows an example, Section~\ref{sec:experiments} the tests, and
+Section~\ref{sec:limits} the limits. The most important one is that the mask guarantees the
+form of the output and not its sense. An output that was steered to an end is complete, and
+a list in it may be shorter than the model wanted. A harness should say when that happened,
+and the decoder knows.
+
+\section{An Example}\label{sec:example}
+
+A schema asks for an object with a name and a list of tags. To keep the example small, names
+and tags are words over the letters \str{a} and \str{b}:
+\begin{verbatim}
+    {"name":"ab","tags":["a","ba"]}
+\end{verbatim}
+The automaton of this schema has \exExampleStates{} states. The vocabulary has
+\exExampleTokens{} tokens: every character that the schema uses, and pieces such as
+\str{\{"}, \str{name}, \str{":"}, \str{","}, \str{tags}, \str{":[}, \str{"]\}} and \str{ab},
+as a tokenizer trained on such text would have them.
+
+\claim{example}{The shortest valid output, with a name of one letter and no tags, has
+\exExampleCharacters{} characters. In tokens it is much shorter: \exExampleFar{} tokens
+spell it, and no fewer do. So the distance of the start state is \exExampleFar{}. No state
+is further than \exExampleWidest{} tokens from an accepting state.}
+
+Now let the limit be nine tokens, and let the model write as Table~\ref{tab:trace} shows.
+After eight tokens it has opened the first tag. Its ninth token is another letter of that
+tag, and with it the limit is reached. The caller receives \str{\{"name":"ab","tags":["ab},
+which no parser accepts.
+
+\begin{table}
+\caption{A run of nine tokens that the usual mask allows. After each token: the tokens that
+are left, the distance of the state in tokens and in characters, and whether the budget mask
+allows the token, which it does if the distance is at most what is left.}\label{tab:trace}
+\begin{tabular}{rlrrrl}
+\toprule
+ & token & left & distance & in characters & allowed \\
+\midrule
+\rows{trace}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{example-trace}{The budget mask allows the first eight tokens and forbids the ninth:
+after it the distance would be one with no token left. With the token \str{"]\}} in its
+place, the output is complete.} \claim{example-cut}{At that step the usual mask allows
+thirteen tokens. With one token left the budget mask allows only \str{"]\}}, and with two
+tokens left it allows eleven, among them every letter: the tag may still grow by one token,
+if the token after that closes everything.} So the mask does not end the output early. It
+ends it at the last moment at which it can still be ended.
+
+The column of distances in characters shows why the count must be in tokens. After the
+eighth token three characters are missing and one token. A decoder that counted characters
+would have had to stop the model long before.
+
+\section{The Budget Mask}\label{sec:mask}
+
+\subsection{Schemas, Tokens and Decoders}
+
+A \emph{schema} is a deterministic automaton $(Q, \Sigma, \delta, q_0, F)$ over an alphabet
+$\Sigma$ of characters, with a partial transition function $\delta$ and a set $F$ of
+accepting states. Its language is the set of valid outputs. A \emph{vocabulary} $V$ is a
+finite set of non-empty strings over $\Sigma$, the \emph{tokens}. We write $\delta(q, t)$ for
+the state that the characters of a token $t$ lead to from $q$, if all the transitions exist.
+The \emph{token graph} has the states as its nodes and an edge from $q$ to $\delta(q, t)$
+for every token $t$ for which that state exists.
+
+The \emph{distance} $\far(q)$ of a state is the length of a shortest path in the token graph
+from $q$ to an accepting state, and $\infty$ if there is none. So $\far(q) = 0$ exactly for
+accepting states, and $\far(q)$ is the fewest tokens that complete an output from $q$.
+
+A \emph{decoder} is at a \emph{point} $(q, r)$: the state $q$ that the output so far leads
+to, and the number $r$ of tokens that it may still emit. It starts at $(q_0, B)$, where $B$
+is the \emph{budget}. A \emph{mask} $M$ gives a set of tokens $M(q, r)$ for every point with
+$r \ge 1$. At a point the model either stops, which it may do only if $q$ is accepting, or
+picks a token $t$ of $M(q, r)$, and the decoder goes to $(\delta(q, t), r - 1)$. We assume
+nothing about how the model picks. A \emph{run} is a sequence of points that arises in this
+way. The decoder \emph{fails} at a point $(q, r)$ if $q$ is not accepting and it can go
+nowhere: $r = 0$, which is an output cut at the limit, or $M(q, r)$ is empty. A mask is
+\emph{safe} for a budget if no run from $(q_0, B)$ reaches a point where the decoder fails.
+
+The \emph{usual mask} allows the tokens after which an output can still be completed:
+$M(q, r) = \{t : \delta(q, t) \text{ can reach an accepting state}\}$, whatever $r$ is. The
+\emph{budget mask} is
+\[
+  M_B(q, r) \;=\; \{\, t \in V \;:\; \far(\delta(q, t)) \le r - 1 \,\}.
+\]
+
+\subsection{What the Budget Mask Guarantees}
+
+\begin{theorem}[Safety]\label{thm:safe}
+If $\far(q_0) \le B$, the budget mask is safe for $B$: every run ends in an accepting state
+after at most $B$ tokens, or can be continued.
+\end{theorem}
+
+\begin{proof}
+Every point $(q, r)$ of a run has $\far(q) \le r$. This holds at the start by assumption, and
+the mask keeps it. Let $(q, r)$ be a point with $q$ not accepting. Then $\far(q) \ge 1$, so $r
+\ge 1$. The first token $t$ of a shortest path from $q$ leads to a state at distance $\far(q)
+- 1 \le r - 1$, so $t$ is in $M_B(q, r)$. The decoder does not fail.
+\end{proof}
+
+\begin{theorem}[Nothing is lost]\label{thm:lost}
+Let $t_1, \ldots, t_n$ be tokens with $n \le B$ that spell a valid output. Then the decoder
+with the budget mask can emit them and stop. So its outputs are exactly the sequences of at
+most $B$ tokens that spell a valid output.
+\end{theorem}
+
+\begin{proof}
+Let $q_i$ be the state after the first $i$ tokens. The tokens $t_{i+1}, \ldots, t_n$ lead
+from $q_i$ to an accepting state, so $\far(q_i) \le n - i \le B - i$. The decoder is at
+$(q_{i-1}, B - i + 1)$ when it comes to $t_i$, and the mask there asks that $\far(q_i) \le B
+- i$. After $t_n$ the state is accepting, and the decoder may stop. Conversely the decoder
+stops only in an accepting state and after at most $B$ tokens.
+\end{proof}
+
+The two theorems together say that the budget mask conditions the decoder on one event,
+that the output is complete within the budget, and on nothing else. The next theorem says
+that no mask can do better.
+
+\begin{theorem}[The greatest safe mask]\label{thm:greatest}
+Let $M$ be a mask that is safe for $B$. If $M$ allows a token at a point that one of its runs
+reaches, the budget mask allows that token there.
+\end{theorem}
+
+\begin{proof}
+Let $M$ allow $t$ at $(q, r)$, and suppose that $\far(\delta(q, t)) > r - 1$. Continue the
+run from $(\delta(q, t), r - 1)$ with tokens that $M$ allows, never stopping, for as long as
+possible. This ends after at most $r - 1$ tokens, at a point with no tokens left or with an
+empty mask. Its state is not accepting, because no path of at most $r - 1$ tokens leads from
+$\delta(q, t)$ to an accepting state. So the decoder fails there, and $M$ is not safe.
+\end{proof}
+
+\begin{theorem}[Before the first token]\label{thm:before}
+If $\far(q_0) > B$, no sequence of at most $B$ tokens spells a valid output, and no mask is
+safe for $B$.
+\end{theorem}
+
+\begin{proof}
+The first claim is the definition of the distance. A safe mask would have a run, and the run
+would end in an accepting state after at most $B$ tokens.
+\end{proof}
+
+So $\far(q_0)$ is the least limit that makes sense for a schema and a vocabulary. A service
+can compute it when it compiles the schema and reject a request with a lower limit at once,
+with a message that names the number. Today such a request is run, paid for, and returns an
+incomplete output.
+
+\begin{theorem}[Only near the end]\label{thm:end}
+Let $D$ be the largest distance of a state that has one. At a point with $r > D$, the budget
+mask allows exactly the tokens after which some sequence of tokens completes the output.
+\end{theorem}
+
+\begin{proof}
+If $\far(\delta(q, t))$ is finite, it is at most $D \le r - 1$.
+\end{proof}
+
+A decoder with the budget mask therefore behaves like the usual one until at most $D$ tokens
+are left, and the budget can change no more than the last $D$ tokens of an output. In the
+example $D$ is \exExampleWidest{}.
+
+\subsection{Cost}
+
+The distances are found by one search that starts from the accepting states and follows the
+edges of the token graph backwards. The edges are what a constrained decoder computes in any
+case, when it works out for every state which tokens it allows \citep{Willard2023}. The
+search adds time linear in the number of edges, which is at most $|Q| \cdot |V|$, and one
+number for every state. For the mask, the tokens that a state allows are grouped by the
+distance of the state that they lead to. The mask at $(q, r)$ is the union of the groups
+with distance at most $r - 1$, and a state has at most $D + 1$ groups. With more than $D$
+tokens left the mask is the one that the decoder has already.
+
+\section{Tokens, Not Characters}\label{sec:characters}
+
+The distance of a state in characters, $c(q)$, is the length of a shortest string that leads
+from $q$ to an accepting state. It needs no vocabulary and is the first thing that comes to
+mind. It is the wrong number.
+
+\begin{proposition}[Characters]\label{prop:characters}
+Let $\ell$ be the length of the longest token.
+\begin{enumerate}
+\item $c(q) \le \ell \cdot \far(q)$ for every state. If every character is a token, then
+  $\far(q) \le c(q)$, and a state can be completed by tokens exactly if it can be completed
+  by characters.
+\item If some character is not a token, a state can be completed by characters and not by
+  tokens, and the usual mask, which judges by characters, can then fail whatever the budget
+  is.
+\item Let every character be a token. The mask $\{t : c(\delta(q, t)) \le r - 1\}$ is safe
+  for every budget of at least $c(q_0)$, and it can forbid tokens that the budget mask
+  allows. The mask $\{t : \lceil c(\delta(q, t)) / \ell \rceil \le r - 1\}$ allows every
+  token that the budget mask allows, and it is not safe.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(1) A path of $\far(q)$ tokens spells at most $\ell \cdot \far(q)$ characters, and if every
+character is a token, a string is a path of as many tokens. (2) and the negative halves of
+(3) are shown by examples, below and in Section~\ref{sec:experiments}. For the first mask of
+(3), the proof of Theorem~\ref{thm:safe} applies with $c$ in place of $\far$, because a
+character is a token; and $c \ge \far$ makes the mask a part of the budget mask. For the
+second, $\lceil c / \ell \rceil \le \far$ by (1).
+\end{proof}
+
+\paragraph{A vocabulary that cannot spell.} \claim{stuck}{Let the schema accept only
+\str{ab}, and let the tokens be \str{a}, \str{ab} and \str{bb}. After the token \str{a} the
+output can be completed by a character and by no token. The usual mask allows \str{a}, and
+then it allows nothing, so the decoder fails. The budget mask allows only \str{ab} at the
+start.} Real vocabularies contain every byte, so every string can be spelled. The example
+matters for vocabularies that have been restricted, and it shows that the right notion of
+``can be completed'' is a path in the token graph even without a budget.
+
+\paragraph{The mask by characters.} In the example of Section~\ref{sec:example} the start
+state is \exExampleCharacters{} characters and \exExampleFar{} tokens from the end.
+\claim{example-characters}{With a limit of nine tokens, the first mask of part~3 allows
+nothing at the start: after the best first token twenty characters are still missing, and
+the mask takes each of them for a token. The second mask divides by the longest token, which
+has four characters, and takes the start state to be six tokens from the end. With a limit of
+six or seven it lets the model begin, and no output of so few tokens exists.}
+
+\section{Nested Schemas}\label{sec:nested}
+
+A schema for nested data is not regular. An array can contain arrays, and the automaton needs
+a stack to know how many brackets are open.
+
+\subsection{Pushdown Schemas}
+
+A \emph{pushdown schema} has states $Q$ with a start state and accepting states, an alphabet
+$\Sigma$, and a finite set $\Gamma$ of stack symbols. It reads one character at a time. A
+move depends on the state, the character and the symbol on top of the stack, or the fact
+that the stack is empty, which we write as the top $\bot$. It leads to a state and keeps the
+stack, pushes a symbol, or pops the top. A \emph{configuration} $(q, \gamma)$ is a state and
+a stack, and it is accepting if $q$ is and $\gamma$ is empty. Nested data fits this form: an
+opening bracket pushes, the closing bracket pops, and the state says, for instance, whether
+the output is inside a string, where a bracket is a character like any other.
+
+A token moves a configuration by all its characters. The token graph now has the
+configurations as its nodes, infinitely many, and the distance $\far(q, \gamma)$ is again
+the length of a shortest path to an accepting configuration. The decoder, its points, the
+budget mask and safety are defined as before, with configurations in place of states. The
+proofs of Theorems~\ref{thm:safe} to~\ref{thm:before} use nothing about the token graph but
+shortest paths, so the four theorems hold for pushdown schemas as they stand.
+Theorem~\ref{thm:end} does not: the deeper the stack, the further the end, and there is no
+largest distance.
+
+\subsection{The Distance of a Configuration}
+
+What remains is to compute $\far(q, \gamma)$. One would like to add up, for every entry of
+the stack, the tokens that it takes to close that level. That is wrong, because a token can
+close several levels: \str{]\}} closes an array and the object around it, and \str{"]\}}
+ends a string as well. The price of closing a level depends on how much of a token is
+already in hand when the level is reached.
+
+A \emph{point} is a pair $(q, w)$ of a state and a proper prefix $w$ of a token: a token has
+been begun and $w$ of it has been read. Between two tokens $w$ is empty. Reading a character
+$a$ at the point $(q, w)$, with a move of the schema from $q$ to $q'$, leads to the point
+$(q', wa)$ at price $0$ if $wa$ is a proper prefix of a token, and to the point $(q',
+\varepsilon)$ at price $1$ if $wa$ is a token. Both can be the case. The price of a path of
+such steps is the number of tokens that it completes.
+
+For a top $f$, a symbol or $\bot$, let $\Level_f(x, y)$ be the least price of a path from
+the point $x$ to the point $y$ that begins and ends with $f$ on top of the same stack and
+never makes that stack shorter. These numbers are the least solution of three rules. A point
+reaches itself at price $0$. A path can be extended by a move that keeps the stack. And a
+path can be extended by a move that pushes a symbol $g$, a path of $\Level_g$, and a move
+that pops $g$. For a symbol $f$, let $\Down_f(x, y)$ be the least price of a path of
+$\Level_f$ from $x$ followed by a move that pops $f$ and ends at $y$. Let $\Finish(x)$ be
+the least $\Level_\bot(x, (q, \varepsilon))$ over the accepting states $q$.
+
+\begin{theorem}[Nested distance]\label{thm:nested}
+For a configuration with the state $q$ and the stack $f_1 \ldots f_k$, with $f_1$ on top,
+\[
+  \far(q, f_1 \ldots f_k) \;=\; \min_{y_1, \ldots, y_k}\;
+  \Down_{f_1}((q, \varepsilon), y_1) + \Down_{f_2}(y_1, y_2) + \cdots + \Down_{f_k}(y_{k-1}, y_k)
+  + \Finish(y_k),
+\]
+where the $y_i$ range over the points.
+\end{theorem}
+
+\begin{proof}
+A path of tokens from the configuration to an accepting one is a path of steps on points
+that begins and ends between two tokens, and its length in tokens is its price. Cut it after
+the first move that makes the stack shorter than $k$ symbols, after the first that makes it
+shorter than $k - 1$, and so on. The $i$-th piece begins with $f_i$ on top, never makes the
+stack shorter until its last move, and ends with the move that pops $f_i$: its price is at
+least $\Down_{f_i}$ between its two ends. The last piece begins and ends with an empty stack
+in an accepting state between two tokens, so its price is at least $\Finish$. Conversely,
+paths that realize the terms of the sum fit together to a path of tokens. That $\Level$ is
+given by the three rules is the usual decomposition of a path that returns to its level into
+moves on the level and excursions above it, as in the summaries of interprocedural analysis
+and of weighted pushdown systems \citep{Reps2005}.
+\end{proof}
+
+The sum is evaluated from the bottom of the stack. With every entry of the stack the decoder
+keeps a vector: for every point, the least price of finishing everything from that entry
+down. A push computes one new vector from the one below, a pop drops one, and the distance
+of the current configuration is one entry of the top vector. The tables $\Level$ and $\Down$
+are computed once for a schema and a vocabulary, by iterating the three rules.
+
+\begin{corollary}[Depth]\label{cor:depth}
+At every point that a run of the budget mask reaches, with $k$ symbols on the stack and $r$
+tokens left, $k \le \ell \cdot r$, where $\ell$ is the length of the longest token.
+\end{corollary}
+
+\begin{proof}
+A token pops at most $\ell$ symbols, so $\far(q, \gamma) \ge k / \ell$, and the points of a
+run have a distance of at most $r$.
+\end{proof}
+
+So the budget also limits how deep the model may nest, and it does so by itself: an opening
+bracket is forbidden when the brackets that would then be open could no longer all be
+closed.
+
+\subsection{An Example: Lists of Lists}
+
+Let a value be the letter \str{a} or a list of values in square brackets, separated by
+commas, as in \str{[[a,a],[]]}. The schema has three states, for the places where a value
+must come, where a list has just been opened, and where a value has ended, and one stack
+symbol for an open bracket. The vocabulary has the four characters and the tokens \str{[[},
+\str{]]}, \str{],[}, \str{a]} and \str{a,a}. Table~\ref{tab:lists} gives the distance of a
+configuration by the number of brackets that are open.
+
+\begin{table}
+\caption{Lists of lists: the distance in tokens by the number of open brackets, in the three
+states of the schema. A list cannot have just been opened with no bracket
+open.}\label{tab:lists}
+\begin{tabular}{rrrr}
+\toprule
+open brackets & after a value & a list just opened & before a value \\
+\midrule
+\rows{lists}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{lists}{After a value, $k$ open brackets are closed with $\lceil k/2 \rceil$ tokens,
+because \str{]]} closes two of them, and the same holds where a list has just been opened.
+Where a value must come, the distance is $1 + \lfloor k/2 \rfloor$: the token \str{a]} writes
+the value and closes a bracket. A sum over the levels would give $k$ and $k + 1$. With a
+budget of two, four and six tokens, the decoder with the budget mask opens at most two, four
+and six brackets.}
+
+\section{Other Budgets}\label{sec:other}
+
+\subsection{A Budget in Another Unit}
+
+Limits are not always counted in tokens. A text message has a number of characters, a column
+of a database a number of bytes, the first line of a commit message by convention fifty characters,
+and a bill is counted in money. Let every token $t$ have a \emph{price} $w(t) > 0$ in some
+unit, and let the budget $B$ be an amount in that unit. Let $\far_w(q)$ be the least total
+price of a path of tokens from $q$ to an accepting state. The decoder is at a point $(q, r)$
+with the amount $r$ left, and a token $t$ takes it to $(\delta(q, t), r - w(t))$.
+
+\begin{theorem}[Priced budgets]\label{thm:priced}
+The mask $\{t : w(t) + \far_w(\delta(q, t)) \le r\}$ is safe for $B$ if $\far_w(q_0) \le B$.
+Its outputs are exactly the sequences of tokens of total price at most $B$ that spell a valid
+output, and no safe mask allows a token that it forbids. If $\far_w(q_0) > B$, no mask is
+safe.
+\end{theorem}
+
+\begin{proof}
+The proofs of Theorems~\ref{thm:safe} to~\ref{thm:before} go through with $r - w(t)$ in place
+of $r - 1$ and paths of least price in place of shortest paths. Runs are finite because
+prices are positive.
+\end{proof}
+
+The distances $\far_w$ are found by the algorithm of \citet{Dijkstra1959} on the token graph
+with its edges reversed. With the length of a token as its price, $\far_w$ is the distance
+in characters, counted along tokens. So Section~\ref{sec:characters} has a second reading:
+the distance in characters was wrong there because the budget was in tokens. \emph{The
+distance must be measured in the unit of the budget.}
+
+\subsection{Two Budgets at Once}
+
+A request can have both limits, at most $B$ tokens and at most $P$ in price. One number per
+state is then not enough, because a state can have a completion that is short and dear and
+another that is long and cheap. Let $f_n(q)$ be the least total price of a path of at most
+$n$ tokens from $q$ to an accepting state:
+\[
+  f_0(q) = 0 \text{ if $q$ is accepting, and } \infty \text{ otherwise;} \qquad
+  f_n(q) = \min\bigl(f_{n-1}(q),\ \min_{t}\, w(t) + f_{n-1}(\delta(q, t))\bigr).
+\]
+The decoder is at a point $(q, r, p)$ with $r$ tokens and the amount $p$ left.
+
+\begin{theorem}[Two budgets]\label{thm:two}
+The mask $\{t : f_{r-1}(\delta(q, t)) \le p - w(t)\}$ is safe for the budgets $B$ and $P$ if
+$f_B(q_0) \le P$. Its outputs are exactly the sequences of at most $B$ tokens and of total
+price at most $P$ that spell a valid output, and no safe mask allows a token that it
+forbids. If $f_B(q_0) > P$, no mask is safe.
+\end{theorem}
+
+\begin{proof}
+Every point of a run has $f_r(q) \le p$. If $q$ is not accepting, then $r \ge 1$, and the
+first token $t$ of a cheapest path of at most $r$ tokens has $w(t) + f_{r-1}(\delta(q, t)) =
+f_r(q) \le p$, so the mask allows it. A sequence within both budgets is a run, because after
+its first $i$ tokens the rest of it is a path of at most $B - i$ tokens whose price is at
+most what is left. A token that the mask forbids has no completion within what is left of
+both budgets, and a mask that allows it fails as in Theorem~\ref{thm:greatest}.
+\end{proof}
+
+The table $f$ has one row for every number of tokens up to $B$, and its rows stop changing
+after at most $|Q|$ steps. A decoder that looked only at the cheapest completion of a state,
+whatever its length, would be wrong, and the script has that mistake among the ones that it
+plants.
+
+\subsection{In a Service}
+
+Three uses of the distance need no change to the model.
+
+\emph{Refuse early.} By Theorem~\ref{thm:before} a request whose limit is below
+$\far(q_0)$ cannot succeed. The service knows $\far(q_0)$ when it has compiled the schema,
+and it can answer with an error that names the least limit.
+
+\emph{Reserve.} A response often has free text, or reasoning, before its structured part,
+under one limit. Seen as one schema, the free part is a state that loops and from which the
+structured part starts, so its distance is that of the structured part, or one more. The budget mask then
+ends the free part when what is left is just enough for the shortest structured output, and
+nothing has to be reserved by hand.
+
+\emph{Report.} When the budget removes a token that the usual mask allows, the output is no
+longer what the model would have written. The decoder sees the first step at which this
+happens and can return it with the response, as a reason for stopping of its own, next to
+``the model stopped'' and ``the limit was reached''.
+
+\section{Experiments}\label{sec:experiments}
+
+The script \texttt{budget.py} implements the decoder for regular and for pushdown schemas.
+It trusts the functions that run an automaton on a string and a pushdown schema on a token,
+and it compares everything else with what trying every sequence of tokens gives. It needs
+nothing but Python, and \texttt{make -C artifact check} runs it and compares its output with
+the numbers in this paper.
+
+\paragraph{Regular schemas.} The script draws \exAutomata{} random automata with two to six
+states over two or three letters, each with a vocabulary of a few tokens of up to three
+letters, half of the time with every letter among them. \claim{regular}{For every state the
+distance equals the fewest tokens found by trying every sequence of up to four. For a random
+budget of up to four tokens, the distance of the start state says correctly whether any
+output fits. Where one fits, in \exSafe{} cases, no run under the budget mask fails. The
+outputs under the budget mask are exactly the accepted sequences within the budget,
+\exOutputs{} in all. Each of the \exForbidden{} tokens that the mask forbids at some point
+has no completion in what is left, and with more tokens left than the largest distance the
+mask allows every token that has a completion at all. There are \exDead{} states that can be
+completed by characters and not by tokens, and the usual mask has a failing run in
+\exUsualFails{} of the cases in which an output fits.}
+
+\paragraph{Characters.} \claim{characters}{In \exWithLetters{} of the cases every character
+is a token and an output fits the budget. The mask from the distance in characters loses
+outputs in \exUpperLoses{} of them, and the mask from that distance divided by the longest
+token has a failing run in \exLowerFails{}.} The first number is small because random
+automata with a few states rarely have a long way to the end; the example of
+Section~\ref{sec:example} is more typical of schemas with keywords.
+
+\paragraph{Other budgets.} For every automaton the script also draws a price of one to three
+for every token and a budget of up to five in that unit. \claim{priced}{The decoder of
+Theorem~\ref{thm:priced} has exactly the accepted sequences within that budget as its
+outputs, \exPricedOne{} in all, and the decoder of Theorem~\ref{thm:two}, with the budget in
+tokens as well, exactly those within both, \exPricedTwo{} in all. Neither has a run that
+fails where an output fits, and each says before the first token whether one fits.}
+
+\paragraph{Nested schemas.} The script draws \exPushdown{} random pushdown schemas with two
+or three states, one or two stack symbols, and two to four tokens of one or two characters.
+\claim{nested}{For each of the \exConfigurations{} configurations with up to three symbols
+on the stack, the distance from the summaries equals the result of a search over
+configurations with up to five tokens; \exSpanning{} configurations with a stack that is not
+empty have a completion. Under the budget mask with a budget of up to four tokens, no run
+fails where an output fits, the outputs are the accepted sequences within the budget, and
+the stack is never deeper than Corollary~\ref{cor:depth} allows.}
+
+\paragraph{A model that picks at random.} How often the limit cuts an output depends on the
+model and on the task, and we have no real model here. To see the mechanism at work, the
+script runs the example of Section~\ref{sec:example} with a model that picks, with equal
+chances, among everything that it may do next, including to stop where that is allowed.
+Table~\ref{tab:runs} compares the two masks for six budgets, \exRuns{} runs each.
+
+\begin{table}
+\caption{The example with a model that picks at random. For each budget: the percentage of
+runs under the usual mask that end incomplete, the same under the budget mask, the
+percentage of runs under the budget mask in which the mask differs from the usual one at some
+step, the percentage of steps at which it differs, and the most tokens that are left at
+such a step.}\label{tab:runs}
+\begin{tabular}{r@{\qquad}rr@{\qquad}rrr}
+\toprule
+ & \multicolumn{2}{c}{incomplete} & \multicolumn{3}{c}{the budget mask differs} \\
+budget & usual & budget & runs & steps & tokens left \\
+\midrule
+\rows{runs}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\claim{runs}{With the least possible budget of \exBudgetTight{} tokens, \exCutTightRuns{} of
+\exRuns{} runs under the usual mask end incomplete. With \exBudgetLoose{} tokens,
+\exCutLooseRuns{} still do. Under the budget mask no run ends incomplete at any budget. The
+two masks never differ with more than \exExampleWidest{} tokens left, as
+Theorem~\ref{thm:end} says, and with \exBudgetLoose{} tokens the budget mask differs from the
+usual one in \exTouchedLooseRuns{} runs.} A model that picks at random writes longer lists
+than a real model would, so the shares on the left are no forecast. The right half shows
+what Theorem~\ref{thm:end} promises: with a generous budget the mask is almost never seen.
+
+\paragraph{Planted mistakes.} A check that never fails checks nothing. The script has
+\exMutants{} switches, each of which plants one mistake: a mask that allows a token when the
+distance after it equals the tokens left before it; a distance measured from the start
+state; a token that moves the automaton by its first character only; a decoder that may stop
+wherever the output can still be completed; a decoder with two budgets that looks only at
+the cheapest completion; a nested distance in which no token reaches
+across a pop; and a pass over the stack from the wrong end. \claim{all-noticed}{Each of them
+is noticed by a comparison that fails.}
+
+\section{Related Work}\label{sec:related}
+
+\paragraph{Constrained decoding.} \citet{Willard2023} compile a regular expression or a
+grammar to an automaton and index, for every state, the tokens that it allows, so that the
+mask costs a lookup. \citet{Koo2024} recast this with automata theory and treat the
+tokenizer as a transducer. \citet{Geng2023} argue for grammars as a general interface to
+structured tasks. PICARD rejects tokens with an incremental parser \citep{Scholak2021},
+Synchromesh derives the allowed continuations from a completion engine
+\citep{Poesia2022}, and SynCode, DOMINO and XGrammar make grammar masks fast and precise for
+full programming languages and for pushdown structure
+\citep{Ugare2024,BeurerKellner2024,Dong2024}. All of these guarantee that the output so far
+can be completed. As far as we know, none of them relates the completion to the tokens that
+remain, and the vendor documentation cited in the introduction describes the consequence.
+The construction of this paper adds one number per state to any of these systems.
+
+\paragraph{What masking does to the distribution.} A mask changes the distribution of the
+model, and renormalizing at every step is not the same as conditioning on a valid output
+\citep{Park2024}. The budget mask is a mask and shares the problem: near the limit it
+shifts weight to short completions. Theorem~\ref{thm:end} bounds where this happens, and
+Theorems~\ref{thm:lost} and~\ref{thm:greatest} say that the set of possible outputs is as
+large as it can be. How to sample from that set in proportion to the model is a separate
+question.
+
+\paragraph{Shortest completions.} The cheapest way to complete a prefix of a sentence is an
+old tool of syntax-error repair. \citet{Roehrich1980} builds parsers that can always
+continue a valid prefix to a sentence, and \citet{BurkeFisher1987} choose among repairs by
+cost. Our distance is the length of the cheapest continuation, with two differences: it is
+counted in the tokens of a vocabulary, which cut across the terminals of the grammar, and it
+is used before the fact, to keep the generator within reach of the end.
+
+\paragraph{Shortest paths and pushdown systems.} For regular schemas the distance is a
+shortest path in a graph with unit weights \citep{Dijkstra1959}. For pushdown schemas,
+Section~\ref{sec:nested} is an instance of weighted pushdown systems \citep{Reps2005}, with
+tokens completed as the weight. What is specific here is the product with the begun token,
+which is what lets a token reach across a pop.
+
+\paragraph{Budgets.} An earlier paper of this collection bounds the tokens that an agent
+loop spends with sized types \citep{tpp6}, and another one types programs that generate and
+then check \citep{tpp3}. This paper is about a single generation and makes the check
+unnecessary for one kind of failure.
+
+\section{Limits}\label{sec:limits}
+
+\paragraph{Form, not sense.} The mask guarantees an output that parses. It does not
+guarantee that the output says what the model was going to say. A list can end after three
+entries because the budget ended, and a string can stop in the middle of a word. This is
+still better than an output that does not parse, but the caller must be told. The decoder
+knows the first step at which the budget removed a token that the usual mask allowed, and it
+should report that, as a reason for stopping of its own.
+
+\paragraph{The distribution.} As said in Section~\ref{sec:related}, the mask distorts the
+model's distribution in the last steps. We prove what is possible, not how likely it is.
+
+\paragraph{Schemas.} We treat regular schemas and pushdown schemas that read one character
+per move. Conditions that are not of this kind, such as that the entries of a list differ,
+are outside. A grammar with empty moves or with lookahead has to be brought into this form
+first.
+
+\paragraph{Real vocabularies and real models.} The tests use vocabularies of a few tokens
+and a model that picks at random. We argue that the distance costs little for a vocabulary
+of a hundred thousand tokens, because it reuses the edges that every constrained decoder
+computes, but we have not measured it. For pushdown schemas the tables grow with the number
+of begun tokens that matter at a pop, and we have not measured that either. We have no data
+on how often real outputs are cut at the limit.
+
+\paragraph{What counts as a token.} We count the tokens of the output and let the model
+stop for free. A service that counts a stop token, or that shares one limit between thinking
+and output, has to shift the budget accordingly.
+
+\paragraph{Proofs on paper.} The proofs are short, and none has been checked by a machine.
+The script tests their statements on small instances.
+
+\section{Conclusion}
+
+Constrained decoding promises a valid output and delivers a valid prefix. The difference is
+a distance, the fewest tokens to the end, and it is cheap to know: one number per state for a
+regular schema, one vector per stack entry for a nested one. With it, a limit on tokens stops
+being a way for a structured output to fail. The decoder steers the last tokens towards an
+end, the service can name the least limit for a schema, and a request below it is refused
+before it is paid for.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
