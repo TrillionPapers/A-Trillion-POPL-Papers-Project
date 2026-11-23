@@ -1,0 +1,551 @@
+<!-- standard: 2026-11-22 -->
+<style>
+/* The picture of the film is a grid. Stages run to the right and sizes run up. A universe is a
+   line, a type is a row of sets with one set for every stage, and later moves the row one
+   stage to the right. On the level lines of the usual universes the row stays on its line. On
+   the diagonal lines it comes down from the line of one universe to the line of the one below. */
+.slip { position: absolute; padding: 14px 26px 16px; border-radius: 22px; }
+.slip .code { font-size: 40px; line-height: 1.15; color: #fff; }
+.strip { position: absolute; display: flex; align-items: center; gap: 16px; height: 58px; padding: 0 22px 0 14px; border-radius: 18px; font-size: 25px; color: #fff; white-space: nowrap; }
+.tag { display: inline-flex; align-items: center; justify-content: center; height: 34px; min-width: 76px; padding: 0 12px; border-radius: 11px; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #0b0e24; }
+.t-deny { background: #ff6b6b; }
+.t-info { background: #8fb4ff; }
+.chip { display: inline-flex; align-items: center; height: 50px; padding: 0 14px; border-radius: 13px; border: 1.5px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .1); font-size: 27px; color: #fff; }
+.chips { position: absolute; display: flex; gap: 8px; align-items: center; }
+.edge-bad { border-color: #ff6b6b; box-shadow: 0 0 34px rgba(255, 90, 90, .55); }
+.edge-good { border-color: #4dffc3; box-shadow: 0 0 34px rgba(77, 255, 195, .5); }
+.edge-ask { border-color: #ffc45e; box-shadow: 0 0 34px rgba(255, 196, 94, .5); }
+.c-amber { color: #ffcf7d; }
+.c-green { color: #7dffd2; }
+.row { position: absolute; display: flex; align-items: baseline; gap: 16px; }
+.deco { position: absolute; left: 820px; top: 200px; rotate: -6deg; animation: bob 5s ease-in-out infinite; }
+.deco .strip { position: relative; margin-bottom: 14px; width: max-content; }
+.lay { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; }
+.gp { fill: rgba(255, 255, 255, .3); }
+.ax { stroke: rgba(255, 255, 255, .36); stroke-width: 2; }
+.tick { position: absolute; width: 40px; margin-left: -20px; text-align: center; font-size: 17px; font-weight: 700; color: #98a1c8; }
+.uline { position: absolute; left: 740px; width: 288px; height: 5px; margin-top: -2.5px; border-radius: 3px; transform-origin: 0 50%; }
+.uline[data-in] { translate: 0 0; scale: 0 1; }
+.uline[data-in].in { scale: 1 1; }
+.u0 { background: linear-gradient(90deg, #4dffc3, #45d6ff); box-shadow: 0 0 20px rgba(77, 255, 195, .65); }
+.u1 { background: linear-gradient(90deg, #ffc45e, #ff8fbd); box-shadow: 0 0 20px rgba(255, 196, 94, .6); }
+.dg { transform: rotate(-45deg) scaleX(1.4142); }
+.gem { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 9px; background: linear-gradient(135deg, #fff 0%, var(--c, #b38cff) 62%); box-shadow: 0 0 22px var(--halo, rgba(179, 140, 255, .85)), inset 0 0 0 1.5px rgba(255, 255, 255, .75); z-index: 5; }
+.amber { --c: #ffc45e; --halo: rgba(255, 196, 94, .85); }
+.mint { --c: #4dffc3; --halo: rgba(77, 255, 195, .85); }
+.ring { position: absolute; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 16px; border: 4px solid #ffc45e; box-shadow: 0 0 18px rgba(255, 196, 94, .7); z-index: 6; }
+.ghost { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 9px; border: 2px dashed rgba(255, 255, 255, .42); }
+.train { position: absolute; left: 0; top: 0; }
+.tri { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #f0e8ff, #b38cff); color: #0b0e24; font-size: 17px; font-weight: 900; line-height: 1; }
+.push { margin-left: auto; }
+.hop { stroke: rgba(255, 255, 255, .8); stroke-width: 3; }
+.stop { stroke: #ff6b6b; stroke-width: 5; }
+.pay { stroke: #7dffd2; stroke-width: 5; }
+.dash { position: absolute; height: 0; border-top: 3px dashed rgba(255, 255, 255, .42); }
+.leg { display: flex; align-items: center; gap: 10px; }
+.sw { width: 15px; height: 15px; border-radius: 5px; }
+.swr { width: 15px; height: 15px; border-radius: 5px; border: 3px solid #ffc45e; }
+
+/* 1: the cell and the circle */
+.cw { transform-origin: 915px 250px; }
+.cellbox { width: 230px; height: 160px; display: grid; place-items: center; }
+.loop { stroke: #ffc45e; stroke-width: 5; }
+.arc { stroke: #8fb4ff; stroke-width: 5; }
+#cell.s2 .cw { transform: translate(40px, -118px) scale(.5); opacity: .55; }
+#cell.c2-23 .arc { stroke: #ffc45e; }
+#cell.s3 .arc { stroke: #7dffd2; }
+
+/* 2: the ladder of universes, and the two that climb it */
+.rung { position: absolute; left: 640px; width: 560px; height: 2px; background: rgba(255, 255, 255, .16); }
+#sizes .wd { left: 790px; top: 434px; }
+#sizes .pd { left: 946px; top: 362px; }
+#sizes.c2-12 .pd { animation: bump .8s var(--out); }
+#sizes.c2-18 .wd { top: 362px; }
+#sizes.c2-21 .pd { top: 290px; }
+#sizes.c2-23 .wd { top: 290px; }
+#sizes.c2-24 .pd { top: 218px; }
+#sizes.s3 .wd { top: 218px; }
+#sizes.s3 .pd { top: 146px; }
+#sizes.c3-4 .wd, #sizes.c3-4 .pd { opacity: .32; filter: saturate(.4); }
+
+/* 4: later moves the row */
+#shift.c2-4 .ta { transform: translateX(72px); }
+
+/* 5: the lines tilt */
+#tilt .g0 { left: 740px; top: 428px; }
+#tilt .g1 { left: 812px; top: 428px; }
+#tilt .g2 { left: 884px; top: 428px; }
+#tilt .g3 { left: 956px; top: 428px; }
+#tilt .l1 { top: 419px; }
+#tilt .l0 { top: 491px; }
+#tilt.c1-12 .ta { transform: translateX(72px); }
+#tilt.s2 .ta { transform: none; }
+#tilt.c2-5 .uline { transform: rotate(-45deg) scaleX(1.4142); }
+#tilt.c2-5 .g1 { top: 356px; }
+#tilt.c2-5 .g2 { top: 284px; }
+#tilt.c2-5 .g3 { top: 212px; }
+#tilt.c2-5 .l1 { top: 131px; }
+#tilt.c2-5 .l0 { top: 203px; }
+#tilt.c3-2 .ta { transform: translateX(72px); }
+#tilt.c3-9 .gem { --c: #4dffc3; --halo: rgba(77, 255, 195, .85); }
+
+/* 6: the rule */
+.infer { width: 480px; padding: 22px 30px 28px; text-align: center; }
+.infer .code { font-size: 58px; color: #fff; }
+.rbar { height: 4px; margin: 14px 0 12px; border-radius: 2px; background: rgba(255, 255, 255, .75); }
+.rbar[data-in] { translate: 0 0; scale: 0 1; }
+.rbar[data-in].in { scale: 1 1; }
+#rule.c1-14 .ta { transform: translateX(72px); }
+#rule.c1-14 .gem { --c: #4dffc3; --halo: rgba(77, 255, 195, .85); }
+#rule.c2-6 .uline { animation: flash 1s ease; }
+
+/* 7: what it buys */
+#buys.c1-11 .ta { transform: translateX(72px); }
+#buys.c2-14 .tb { transform: translateX(72px); }
+#buys.c3-5 .ring { border-color: #4dffc3; box-shadow: 0 0 22px rgba(77, 255, 195, .8); }
+
+/* 8: the constructs and the steps that pay */
+.sign { font-size: 23px; text-transform: none; letter-spacing: 0; min-width: 62px; }
+.stepc { height: 36px; font-size: 17px; padding: 0 12px; border-radius: 10px; }
+.fold { position: absolute; left: 660px; top: 126px; width: 540px; height: 356px; }
+#relation .strip { left: 670px; width: 520px; font-size: 23px; }
+#relation.c2-2 .dimr { opacity: .36; }
+#relation.c2-19 .dimr { opacity: 1; }
+#relation.c2-2 .r1 { border-color: #8fb4ff; box-shadow: 0 0 34px rgba(143, 180, 255, .5); }
+
+/* 9: two borders */
+@keyframes tryfall {
+  0%, 100% { translate: 0 0; }
+  40% { translate: 0 50px; }
+  58% { translate: 0 38px; }
+}
+#borders.c1-9 .ta { animation: tryfall 1.3s var(--inout); }
+#borders.c2-6 .ta { transform: translateX(72px); }
+#borders.c2-6 .gem { --c: #4dffc3; --halo: rgba(77, 255, 195, .85); }
+#borders.c2-15 .ta { transform: none; }
+#borders.c2-15 .gem { --c: #ffc45e; --halo: rgba(255, 196, 94, .85); }
+
+/* 10: the third border */
+#clock.c1-6 .ta { transform: translateX(72px); }
+#clock.c1-20 .ta { transform: translateY(72px); }
+#clock.c1-20 .gem { --c: #ff6b6b; --halo: rgba(255, 90, 90, .9); }
+#clock.c2-3 .u1 { opacity: .25; }
+
+/* 11: what Agda checked */
+.term { position: absolute; left: 660px; top: 112px; width: 540px; padding: 18px 24px 22px; }
+.term .code { font-size: 25px; color: #fff; }
+.claims { position: absolute; left: 660px; top: 300px; width: 550px; display: flex; flex-wrap: wrap; gap: 9px; }
+.claim { height: 36px; font-size: 16px; padding: 0 11px; border-radius: 10px; }
+#agda.c2-9 .szc { border-color: #4dffc3; color: #c8ffeb; }
+#agda.c2-15 .par { border-color: #ffc45e; color: #ffe6b3; box-shadow: 0 0 22px rgba(255, 196, 94, .5); }
+
+/* 13: the end */
+#end.c1-2 .ta { transform: translateX(72px); }
+#end.c1-2 .gem { --c: #4dffc3; --halo: rgba(77, 255, 195, .85); }
+</style>
+
+<section class="scene deep" id="cell" data-title="A cell that holds a function" data-cues="2:23" style="--light1: rgba(255, 184, 77, .26); --light2: rgba(88, 110, 255, .3)">
+  <div class="d2 words sync abs" data-in="1:1" data-out="2:23" style="left:88px;top:150px;width:520px">A reference cell holds a <span class="it grad">function.</span></div>
+  <div class="d2 words sync abs" data-in="2:23" data-out="3" style="left:88px;top:190px;width:520px">A <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">circle.</span></div>
+  <div class="d2 words sync abs" data-in="3:1" style="left:88px;top:150px;width:520px">The later modality <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">breaks it.</span></div>
+  <div class="lay mv cw">
+    <div class="lab abs" data-in="1:2" style="left:806px;top:140px">a cell</div>
+    <div class="slab glass cellbox blur" data-in="1:2" style="left:800px;top:170px"><span class="chip code pop" data-in="1:6" style="height:92px;padding:0 30px;font-size:60px;border-radius:20px">λ</span></div>
+    <svg class="over" viewBox="0 0 1280 720">
+      <path class="loop draw" data-in="1:10" pathLength="1" d="M 1034 212 C 1140 190, 1140 320, 1036 292"/>
+      <path class="loop draw" data-in="1:10" pathLength="1" style="--d:.6s" d="M 1058 281 L 1035 292 L 1054 308"/>
+    </svg>
+  </div>
+  <svg class="over" viewBox="0 0 1280 720">
+    <path class="arc draw" data-in="2:7" pathLength="1" d="M 792 354 C 840 270, 1025 270, 1073 354"/>
+    <path class="arc draw" data-in="2:7" pathLength="1" style="--d:.6s" d="M 1072 332 L 1073 354 L 1054 342"/>
+    <path class="arc draw" data-in="2:17" pathLength="1" d="M 1073 426 C 1025 510, 840 510, 792 426"/>
+    <path class="arc draw" data-in="2:17" pathLength="1" style="--d:.6s" d="M 793 448 L 792 426 L 811 438"/>
+  </svg>
+  <div class="pill glass" data-in="2:2" style="left:700px;top:360px">predicate</div>
+  <div class="pill glass" data-in="2:10" style="left:1010px;top:360px">world</div>
+  <div class="mark ask pop" data-in="2:23" data-out="3" style="left:909px;top:367px"></div>
+  <div class="tri abs pop" data-in="3:2" style="left:915px;top:472px">▷</div>
+  <div class="lab abs" data-in="3:11" style="left:852px;top:522px;color:#7dffd2">one step later</div>
+  <aside>
+    <p>A reference cell holds a function, and the function reads the cell.</p>
+    <p>So what a cell may hold depends on the world of all cells, and the world says what every cell may hold. A circle.</p>
+    <p>The later modality breaks it: a world holds its predicates one step later.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="sizes" data-title="A second circle" data-cues="2:12 2:18 2:21 2:23 2:24 3:4" style="--light1: rgba(255, 95, 120, .26); --light2: rgba(88, 110, 255, .28)">
+  <div class="lab abs" data-in="1:2" style="left:92px;top:84px">in a predicative type theory</div>
+  <div class="d3 words sync abs" data-in="1:7" data-out="3" style="left:88px;top:118px;width:500px">A second circle, in the <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">sizes.</span></div>
+  <div class="d3 words sync abs" data-in="3:1" style="left:88px;top:118px;width:500px">The equation has no <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">level.</span></div>
+  <div class="lab abs" data-in="3:9" style="left:92px;top:262px">Iris</div>
+  <div class="pill glass" data-in="3:9" style="left:88px;top:288px;font-size:22px">an impredicative sort of propositions</div>
+  <div class="lab abs" data-in="3:15" style="left:92px;top:378px">synthetic guarded domain theory</div>
+  <div class="pill glass" data-in="3:15" style="left:88px;top:404px;font-size:22px">an impredicative universe</div>
+  <div class="rung fade" data-in="1:3" style="top:500px"></div>
+  <div class="rung fade" data-in="1:3" style="top:428px;--d:.06s"></div>
+  <div class="rung fade" data-in="1:3" style="top:356px;--d:.12s"></div>
+  <div class="rung fade" data-in="1:3" style="top:284px;--d:.18s"></div>
+  <div class="rung fade" data-in="1:3" style="top:212px;--d:.24s"></div>
+  <div class="rung fade" data-in="1:3" style="top:140px;--d:.3s"></div>
+  <div class="lab abs" data-in="1:3" style="left:640px;top:474px">universe 0</div>
+  <div class="lab abs" data-in="1:3" style="left:640px;top:402px;--d:.06s">universe 1</div>
+  <div class="lab abs" data-in="1:3" style="left:640px;top:330px;--d:.12s">universe 2</div>
+  <div class="lab abs" data-in="1:3" style="left:640px;top:258px;--d:.18s">universe 3</div>
+  <div class="lab abs" data-in="1:3" style="left:640px;top:186px;--d:.24s">universe 4</div>
+  <div class="lab abs" data-in="1:3" style="left:640px;top:114px;--d:.3s">universe 5</div>
+  <div class="pill glass pd" data-in="2:1"><span class="tri pop" data-in="2:11" style="margin-right:10px">▷</span>predicates</div>
+  <div class="pill glass wd" data-in="2:3">worlds</div>
+  <svg class="over" viewBox="0 0 1280 720">
+    <path class="loop draw" data-in="2:23" pathLength="1" d="M 1066 130 L 1066 84"/>
+    <path class="loop draw" data-in="2:23" pathLength="1" style="--d:.5s" d="M 1054 98 L 1066 82 L 1078 98"/>
+  </svg>
+  <div class="lab abs" data-in="2:23" style="left:906px;top:92px;color:#ffcf7d">without end</div>
+  <div class="mark no pop" data-in="3:4" style="left:886px;top:164px"></div>
+  <aside>
+    <p>But a predicative type theory has a second circle, in the sizes.</p>
+    <p>Predicates on worlds live one universe above the worlds, and later keeps the universe. So the worlds move up, then their predicates, without end.</p>
+    <p>The equation has no level. Existing developments assume an impredicative sort of propositions, or an impredicative universe.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="title" data-title="Later Lowers the Level" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(255, 184, 77, .16)">
+  <div class="deco" style="left:850px;top:120px">
+    <div class="uline u1 dg" style="left:20px;top:300px"></div>
+    <div class="uline u0 dg" style="left:20px;top:396px"></div>
+    <svg viewBox="0 0 340 420" width="340" height="420" style="position:absolute;left:0;top:0;fill:none;stroke-linecap:round">
+      <path class="hop" d="M 46 300 L 88 300 M 78 291 L 90 300 L 78 309"/>
+      <path class="hop" d="M 142 204 L 184 204 M 174 195 L 186 204 L 174 213"/>
+      <path class="hop" d="M 238 108 L 280 108 M 270 99 L 282 108 L 270 117"/>
+    </svg>
+    <div class="gem amber" style="left:20px;top:300px"></div>
+    <div class="gem amber" style="left:116px;top:204px"></div>
+    <div class="gem amber" style="left:212px;top:108px"></div>
+    <div class="gem mint" style="left:116px;top:300px"></div>
+    <div class="gem mint" style="left:212px;top:204px"></div>
+    <div class="gem mint" style="left:308px;top:108px"></div>
+  </div>
+  <div class="lab abs" data-in="1" style="left:88px;top:150px">A Trillion POPL Papers · Paper 23</div>
+  <div class="d1 words abs" data-in="1:5" style="left:84px;top:186px;width:760px;font-size:100px">Later Lowers the <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">Level</span></div>
+  <div class="d4 soft abs" data-in="1:8" style="left:88px;top:430px;width:640px">Universe levels along the diagonal in guarded type theory</div>
+  <aside>
+    <p>This paper is called: later lowers the level.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="shift" data-title="Later shifts the stages" data-cues="2:4" style="--light1: rgba(88, 110, 255, .34); --light2: rgba(179, 140, 255, .24)">
+  <div class="lab abs" data-in="1:6" style="left:92px;top:84px">the standard model</div>
+  <div class="d3 words sync abs" data-in="1:2" data-out="1:9" style="left:88px;top:118px;width:500px">The topos of <span class="it grad">trees.</span></div>
+  <div class="d3 words sync abs" data-in="1:9" data-out="2" style="left:88px;top:118px;width:500px">A type is a set for every <span class="it grad">stage.</span></div>
+  <div class="d3 words sync abs" data-in="2:1" data-out="3:8" style="left:88px;top:118px;width:500px">And later only shifts the <span class="it grad">stages.</span></div>
+  <div class="d3 words sync abs" data-in="3:8" style="left:88px;top:118px;width:500px">Its size <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">stays.</span></div>
+  <div class="slip glass blur" data-in="2:7" style="left:88px;top:300px"><span class="code">(▷T)(n+1) = T(n)</span></div>
+  <div class="lay fade" data-in="1:3"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade" data-in="1:3"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade" data-in="3:8"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="dash fade" data-in="3:9" style="left:708px;top:356px;width:356px;border-top-color:rgba(125,249,255,.6)"></div>
+  <div class="lab abs" data-in="3:9" style="left:1076px;top:347px;color:#7dffd2">same size</div>
+  <div class="ghost fade" data-in="2:4" style="left:740px;top:356px"></div>
+  <div class="ghost fade" data-in="2:4" style="left:812px;top:356px"></div>
+  <div class="ghost fade" data-in="2:4" style="left:884px;top:356px"></div>
+  <div class="ghost fade" data-in="2:4" style="left:956px;top:356px"></div>
+  <div class="train mv ta">
+    <div class="gem pop" data-in="1:13" style="left:740px;top:356px"></div>
+    <div class="gem pop" data-in="1:13" style="left:812px;top:356px;--d:.08s"></div>
+    <div class="gem pop" data-in="1:13" style="left:884px;top:356px;--d:.16s"></div>
+    <div class="gem pop" data-in="1:13" style="left:956px;top:356px;--d:.24s"></div>
+  </div>
+  <div class="lab abs" data-in="1:10" data-out="2:4" style="left:724px;top:304px">a type T</div>
+  <div class="lab abs" data-in="2:7" style="left:796px;top:304px;color:#c9b6ff">later T</div>
+  <svg class="over" viewBox="0 0 1280 720">
+    <path class="hop draw" data-in="3:3" pathLength="1" d="M 760 396 L 792 396"/>
+    <path class="hop draw" data-in="3:3" pathLength="1" style="--d:.4s" d="M 782 388 L 794 396 L 782 404"/>
+  </svg>
+  <div class="lab abs" data-in="3:3" style="left:722px;top:410px">one step</div>
+  <aside>
+    <p>In the topos of trees, the standard model, a type is a set for every stage.</p>
+    <p>And later only shifts the stages. Later T, at stage n plus one, is T at stage n.</p>
+    <p>The set moves one step in time. Its size stays.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="tilt" data-title="Universes along the diagonal" data-cues="1:12 2:5 3:2 3:9" style="--light1: rgba(77, 255, 195, .26); --light2: rgba(255, 184, 77, .2)">
+  <div class="lab abs" data-in="1:2" data-out="2" style="left:92px;top:84px">the usual universes</div>
+  <div class="d3 words sync abs" data-in="1:5" data-out="2" style="left:88px;top:118px;width:500px">The same size at every <span class="it grad">stage.</span></div>
+  <div class="pill glass" data-in="1:11" data-out="2" style="left:88px;top:270px">so later keeps the universe</div>
+  <div class="d3 words sync abs" data-in="2:1" data-out="3:8" style="left:88px;top:118px;width:500px">We take the universes along the <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">diagonal.</span></div>
+  <div class="d3 words sync abs" data-in="3:8" style="left:88px;top:118px;width:500px">It lands on the line of universe <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">zero.</span></div>
+  <div class="lab abs" data-in="2:8" style="left:92px;top:346px">universe i, at stage n</div>
+  <div class="slip glass blur" data-in="2:13" style="left:88px;top:372px"><span class="code">size i + n</span></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="uline u1" data-in="1:2" style="top:428px"></div>
+  <div class="uline u0" data-in="1:2" style="top:500px;--d:.12s"></div>
+  <div class="lab abs l1" data-in="1:3" style="left:1064px;color:#ffcf7d">universe 1</div>
+  <div class="lab abs l0" data-in="1:3" style="left:1064px;color:#7dffd2">universe 0</div>
+  <div class="ghost fade" data-in="3:2" style="left:740px;top:428px"></div>
+  <div class="ghost fade" data-in="3:2" style="left:812px;top:356px"></div>
+  <div class="ghost fade" data-in="3:2" style="left:884px;top:284px"></div>
+  <div class="ghost fade" data-in="3:2" style="left:956px;top:212px"></div>
+  <div class="train mv ta">
+    <div class="gem amber pop g0" data-in="1:6"></div>
+    <div class="gem amber pop g1" data-in="1:6" style="--d:.08s"></div>
+    <div class="gem amber pop g2" data-in="1:6" style="--d:.16s"></div>
+    <div class="gem amber pop g3" data-in="1:6" style="--d:.24s"></div>
+  </div>
+  <div class="mark yes pop" data-in="3:9" style="left:980px;top:350px"></div>
+  <aside>
+    <p>The usual universes allow the same size at every stage. So later keeps the universe.</p>
+    <p>We take the universes along the diagonal. Universe i, at stage n, holds the sets of size i plus n.</p>
+    <p>Now shift a type of universe one. It lands on the line of universe zero.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="rule" data-title="The rule" data-cues="1:14 2:6" style="--light1: rgba(179, 140, 255, .32); --light2: rgba(77, 255, 195, .22)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:84px">the rule</div>
+  <div class="slab glass infer blur" data-in="1:3" style="left:88px;top:118px">
+    <div data-in="1:4"><span class="code">T : U<sub class="c-amber">i+1</sub></span></div>
+    <div class="rbar" data-in="1:13"></div>
+    <div data-in="1:14"><span class="code">▷T : U<sub class="c-green">i</sub></span></div>
+  </div>
+  <div class="lab abs" data-in="1:16" style="left:92px;top:364px">also under a delayed substitution</div>
+  <div class="pill glass edge-good" data-in="2:3" style="left:88px;top:400px">consistent</div>
+  <div class="lab abs" data-in="2:5" style="left:284px;top:421px">a model in the topos of trees</div>
+  <div class="pill glass" data-in="2:11" style="left:88px;top:480px">not derivable in the standard theory</div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="dash fade" data-in="2:11" style="left:740px;top:428px;width:288px"></div>
+  <div class="dash fade" data-in="2:11" style="left:740px;top:500px;width:288px"></div>
+  <div class="lab abs" data-in="2:11" style="left:880px;top:456px">the usual universes</div>
+  <div class="uline u1 dg" style="top:428px"></div>
+  <div class="uline u0 dg" style="top:500px"></div>
+  <div class="lab abs" style="left:1064px;top:131px;color:#ffcf7d">universe 1</div>
+  <div class="lab abs" style="left:1064px;top:203px;color:#7dffd2">universe 0</div>
+  <div class="ghost fade" data-in="1:14" style="left:740px;top:428px"></div>
+  <div class="ghost fade" data-in="1:14" style="left:812px;top:356px"></div>
+  <div class="ghost fade" data-in="1:14" style="left:884px;top:284px"></div>
+  <div class="ghost fade" data-in="1:14" style="left:956px;top:212px"></div>
+  <div class="train mv ta">
+    <div class="gem amber pop" data-in="1:4" style="left:740px;top:428px"></div>
+    <div class="gem amber pop" data-in="1:4" style="left:812px;top:356px;--d:.08s"></div>
+    <div class="gem amber pop" data-in="1:4" style="left:884px;top:284px;--d:.16s"></div>
+    <div class="gem amber pop" data-in="1:4" style="left:956px;top:212px;--d:.24s"></div>
+  </div>
+  <aside>
+    <p>The rule: if T is a type in universe i plus one, then later T is a type in universe i.</p>
+    <p>It is consistent, because the diagonal universes model it. And the standard theory cannot derive it.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="buys" data-title="What it buys" data-cues="1:11 2:14 3:5" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(88, 110, 255, .3)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:84px">what it buys</div>
+  <div class="d3 words sync abs" data-in="1:1" data-out="1:6" style="left:88px;top:118px;width:500px">What does it <span class="it grad">buy?</span></div>
+  <div class="d3 words sync abs" data-in="1:6" data-out="2" style="left:88px;top:118px;width:500px">The later of a universe is one of its own <span class="it grad">types.</span></div>
+  <div class="slip glass blur" data-in="1:11" data-out="2" style="left:88px;top:330px"><span class="code">▷U<sub>0</sub> : U<sub>0</sub></span></div>
+  <div class="d3 words sync abs" data-in="2:2" data-out="3" style="left:88px;top:118px;width:500px">The worlds have a <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">level.</span></div>
+  <div class="d3 words sync abs" data-in="3:1" style="left:88px;top:118px;width:500px">The equation has a solution in universe <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">zero.</span></div>
+  <div class="slip glass blur edge-good" data-in="3:2" style="left:88px;top:330px"><span class="code" style="font-size:29px">W ≅ Loc ⇀ ▷(W → Val → U<sub>0</sub>)</span></div>
+  <div class="mark yes pop" data-in="3:5" style="left:88px;top:430px"></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="uline u1 dg" style="top:428px"></div>
+  <div class="uline u0 dg" style="top:500px"></div>
+  <div class="lab abs" style="left:1064px;top:131px;color:#ffcf7d">universe 1</div>
+  <div class="lab abs" style="left:1064px;top:203px;color:#7dffd2">universe 0</div>
+  <div class="lab abs leg" data-in="1:8" data-out="2" style="left:870px;top:452px;color:#c9b6ff"><i class="sw" style="background:#b38cff"></i>universe 0, as a type</div>
+  <div class="ghost fade" data-in="1:11" data-out="2" style="left:740px;top:428px"></div>
+  <div class="ghost fade" data-in="1:11" data-out="2" style="left:812px;top:356px"></div>
+  <div class="ghost fade" data-in="1:11" data-out="2" style="left:884px;top:284px"></div>
+  <div class="ghost fade" data-in="1:11" data-out="2" style="left:956px;top:212px"></div>
+  <div class="train mv ta">
+    <div class="gem pop" data-in="1:8" data-out="2" style="left:740px;top:428px"></div>
+    <div class="gem pop" data-in="1:8" data-out="2" style="left:812px;top:356px;--d:.08s"></div>
+    <div class="gem pop" data-in="1:8" data-out="2" style="left:884px;top:284px;--d:.16s"></div>
+    <div class="gem pop" data-in="1:8" data-out="2" style="left:956px;top:212px;--d:.24s"></div>
+  </div>
+  <div class="gem mint pop" data-in="2:3" style="left:740px;top:500px"></div>
+  <div class="gem mint pop" data-in="2:3" style="left:812px;top:428px;--d:.06s"></div>
+  <div class="gem mint pop" data-in="2:3" style="left:884px;top:356px;--d:.12s"></div>
+  <div class="gem mint pop" data-in="2:3" style="left:956px;top:284px;--d:.18s"></div>
+  <div class="gem mint pop" data-in="2:3" style="left:1028px;top:212px;--d:.24s"></div>
+  <div class="lab abs leg" data-in="2:3" style="left:870px;top:440px;color:#7dffd2"><i class="sw" style="background:#4dffc3"></i>worlds</div>
+  <div class="lab abs leg" data-in="2:8" style="left:870px;top:470px;color:#ffcf7d"><i class="swr"></i>predicates on worlds</div>
+  <div class="train mv tb">
+    <div class="ring pop" data-in="2:8" style="left:740px;top:428px"></div>
+    <div class="ring pop" data-in="2:8" style="left:812px;top:356px;--d:.08s"></div>
+    <div class="ring pop" data-in="2:8" style="left:884px;top:284px;--d:.16s"></div>
+    <div class="ring pop" data-in="2:8" style="left:956px;top:212px;--d:.24s"></div>
+  </div>
+  <aside>
+    <p>What does it buy? First, the later of a universe is one of its own types.</p>
+    <p>Second, the worlds have a level. Their predicates sit one universe up, and later brings them down.</p>
+    <p>The equation has a solution in universe zero.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="relation" data-title="One predicative universe" data-cues="2:2 2:19" style="--light1: rgba(88, 110, 255, .32); --light2: rgba(77, 255, 195, .22)">
+  <div class="d3 words sync abs" data-in="1:2" data-out="1:14" style="left:88px;top:118px;width:500px">The step-indexed logical <span class="it grad">relation</span></div>
+  <div class="d3 words sync abs" data-in="1:14" data-out="2:7" style="left:88px;top:118px;width:500px">Fits in one predicative <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">universe.</span></div>
+  <div class="d3 words sync abs" data-in="2:7" style="left:88px;top:118px;width:500px">A product over later <span class="it grad">predicates.</span></div>
+  <div class="pill glass edge-good" data-in="2:19" style="left:88px;top:300px">the step pays for the later</div>
+  <div class="slab glass fold edge-good blur" data-in="1:14"></div>
+  <div class="lab abs" data-in="1:16" style="left:1052px;top:140px;color:#7dffd2">universe 0</div>
+  <div class="strip glass r1" data-in="1:7" style="top:170px"><span class="tag t-info sign">∀</span><span>polymorphism</span><span class="tri push pop" data-in="2:10">▷</span><span class="chip code stepc pop" data-in="2:16">type application</span></div>
+  <div class="strip glass dimr" data-in="1:8" style="top:244px"><span class="tag t-info sign">∃</span><span>existential types</span><span class="tri push pop" data-in="2:19" style="--d:.1s">▷</span><span class="chip code stepc pop" data-in="2:19" style="--d:.1s">unpack</span></div>
+  <div class="strip glass dimr" data-in="1:10" style="top:318px"><span class="tag t-info sign">μ</span><span>recursive types</span><span class="tri push pop" data-in="2:19" style="--d:.2s">▷</span><span class="chip code stepc pop" data-in="2:19" style="--d:.2s">unfold</span></div>
+  <div class="strip glass dimr" data-in="1:13" style="top:392px"><span class="tag t-info sign">ref</span><span>references</span><span class="tri push pop" data-in="2:19" style="--d:.3s">▷</span><span class="chip code stepc pop" data-in="2:19" style="--d:.3s">read, write</span></div>
+  <aside>
+    <p>So the step-indexed logical relation for polymorphism, existential types, recursive types, and references fits in one predicative universe.</p>
+    <p>The quantifier of the language becomes a product over later predicates. The step that a type application takes pays for the later.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="borders" data-title="Two borders" data-cues="1:9 2:6 2:15" style="--light1: rgba(255, 184, 77, .24); --light2: rgba(88, 110, 255, .28)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:84px">what it does not buy</div>
+  <div class="d3 words sync abs" data-in="1:1" data-out="1:6" style="left:88px;top:118px;width:500px">The rule has three <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">borders.</span></div>
+  <div class="d3 words sync abs" data-in="1:6" data-out="2" style="left:88px;top:118px;width:500px">Without a later there is no <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">trade.</span></div>
+  <div class="pill glass" data-in="1:13" data-out="2" style="left:88px;top:300px">the universes stay predicative</div>
+  <div class="d3 words sync abs" data-in="2:2" style="left:88px;top:118px;width:500px">A later must be paid by a <span class="it grad">step.</span></div>
+  <div class="strip glass" data-in="2:10" style="left:88px;top:300px"><span class="tag t-info sign">∀</span><span>type application</span><span class="chip code stepc edge-ask">erased</span></div>
+  <div class="pill glass edge-ask" data-in="2:15" style="left:88px;top:378px">nothing pays</div>
+  <div class="lab abs" data-in="2:18" style="left:92px;top:462px;color:#ffcf7d">open: we know no way around</div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="uline u1 dg" style="top:428px"></div>
+  <div class="uline u0 dg" style="top:500px"></div>
+  <div class="lab abs" style="left:1064px;top:131px;color:#ffcf7d">universe 1</div>
+  <div class="lab abs" style="left:1064px;top:203px;color:#7dffd2">universe 0</div>
+  <svg class="over" viewBox="0 0 1280 720">
+    <path class="stop draw" data-in="1:9" data-out="2" pathLength="1" d="M 812 380 L 812 408"/>
+    <path class="stop draw" data-in="1:9" data-out="2" pathLength="1" style="--d:.4s" d="M 803 399 L 812 410 L 821 399"/>
+    <path class="pay draw" data-in="2:8" data-fade="2:14" pathLength="1" d="M 826 524 L 870 524"/>
+    <path class="pay draw" data-in="2:8" data-fade="2:14" pathLength="1" style="--d:.4s" d="M 860 516 L 872 524 L 860 532"/>
+  </svg>
+  <div class="mark no sm pop" data-in="1:11" data-out="2" style="left:830px;top:380px"></div>
+  <div class="lab abs" data-in="1:11" data-out="2" style="left:870px;top:388px;color:#ff8a8a">the same stage</div>
+  <div class="lab abs" data-in="2:8" data-fade="2:14" style="left:886px;top:516px;color:#7dffd2">a step</div>
+  <div class="train mv ta">
+    <div class="gem amber" style="left:740px;top:428px"></div>
+    <div class="gem amber" style="left:812px;top:356px"></div>
+    <div class="gem amber" style="left:884px;top:284px"></div>
+    <div class="gem amber" style="left:956px;top:212px"></div>
+  </div>
+  <aside>
+    <p>The rule has three borders. Without a later there is no trade: the universes stay predicative.</p>
+    <p>And a later must be paid by a step. If type application is erased, nothing pays, and we know no way around.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="clock" data-title="The third border" data-cues="1:6 1:20 2:3" style="--light1: rgba(255, 95, 120, .3); --light2: rgba(179, 140, 255, .26)">
+  <div class="d3 words sync abs" data-in="1:2" data-out="2:14" style="left:88px;top:118px;width:500px">Nothing may take a later <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">away.</span></div>
+  <div class="d3 words sync abs" data-in="2:14" style="left:88px;top:118px;width:500px">Girard's paradox <span class="it grad" style="--g1:#ff8a8a;--g2:#ffc45e">follows.</span></div>
+  <div class="strip glass" data-in="1:9" style="left:88px;top:250px"><span class="tag t-deny sign">∀κ</span><span>a clock quantifier</span></div>
+  <div class="pill glass" data-in="1:11" style="left:88px;top:324px;font-size:23px;height:52px">keeps the level</div>
+  <div class="pill glass" data-in="1:16" style="left:306px;top:324px;font-size:23px;height:52px">force</div>
+  <div class="pill glass" data-in="1:18" style="left:88px;top:390px;font-size:23px;height:52px">clock irrelevance</div>
+  <div class="slip glass blur edge-bad" data-in="2:3" style="left:88px;top:468px"><span class="code" style="font-size:32px">U<sub>0</sub> ≃ ∀κ.▷U<sub>0</sub> : U<sub>0</sub></span></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="uline u1 dg" style="top:428px"></div>
+  <div class="uline u0 dg" style="top:500px"></div>
+  <div class="lab abs" style="left:1064px;top:131px;color:#ffcf7d">universe 1</div>
+  <div class="lab abs" style="left:1064px;top:203px;color:#7dffd2">universe 0</div>
+  <div class="lab abs leg" data-in="1:1" style="left:870px;top:440px;color:#c9b6ff"><i class="sw" style="background:#b38cff"></i>universe 0, as a type</div>
+  <div class="ghost fade" data-in="1:6" style="left:740px;top:428px"></div>
+  <div class="ghost fade" data-in="1:6" style="left:812px;top:356px"></div>
+  <div class="ghost fade" data-in="1:6" style="left:884px;top:284px"></div>
+  <div class="ghost fade" data-in="1:6" style="left:956px;top:212px"></div>
+  <div class="train mv ta">
+    <div class="gem" style="left:740px;top:428px"></div>
+    <div class="gem" style="left:812px;top:356px"></div>
+    <div class="gem" style="left:884px;top:284px"></div>
+    <div class="gem" style="left:956px;top:212px"></div>
+  </div>
+  <div class="lab abs" data-in="1:20" style="left:870px;top:470px;color:#ff8a8a">a level for nothing</div>
+  <div class="mark no pop" data-in="2:5" style="left:980px;top:340px"></div>
+  <aside>
+    <p>Third, nothing may take a later away. A clock quantifier that keeps the level, with force and clock irrelevance, does.</p>
+    <p>Then a universe is a retract of one of its own types, and Girard's paradox follows.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="agda" data-title="Checked in Agda" data-cues="2:9 2:15" style="--light1: rgba(77, 255, 195, .28); --light2: rgba(88, 110, 255, .3)">
+  <div class="d3 words sync abs" data-in="1:1" data-out="2" style="left:88px;top:118px;width:500px">What did a machine <span class="it grad" style="--g1:#7dffd2;--g2:#45d6ff">check?</span></div>
+  <div class="row" data-in="2:1" style="left:88px;top:118px"><div class="num good" data-in="2:1" data-count="17" data-ms="800">0</div><div class="lab">claims</div></div>
+  <div class="row" data-in="2:4" style="left:88px;top:258px"><div class="num" data-in="2:4" data-count="620" data-ms="1000">0</div><div class="lab">lines of Agda</div></div>
+  <div class="slab glass term blur" data-in="1:6">
+    <div class="lab">agda --safe --without-K</div>
+    <div data-in="1:7" style="margin-top:12px"><span class="code">Obj : (n : ℕ) → Set (at n l)</span></div>
+    <div data-in="1:14" style="margin-top:8px"><span class="code">later : Psh (lsuc l) → Psh l</span></div>
+  </div>
+  <div class="mark yes pop" data-in="1:16" style="left:1138px;top:196px"></div>
+  <div class="claims">
+    <span class="chip code claim szc pop" data-in="2:1">lowering</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.04s">usual-later</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.08s">fixed-points</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.12s">products</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.16s">universe</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.2s">later-universe</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.24s">codes</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.28s">decoding</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.32s">worlds</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.36s">keep-rejected</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.4s">stages</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.44s">guarded-quantifier</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.48s">plain-quantifier</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.52s">now-rejected</span>
+    <span class="chip code claim szc pop" data-in="2:1" style="--d:.56s">holds</span>
+    <span class="chip code claim par pop" data-in="2:1" style="--d:.6s">paradox</span>
+    <span class="chip code claim par pop" data-in="2:1" style="--d:.64s">clocks</span>
+  </div>
+  <aside>
+    <p>What did a machine check? Agda computes universe levels from numbers, so it checks the sizes with its own universes.</p>
+    <p>Seventeen claims, in six hundred and twenty lines: the sizes of the model, and the paradox.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="caveat" data-title="Before you believe it" style="--light1: rgba(255, 184, 77, .22); --light2: rgba(88, 110, 255, .22)">
+  <div class="lab abs" data-in="1:1" style="left:92px;top:84px;color:#ffc45e">before you believe it</div>
+  <div class="d3 words abs" data-in="1:5" style="left:88px;top:118px;width:1100px">The model and the logical relation: <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">on paper.</span></div>
+  <div class="chips" data-in="1:11" style="left:88px;top:196px"><span class="chip code">soundness</span><span class="chip code">the fundamental theorem</span><span class="chip code">type safety</span></div>
+  <div class="d3 words abs" data-in="2:1" style="left:88px;top:286px;width:1100px">The stratification is <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">not new.</span></div>
+  <div class="chips" data-in="2:5" style="left:88px;top:364px"><span class="chip code">step-indexing</span><span class="chip code">indirection theory</span></div>
+  <div class="d3 words abs" data-in="3:1" style="left:88px;top:454px;width:1100px">One clock. No normalization. No <span class="it grad" style="--g1:#ffc45e;--g2:#ff8fbd">reviewer.</span></div>
+  <aside>
+    <p>Not checked by machine: the soundness of the model, and the logical relation with its fundamental theorem. Those are on paper.</p>
+    <p>The stratification is the oldest idea of step-indexing. Our claim is one rule about universes, with a model and its limits.</p>
+    <p>One clock, no normalization proof, and no human has reviewed the paper.</p>
+  </aside>
+</section>
+
+<section class="scene deep" id="end" data-title="One step, one level" data-cues="1:2" style="--light1: rgba(77, 255, 195, .3); --light2: rgba(179, 140, 255, .36); --light3: rgba(255, 184, 77, .16)">
+  <div class="d3 words sync abs" data-in="1:1" style="left:88px;top:150px;width:520px;font-size:60px">One step in time pays for one level in <span class="it grad" style="--g1:#7dffd2;--g2:#b38cff">size.</span></div>
+  <div class="d4 words sync abs soft" data-in="2:1" style="left:88px;top:400px;width:520px">Later lowers the level.</div>
+  <div class="lab abs" data-in="2:3" style="left:92px;top:480px">Paper 23 · tpp:23 · A Trillion POPL Papers</div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><circle class="gp" cx="740" cy="500" r="2.6"/><circle class="gp" cx="812" cy="500" r="2.6"/><circle class="gp" cx="884" cy="500" r="2.6"/><circle class="gp" cx="956" cy="500" r="2.6"/><circle class="gp" cx="1028" cy="500" r="2.6"/><circle class="gp" cx="740" cy="428" r="2.6"/><circle class="gp" cx="812" cy="428" r="2.6"/><circle class="gp" cx="884" cy="428" r="2.6"/><circle class="gp" cx="956" cy="428" r="2.6"/><circle class="gp" cx="1028" cy="428" r="2.6"/><circle class="gp" cx="740" cy="356" r="2.6"/><circle class="gp" cx="812" cy="356" r="2.6"/><circle class="gp" cx="884" cy="356" r="2.6"/><circle class="gp" cx="956" cy="356" r="2.6"/><circle class="gp" cx="1028" cy="356" r="2.6"/><circle class="gp" cx="740" cy="284" r="2.6"/><circle class="gp" cx="812" cy="284" r="2.6"/><circle class="gp" cx="884" cy="284" r="2.6"/><circle class="gp" cx="956" cy="284" r="2.6"/><circle class="gp" cx="1028" cy="284" r="2.6"/><circle class="gp" cx="740" cy="212" r="2.6"/><circle class="gp" cx="812" cy="212" r="2.6"/><circle class="gp" cx="884" cy="212" r="2.6"/><circle class="gp" cx="956" cy="212" r="2.6"/><circle class="gp" cx="1028" cy="212" r="2.6"/><circle class="gp" cx="740" cy="140" r="2.6"/><circle class="gp" cx="812" cy="140" r="2.6"/><circle class="gp" cx="884" cy="140" r="2.6"/><circle class="gp" cx="956" cy="140" r="2.6"/><circle class="gp" cx="1028" cy="140" r="2.6"/></svg></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 1088 544"/><path class="ax" d="M 1076 536 L 1088 544 L 1076 552"/></svg><div class="tick" style="left:740px;top:552px">0</div><div class="tick" style="left:812px;top:552px">1</div><div class="tick" style="left:884px;top:552px">2</div><div class="tick" style="left:956px;top:552px">3</div><div class="tick" style="left:1028px;top:552px">4</div><div class="lab abs" style="left:1102px;top:534px">stage</div></div>
+  <div class="lay fade"><svg class="over" viewBox="0 0 1280 720"><path class="ax" d="M 696 544 L 696 96"/><path class="ax" d="M 688 108 L 696 96 L 704 108"/></svg><div class="tick" style="left:674px;top:489px">0</div><div class="tick" style="left:674px;top:417px">1</div><div class="tick" style="left:674px;top:345px">2</div><div class="tick" style="left:674px;top:273px">3</div><div class="tick" style="left:674px;top:201px">4</div><div class="tick" style="left:674px;top:129px">5</div><div class="lab abs" style="left:668px;top:66px">size</div></div>
+  <div class="uline u1 dg" style="top:428px"></div>
+  <div class="uline u0 dg" style="top:500px"></div>
+  <div class="lab abs" style="left:1064px;top:131px;color:#ffcf7d">universe 1</div>
+  <div class="lab abs" style="left:1064px;top:203px;color:#7dffd2">universe 0</div>
+  <div class="ghost fade" data-in="1:2" style="left:740px;top:428px"></div>
+  <div class="ghost fade" data-in="1:2" style="left:812px;top:356px"></div>
+  <div class="ghost fade" data-in="1:2" style="left:884px;top:284px"></div>
+  <div class="ghost fade" data-in="1:2" style="left:956px;top:212px"></div>
+  <div class="train mv ta">
+    <div class="gem amber" style="left:740px;top:428px"></div>
+    <div class="gem amber" style="left:812px;top:356px"></div>
+    <div class="gem amber" style="left:884px;top:284px"></div>
+    <div class="gem amber" style="left:956px;top:212px"></div>
+  </div>
+  <aside>
+    <p>One step in time pays for one level in size.</p>
+    <p>Later lowers the level.</p>
+  </aside>
+</section>
