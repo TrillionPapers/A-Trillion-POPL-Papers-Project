@@ -1,0 +1,17 @@
+lowering: Diagonal.agda, definition later: the later of a presheaf over the level above l is a presheaf over l
+usual-later: Diagonal.agda, definition later0: the later that keeps the level is the lowering one after raising the level
+fixed-points: Diagonal.agda, definition fix: every map from the later of a presheaf to the presheaf has a fixed point
+products: Diagonal.agda, definition Prod: the dependent product of presheaves over l is a presheaf over l
+universe: Diagonal.agda, definition Univ: the universe of presheaves over l is a presheaf over the level above l
+later-universe: Diagonal.agda, definition laterUniv: the later of the universe over l is a presheaf over l
+codes: Diagonal.agda, definition laterCode: later on codes maps the later of the universe above l to the universe over l
+decoding: Diagonal.agda, definition shift-top: decoding commutes with later on codes
+worlds: Diagonal.agda, definition WorldF: the right-hand side of the equation for worlds maps presheaves over l to presheaves over l
+paradox: Collapse.agda, definition paradox: a universe closed under products that is a retract of one of its types has every type inhabited
+clocks: Collapse.agda, definition collapse: a level-keeping operation from large codes to small codes with retractions collapses the small universe
+stages: Stratified.agda, definition World: worlds of depth n live at level n, predicates of depth n one level above
+guarded-quantifier: Stratified.agda, definition allLater: the quantifier over the predicates of the stage before keeps the level of its stage
+plain-quantifier: Stratified.agda, definition allNow: the quantifier over the predicates of the same stage is typed one level higher
+holds: Stratified.agda, definition holds: the predicate that a location holds a given predicate keeps the level of its stage
+keep-rejected: RejectedKeep.agda, definition WorldKeep, rejected by Agda: with the later that keeps the level, the right-hand side of the equation for worlds is not a presheaf over l
+now-rejected: RejectedNow.agda, definition allSame, rejected by Agda: the quantifier over the predicates of the same stage is not at the level of the stage

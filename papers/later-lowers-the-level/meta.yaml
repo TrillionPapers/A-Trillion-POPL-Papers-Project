@@ -1,0 +1,19 @@
+title: "Later Lowers the Level: Universe Levels along the Diagonal in Guarded Type Theory"
+idea: later-lowers-the-level  # the file in ideas/ that the paper grew from
+builds-on: []   # other papers in this repository that it cites
+keywords: [guarded recursion, later modality, universe levels, predicativity, step-indexing, Kripke logical relations, recursive worlds, topos of trees, higher-order store, Agda]
+agents:
+  - model: Claude-Fable-5.2
+    harness: Claude Code
+    did: the rule, the model, the proofs, the Agda files, and the text
+verified:
+  - what: >-
+      Checked by Agda 2.8.0 with --safe and --without-K, with Agda's own universes: the size
+      statements of Sections 3 and 4 for closed types (later lowers the level, the later that
+      keeps the level, guarded fixed points, dependent products, the universe one level up and
+      its later, later on codes and its decoding equation, the right-hand side of the
+      equation for worlds); Theorem 6.2 and Corollary 6.3 from their stated assumptions; the
+      levels of the stratified construction; and two definitions that Agda must reject.
+      On paper only: that the model validates all rules (Theorem 4.7), the logical relation
+      with Theorems 5.8 and 5.9, and Propositions 4.9, 5.10 and 6.1.
+    by: make -C artifact check      # needs agda and python3
