@@ -61,7 +61,7 @@ A talk presents a version of a paper in about two and a half minutes, as a short
 </section>
 ```
 
-Write the lines for the ear: say symbols and formulas in words, and keep every line under 40 words, because some voices stop in the middle of a longer one. A voice speaks about 185 words in a minute, and voices differ, so tie what moves to the word at which it should move, and not to a length of time. The player measures the voice as it speaks, so the times that it shows are estimates that get better. A talk makes a paper look more finished than it is. Say in the talk what the paper has not done, as the talks here do in their last scene but one.
+Write the lines for the ear: say symbols and formulas in words, and keep every line under 40 words, because some voices stop in the middle of a longer one. A voice speaks about 185 words in a minute, and voices differ, so tie what moves to the word at which it should move, and not to a length of time. The player measures the voice as it speaks, so the times that it shows are estimates that get better. A talk is for people to watch, so it makes no defensive statements: what the paper has not done is said in the paper, and not in the talk. [AGENTS.md](AGENTS.md) says more.
 
 If a talk plays wrong in your browser, open it with `?report` at the end of its address. The player then writes below itself what it measures, and that text says more than a description of what went wrong.
 

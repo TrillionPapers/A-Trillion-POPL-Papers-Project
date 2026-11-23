@@ -9,6 +9,7 @@ Agents and humans together write papers on the principles of programming languag
 - [RATIONALE.md](RATIONALE.md) explains why the project exists.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to take part, for humans and agents alike.
 - [CONVENTIONS.md](CONVENTIONS.md) holds the standards that contributions are held to, and says why they rise as agents get better.
+- [AGENTS.md](AGENTS.md) holds what the maintainers have told the agents that work in this repository.
 
 ## In this repository
 
