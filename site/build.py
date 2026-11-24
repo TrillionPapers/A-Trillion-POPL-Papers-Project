@@ -6,9 +6,9 @@ Usage: python site/build.py OUTPUT_DIR
 The site lists the ideas in ideas/, the papers in papers/, and the oracles in oracles/ with their
 sequence numbers, shows the record, the versions, the reviews, and the PDF of each paper, turns
 the talks in talks/ into pages that play them, and shows highlights of all of them on the home
-page. It renders RATIONALE.md, CONTRIBUTING.md and CONVENTIONS.md, and writes a search page with
-its index, search.json. Earlier versions of a paper are read from the git history at the commits
-that papers/VERSIONS records.
+page. It renders RATIONALE.md, CONTRIBUTING.md and CONVENTIONS.md, writes a search page with its
+index, search.json, and gathers these four on an about page. Earlier versions of a paper are read
+from the git history at the commits that papers/VERSIONS records.
 
 The script only reads files. It never runs anything that a contribution contains. HTML that
 comes from Markdown passes through an allowlist, and so does the HTML of a talk, which the site
@@ -643,10 +643,7 @@ def page(title, body, base, head=""):
 <a href="{base}talks/index.html">Talks</a>
 <a href="{base}ideas/index.html">Ideas</a>
 <a href="{base}oracles/index.html">Oracles</a>
-<a href="{base}search.html">Search</a>
-<a href="{base}rationale.html">Rationale</a>
-<a href="{base}contributing.html">Contributing</a>
-<a href="{base}conventions.html">Conventions</a>
+<a href="{base}about.html">About</a>
 <a href="{REPO_URL}">GitHub</a>
 </nav></header>
 <main>
@@ -780,16 +777,21 @@ def oracles_about(kind, slug, oracles, ideas, papers, base):
             f"</p>\n{entries(said)}")
 
 
+def readme_lead():
+    """The name of the project and the first sentence of README.md."""
+    readme = read(ROOT / "README.md") if (ROOT / "README.md").is_file() else ""
+    heading = re.search(r"^#\s+(.+?)\s*$", readme, flags=re.M)
+    name = plain(heading.group(1)) if heading else SITE_NAME
+    return name, first_sentence(readme[heading.end():] if heading else readme, limit=400)
+
+
 HOME_PAPERS, HOME_TALKS, HOME_ORACLES, HOME_BUILT, HOME_IDEAS = 4, 3, 3, 3, 4
 
 
 def home_page(ideas, papers, talks, oracles):
     """The home page shows where to go and a few highlights. The full lists have pages of their
     own, so this page stays short however many papers there are."""
-    readme = read(ROOT / "README.md") if (ROOT / "README.md").is_file() else ""
-    heading = re.search(r"^#\s+(.+?)\s*$", readme, flags=re.M)
-    name = plain(heading.group(1)) if heading else SITE_NAME
-    lead = first_sentence(readme[heading.end():] if heading else readme, limit=400)
+    name, lead = readme_lead()
     count = max([paper["number"] or 0 for paper in papers] + [0])
 
     def card(href, number, title, what):
@@ -1238,8 +1240,37 @@ box.addEventListener("input", show);
 """
 
 
+ABOUT_KICKER = '<p class="kicker"><a href="about.html">About</a></p>\n'
+ABOUT_DOCUMENTS = (
+    ("rationale.html", "Rationale", "Why the project exists."),
+    ("contributing.html", "Contributing",
+     "How to take part, for humans and agents alike: what a contribution is and how its files "
+     "are laid out."),
+    ("conventions.html", "Conventions",
+     "The standards that contributions are held to, and why they rise as agents get better."),
+)
+
+
+def about_page():
+    """The page that the navigation calls About. It leads to the three documents of the project
+    and to the search, which have pages of their own and no entry in the navigation."""
+    _, lead = readme_lead()
+    items = [f'<li><a class="title" href="{address}">{title}</a><p>{what}</p></li>'
+             for address, title, what in ABOUT_DOCUMENTS]
+    items.append('<li><a class="title" href="search.html">Search</a>'
+                 "<p>Finds papers, ideas, and oracles by the words in their titles, keywords, "
+                 "authors, and text.</p>\n"
+                 '<form action="search.html" method="get" role="search"><p>'
+                 '<input class="search" type="search" name="q" aria-label="Search" '
+                 'placeholder="integrity agents"></p></form></li>')
+    body = f"""<h1>About</h1>
+<p class="lead">{esc(lead)}</p>
+{entries(items)}"""
+    return page("About", body, "")
+
+
 def search_page():
-    body = f"""<h1>Search</h1>
+    body = f"""{ABOUT_KICKER}<h1>Search</h1>
 <p>Words are matched against titles, keywords, authors, identifiers, abstracts, ideas, and
 oracles. An entry matches when every word occurs in it.</p>
 <p><input id="q" class="search" type="search" placeholder="integrity agents" autofocus></p>
@@ -1255,7 +1286,7 @@ idea and an oracle all of it. So an agent can read it instead of the pages.</p>
 def doc_page(name, title):
     path = ROOT / name
     text = read(path) if path.is_file() else f"# {title}\n\nThis file is missing."
-    return page(title, render_markdown(text, linker("", "")), "")
+    return page(title, ABOUT_KICKER + render_markdown(text, linker("", "")), "")
 
 
 def build(out):
@@ -1279,6 +1310,7 @@ def build(out):
     for name in ("style.css", "talk.css", "talk.js", "talk-scene.css"):
         shutil.copyfile(ROOT / "site" / name, out / name)
     write("index.html", home_page(ideas, papers, talks, oracles))
+    write("about.html", about_page())
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
     write("contributing.html", doc_page("CONTRIBUTING.md", "Contributing"))
     write("conventions.html", doc_page("CONVENTIONS.md", "Conventions"))
