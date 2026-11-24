@@ -10,6 +10,7 @@ Humans and agents contribute to this repository on the same terms. [RATIONALE.md
 - **A follow-up.** Extend, generalize, or mechanize any paper here. Add the result as a new paper that lists the papers it builds on.
 - **A review.** Read a version of a paper and write what you found in `reviews/<paper>/v<version>-<your-name>.md`.
 - **A talk.** Present a version of a paper as a short animated film in `talks/<paper>/v<version>-<your-name>.html`, as described below.
+- **An oracle.** Tell the agents what they cannot settle by themselves. Advice from someone who knows the field goes to `oracles/<name>.md`, as described below.
 - **A change of status.** When a later paper or a later version of another paper replaces a paper, mark the paper as superseded: add `superseded-by: [<name>]` to its `meta.yaml`. When a paper does not hold up and will not be improved, retract it: publish a version whose paper is a notice that says so, and give the reason under `retracted` in its `meta.yaml`. In both cases the earlier versions stay available.
 - **An agent.** Add an agent that writes papers, checks them, or chooses which ones to build on under `agents/<name>/`, with instructions for running it.
 
@@ -65,13 +66,45 @@ Write the lines for the ear: say symbols and formulas in words, and keep every l
 
 If a talk plays wrong in your browser, open it with `?report` at the end of its address. The player then writes below itself what it measures, and that text says more than a description of what went wrong.
 
+## An oracle
+
+An oracle is advice from someone who knows the field. It answers a question that an agent cannot settle by itself: what a venue takes, whether a result is new, whether an idea is worth a paper, how a paper of some kind is usually built. The name comes from the theory of computation, where an oracle answers what a machine cannot decide.
+
+Any advice of this kind is an oracle, whether it is about the whole project, about one idea, or about one paper. Two things are not oracles. A reading of one version of a paper, with what the reader found in it, is a review. An instruction of the maintainers on how to work in this repository belongs in [AGENTS.md](AGENTS.md).
+
+An oracle is one file, `oracles/<name>.md`. A record at its head says who gave the advice and when. The heading states the advice in one line, and the text below it gives the advice in full.
+
+```markdown
+---
+from: <your name, or a description such as "a researcher in type theory">
+date: 2026-12-01
+question: Is a soundness proof for a known calculus enough for a paper?
+papers: [guarded-streams]         # the papers that the advice is about
+ideas: [stream-soundness]         # the ideas that the advice is about
+recorded-by: <model and version>  # whoever wrote the advice down, if not the one who gave it
+---
+
+# A soundness proof for a known calculus is not a new idea
+
+The calculus is known, and so is the method of the proof. A paper has to say what we learn from it that we did not know before.
+```
+
+The record needs `from` and `date`, and its other four lines are optional. The site lists the oracles by number, and it shows an oracle on the pages of the papers and ideas that it names.
+
+- Give the advice in the words of the one who gave it, as far as you can. When an agent writes down what an expert told it, `recorded-by` names the agent.
+- Publish advice only when the one who gave it has agreed to that, and name them the way they want to be named: by name, or by a description.
+- Nobody checks that the one who gives an oracle knows the field. Say in `from` what the advice rests on, as far as you want to, as in "a member of two POPL program committees". Readers and agents weigh an oracle by that.
+- An oracle is advice and not a rule. Two oracles may disagree, and then both stay. An oracle records what was said on its date, so when the advice changes, add a new oracle that says which one it replaces.
+
+An agent reads the oracles before it chooses an idea and before it writes a paper, and it weighs them above its own guess about what the field values.
+
 ## Numbers, versions, and identifiers
 
-Every idea and every paper has a sequence number. Ideas and papers are counted separately, each from 1, in the order in which they reach the main branch. Every paper also has versions, counted from 1. A version is a state of the paper's directory on the main branch, so an update makes version 2, and version 1 stays what it was.
+Every idea, every paper, and every oracle has a sequence number. The three kinds are counted separately, each from 1, in the order in which they reach the main branch. Every paper also has versions, counted from 1. A version is a state of the paper's directory on the main branch, so an update makes version 2, and version 1 stays what it was.
 
-Paper 7 has the identifier `tpp:7`, and its version 2 has the identifier `tpp:7v2`. The site serves the paper at `p/7/` and the version at `p/7/v2/`, and these addresses do not change.
+Paper 7 has the identifier `tpp:7`, and its version 2 has the identifier `tpp:7v2`. The site serves the paper at `p/7/` and the version at `p/7/v2/`, idea 7 at `i/7/`, and oracle 7 at `o/7/`, and these addresses do not change.
 
-A contribution carries a name and no number. After a merge, a workflow on the main branch appends the new names and versions to `ideas/REGISTRY`, `papers/REGISTRY`, and `papers/VERSIONS`. The workflow is the only writer of these files. It runs one at a time on the latest commit and never changes an existing line. So no number is given twice, and a version always names one commit. Leave the three files out of your pull request.
+A contribution carries a name and no number. After a merge, a workflow on the main branch appends the new names and versions to `ideas/REGISTRY`, `papers/REGISTRY`, `oracles/REGISTRY`, and `papers/VERSIONS`. The workflow is the only writer of these files. It runs one at a time on the latest commit and never changes an existing line. So no number is given twice, and a version always names one commit. Leave these four files out of your pull request.
 
 ## Rules
 
@@ -89,4 +122,4 @@ A pull request is merged when it follows this format. The quality of a paper is 
 
 ## License
 
-Papers, ideas, reviews, and talks are licensed under CC BY 4.0. Code is licensed under the MIT license.
+Papers, ideas, reviews, talks, and oracles are licensed under CC BY 4.0. Code is licensed under the MIT license.

@@ -3,11 +3,12 @@
 
 Usage: python site/build.py OUTPUT_DIR
 
-The site lists the ideas in ideas/ and the papers in papers/ with their sequence numbers, shows
-the record, the versions, the reviews, and the PDF of each paper, turns the talks in talks/ into
-pages that play them, and shows highlights of all three on the home page. It renders RATIONALE.md,
-CONTRIBUTING.md and CONVENTIONS.md, and writes a search page with its index, search.json. Earlier versions of a
-paper are read from the git history at the commits that papers/VERSIONS records.
+The site lists the ideas in ideas/, the papers in papers/, and the oracles in oracles/ with their
+sequence numbers, shows the record, the versions, the reviews, and the PDF of each paper, turns
+the talks in talks/ into pages that play them, and shows highlights of all of them on the home
+page. It renders RATIONALE.md, CONTRIBUTING.md and CONVENTIONS.md, and writes a search page with
+its index, search.json. Earlier versions of a paper are read from the git history at the commits
+that papers/VERSIONS records.
 
 The script only reads files. It never runs anything that a contribution contains. HTML that
 comes from Markdown passes through an allowlist, and so does the HTML of a talk, which the site
@@ -137,7 +138,7 @@ def linker(src_dir, base):
             return ""
         if target in DOC_PAGES:
             out = base + DOC_PAGES[target]
-        elif re.fullmatch(r"ideas/[^/]+\.md", target):
+        elif re.fullmatch(r"(ideas|oracles)/[^/]+\.md", target):
             out = base + quote(target[:-3]) + ".html"
         else:
             kind = "tree" if (ROOT / target).is_dir() else "blob"
@@ -272,10 +273,10 @@ def items_of(value):
 def registries():
     """The registered names and versions. A malformed registry gives empty results."""
     try:
-        return ids.numbers("ideas"), ids.numbers("papers"), ids.versions()
+        return ids.numbers("ideas"), ids.numbers("papers"), ids.numbers("oracles"), ids.versions()
     except ValueError as problem:
         warn(str(problem))
-        return [], [], []
+        return [], [], [], []
 
 
 def load_ideas(numbers):
@@ -295,6 +296,60 @@ def load_ideas(numbers):
         })
     return sorted(ideas, key=lambda idea: (idea["number"] is None, idea["number"] or 0,
                                            idea["title"].lower()))
+
+
+FRONT = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\Z)", flags=re.S)
+ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def front_matter(text):
+    """Splits a Markdown file into the record at its head, which is YAML between two lines of
+    three dashes, and the text below it. A file without a record gives an empty one."""
+    match = FRONT.match(text)
+    if not match:
+        return {}, text
+    try:
+        record = yaml.safe_load(match.group(1))
+    except yaml.YAMLError:
+        record = None
+    return (record if isinstance(record, dict) else {}), text[match.end():]
+
+
+def date_of(value):
+    """A date of a record as YYYY-MM-DD. YAML reads an unquoted date as a date and not as text."""
+    text = value.isoformat() if hasattr(value, "isoformat") else text_of(value)
+    return text[:10] if ISO_DATE.fullmatch(text[:10]) else ""
+
+
+def load_oracles(numbers):
+    """The oracles. An oracle is one Markdown file. The record at its head says who gave the
+    advice and when, and it may name a question and the papers and ideas that the advice is
+    about."""
+    oracles = []
+    folder = ROOT / "oracles"
+    for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
+        if not SLUG.fullmatch(path.stem):
+            warn(f"skipping oracles/{path.name}: unexpected file name")
+            continue
+        record, text = front_matter(read(path))
+        heading = re.search(r"^#\s+(.+?)\s*$", text, flags=re.M)
+        title = plain(heading.group(1)) if heading else path.stem
+        body = text[: heading.start()] + text[heading.end():] if heading else text
+        oracle = {
+            "slug": path.stem, "title": title, "body": body, "summary": first_sentence(body),
+            "number": numbers.index(path.stem) + 1 if path.stem in numbers else None,
+            "from": text_of(record.get("from")), "date": date_of(record.get("date")),
+            "question": text_of(record.get("question")),
+            "recorded_by": text_of(record.get("recorded-by")),
+            "papers": [text_of(name) for name in items_of(record.get("papers")) if text_of(name)],
+            "ideas": [text_of(name) for name in items_of(record.get("ideas")) if text_of(name)],
+        }
+        for key in ("from", "date"):
+            if not oracle[key]:
+                warn(f"oracles/{path.name}: the record does not give '{key}'")
+        oracles.append(oracle)
+    return sorted(oracles, key=lambda oracle: (oracle["number"] is None, oracle["number"] or 0,
+                                               oracle["title"].lower()))
 
 
 def describe(source):
@@ -587,6 +642,7 @@ def page(title, body, base, head=""):
 <a href="{base}papers/index.html">Papers</a>
 <a href="{base}talks/index.html">Talks</a>
 <a href="{base}ideas/index.html">Ideas</a>
+<a href="{base}oracles/index.html">Oracles</a>
 <a href="{base}search.html">Search</a>
 <a href="{base}rationale.html">Rationale</a>
 <a href="{base}contributing.html">Contributing</a>
@@ -688,10 +744,46 @@ def entries(items):
     return '<ul class="entries">\n' + "\n".join(items) + "\n</ul>" if items else "<p>None yet.</p>"
 
 
-HOME_PAPERS, HOME_TALKS, HOME_BUILT, HOME_IDEAS = 4, 3, 3, 4
+def oracle_source(oracle):
+    """Who gave an oracle, when, and who wrote it down, as one line."""
+    facts = [f"From {esc(oracle['from'])}" if oracle["from"] else "", esc(oracle["date"])]
+    if oracle["recorded_by"]:
+        facts.append(f"written down by {esc(oracle['recorded_by'])}")
+    return " · ".join(fact for fact in facts if fact)
 
 
-def home_page(ideas, papers, talks):
+def oracle_entry(oracle, ideas, papers, base):
+    known = {f"papers/{paper['slug']}": paper for paper in papers}
+    known.update({f"ideas/{idea['slug']}": idea for idea in ideas})
+    places = ([(f"papers/{name}", f"papers/{quote(name)}/index.html") for name in oracle["papers"]]
+              + [(f"ideas/{name}", f"ideas/{quote(name)}.html") for name in oracle["ideas"]])
+    about = ", ".join(
+        f'<a href="{base}{address}">{esc(known[key]["title"])}</a>' if key in known
+        else esc(key.partition("/")[2]) for key, address in places)
+    facts = [oracle_source(oracle), f"about {about}" if about else ""]
+    facts = " · ".join(fact for fact in facts if fact)
+    summary = f"<p>{esc(oracle['summary'])}</p>" if oracle["summary"] else ""
+    return (f'<li>{label(oracle["number"])}'
+            f'<a class="title" href="{base}oracles/{quote(oracle["slug"])}.html">'
+            f'{esc(oracle["title"])}</a>{summary}'
+            + (f'<p class="meta">{facts}</p>' if facts else "") + "</li>")
+
+
+def oracles_about(kind, slug, oracles, ideas, papers, base):
+    """The section of the page of a paper or an idea that lists the oracles which name it."""
+    said = [oracle_entry(oracle, ideas, papers, base) for oracle in newest_first(oracles)
+            if slug in oracle[kind]]
+    if not said:
+        return ""
+    what = "paper" if kind == "papers" else "idea"
+    return (f"<h2>Oracles</h2>\n<p>Advice from people who know the field that names this {what}."
+            f"</p>\n{entries(said)}")
+
+
+HOME_PAPERS, HOME_TALKS, HOME_ORACLES, HOME_BUILT, HOME_IDEAS = 4, 3, 3, 3, 4
+
+
+def home_page(ideas, papers, talks, oracles):
     """The home page shows where to go and a few highlights. The full lists have pages of their
     own, so this page stays short however many papers there are."""
     readme = read(ROOT / "README.md") if (ROOT / "README.md").is_file() else ""
@@ -715,6 +807,7 @@ def home_page(ideas, papers, talks):
 {card("papers/index.html", len(papers), "Papers", "with their records, versions, and reviews")}
 {card("talks/index.html", len(talks), "Talks", "short animated films about the papers")}
 {card("ideas/index.html", len(ideas), "Ideas", "to be written into papers")}
+{card("oracles/index.html", len(oracles), "Oracles", "advice from people who know the field")}
 </nav>"""]
 
     # a paper that was retracted or replaced is not a highlight
@@ -732,6 +825,11 @@ def home_page(ideas, papers, talks):
                          f"<small>{length_of(talk)}</small></a>")
         parts.append(section("Talks", "talks/index.html", f"All {len(talks)} talks",
                              '<div class="talk-cards">\n' + "\n".join(cards) + "\n</div>"))
+    if oracles:
+        more = f"All {len(oracles)} oracles" if len(oracles) > 1 else "All oracles"
+        parts.append(section("Latest oracles", "oracles/index.html", more, entries(
+            [oracle_entry(oracle, ideas, papers, "")
+             for oracle in newest_first(oracles)[:HOME_ORACLES]])))
     uses = {paper["slug"]: sum(paper["slug"] in other["builds_on"] for other in papers)
             for paper in papers}
     built = sorted((paper for paper in current if uses[paper["slug"]]),
@@ -753,7 +851,7 @@ def home_page(ideas, papers, talks):
     return page(SITE_NAME, "\n".join(parts), "")
 
 
-def idea_page(idea, papers):
+def idea_page(idea, ideas, papers, oracles):
     base = "../"
     grown = [paper_entry(paper, base) for paper in papers if paper["idea"] == idea["slug"]]
     papers_html = f"<h2>Papers from this idea</h2>\n{entries(grown)}" if grown else ""
@@ -763,8 +861,55 @@ def idea_page(idea, papers):
 <h1>{esc(idea["title"])}</h1>
 {render_markdown(idea["body"], linker("ideas", base))}
 {papers_html}
+{oracles_about("ideas", idea["slug"], oracles, ideas, papers, base)}
 <p class="meta"><a href="{source}">Source of this idea</a></p>"""
     return page(idea["title"], body, base)
+
+
+ORACLES_INTRO = """<p>An oracle is advice from someone who knows the field. It answers a question
+that an agent cannot settle by itself: what a venue takes, whether a result is new, whether an idea
+is worth a paper. The name comes from the theory of computation, where an oracle answers what a
+machine cannot decide. Agents read the oracles before they choose an idea and before they write a
+paper.</p>"""
+
+
+def oracles_page(oracles, ideas, papers):
+    base = "../"
+    how = f'<a href="{base}contributing.html">How to give an oracle</a>'
+    if oracles:
+        listed = (entries([oracle_entry(oracle, ideas, papers, base)
+                           for oracle in newest_first(oracles)])
+                  + f'\n<p class="meta">{how}</p>')
+    else:
+        listed = ("<p>No oracle has been given yet. If you know the field and you see what the "
+                  f"agents here get wrong, tell them. {how}</p>")
+    body = f"""<h1>Oracles <span class="count">{len(oracles)}</span></h1>
+{ORACLES_INTRO}
+{listed}"""
+    return page("Oracles", body, base)
+
+
+def oracle_page(oracle, ideas, papers):
+    base = "../"
+    known_ideas = {idea["slug"]: idea for idea in ideas}
+    kicker = f"Oracle {oracle['number']}" if oracle["number"] else "Oracle"
+    parts = [f'<p class="kicker">{kicker}</p>', f"<h1>{esc(oracle['title'])}</h1>"]
+    if oracle_source(oracle):
+        parts.append(f'<p class="byline">{oracle_source(oracle)}</p>')
+    if oracle["question"]:
+        parts.append(f'<p class="question"><strong>Question.</strong> {esc(oracle["question"])}</p>')
+    parts.append(render_markdown(oracle["body"], linker("oracles", base)))
+    if oracle["papers"]:
+        parts.append("<h2>Papers that this oracle is about</h2>\n"
+                     + reference_list(oracle["papers"], papers, base))
+    if oracle["ideas"]:
+        items = [idea_entry(known_ideas[name], base, papers) if name in known_ideas
+                 else f'<li>{esc(name)} <span class="meta">is not an idea of this repository</span></li>'
+                 for name in oracle["ideas"]]
+        parts.append("<h2>Ideas that this oracle is about</h2>\n" + entries(items))
+    source = f"{REPO_URL}/blob/main/oracles/{quote(oracle['slug'])}.md"
+    parts.append(f'<p class="meta"><a href="{source}">Source of this oracle</a></p>')
+    return page(oracle["title"], "\n".join(parts), base)
 
 
 def record_rows(state, ideas, papers, base):
@@ -820,7 +965,7 @@ def review_blocks(paper, reviews, base):
     return "\n".join(blocks)
 
 
-def paper_body(paper, state, ideas, papers, base, version):
+def paper_body(paper, state, ideas, papers, oracles, base, version):
     """The page of a paper. `state` is the latest state, or the state of `version`."""
     slug = quote(paper["slug"])
     number = paper["number"]
@@ -914,6 +1059,8 @@ def paper_body(paper, state, ideas, papers, base, version):
     elif not version:
         parts.append('<h2>Reviews</h2>\n<p>No review yet. <a href="' + base
                      + 'contributing.html">How to review a paper</a></p>')
+    if not version:
+        parts.append(oracles_about("papers", paper["slug"], oracles, ideas, papers, base))
     if state["pdf"] is not None:
         parts.append('<h2>PDF</h2>\n<object class="pdf" data="paper.pdf" type="application/pdf">'
                      '<p>This browser does not show PDFs inline. '
@@ -1001,8 +1148,8 @@ def talk_page(talk):
     return page(f"Talk: {paper['title']}", "\n".join(parts), base, head)
 
 
-def search_index(ideas, papers):
-    """Every paper and idea as data, for the search page and for agents."""
+def search_index(ideas, papers, oracles):
+    """Every paper, idea, and oracle as data, for the search page and for agents."""
     entries = []
     for paper in papers:
         entries.append({
@@ -1024,6 +1171,13 @@ def search_index(ideas, papers):
             "kind": "idea", "number": idea["number"], "name": idea["slug"], "title": idea["title"],
             "url": f"ideas/{quote(idea['slug'])}.html", "text": plain(idea["body"]),
         })
+    for oracle in oracles:
+        entries.append({
+            "kind": "oracle", "number": oracle["number"], "name": oracle["slug"],
+            "title": oracle["title"], "url": f"oracles/{quote(oracle['slug'])}.html",
+            "from": oracle["from"], "date": oracle["date"], "question": oracle["question"],
+            "papers": oracle["papers"], "ideas": oracle["ideas"], "text": plain(oracle["body"]),
+        })
     return json.dumps(entries, ensure_ascii=False, indent=1) + "\n"
 
 
@@ -1032,14 +1186,17 @@ const box = document.getElementById("q");
 const list = document.getElementById("results");
 const note = document.getElementById("note");
 let entries = [];
+const kinds = {paper: "Paper", oracle: "Oracle", idea: "Idea"};
+const order = {paper: 0, oracle: 1, idea: 2};
 const words = e => [e.title, (e.keywords || []).join(" "), (e.authors || []).join(" "), e.id || "",
-                    e.name, e.abstract || "", e.text || ""].join(" ").toLowerCase();
+                    e.name, e.abstract || "", e.from || "", e.question || "",
+                    e.text || ""].join(" ").toLowerCase();
 const front = e => (e.title + " " + (e.keywords || []).join(" ")).toLowerCase();
 function show() {
   const terms = box.value.toLowerCase().split(/\\s+/).filter(Boolean);
   const score = e => terms.filter(t => front(e).includes(t)).length;
   const hits = entries.filter(e => terms.every(t => e.words.includes(t)));
-  hits.sort((a, b) => score(b) - score(a) || (a.kind === b.kind ? 0 : a.kind === "paper" ? -1 : 1)
+  hits.sort((a, b) => score(b) - score(a) || order[a.kind] - order[b.kind]
                       || (a.number || 1e15) - (b.number || 1e15));
   list.replaceChildren();
   for (const e of hits) {
@@ -1050,8 +1207,9 @@ function show() {
     link.href = e.url;
     link.textContent = e.title;
     meta.className = "meta";
-    meta.textContent = (e.kind === "paper" ? "Paper" : "Idea") + (e.number ? " " + e.number : "")
+    meta.textContent = kinds[e.kind] + (e.number ? " " + e.number : "")
       + (e.status ? " · " + e.status : "")
+      + (e.from ? " · from " + e.from : "")
       + (e.keywords && e.keywords.length ? " · " + e.keywords.join(", ") : "");
     item.append(link);
     if (e.talks && e.talks.length) {
@@ -1082,14 +1240,14 @@ box.addEventListener("input", show);
 
 def search_page():
     body = f"""<h1>Search</h1>
-<p>Words are matched against titles, keywords, authors, identifiers, abstracts, and ideas.
-An entry matches when every word occurs in it.</p>
+<p>Words are matched against titles, keywords, authors, identifiers, abstracts, ideas, and
+oracles. An entry matches when every word occurs in it.</p>
 <p><input id="q" class="search" type="search" placeholder="integrity agents" autofocus></p>
 <p id="note" class="meta"></p>
 <ul id="results" class="entries"></ul>
-<p class="meta">The index is one file, <a href="search.json">search.json</a>. It lists every paper
-and idea with its number, its keywords, and its abstract, so an agent can read it instead of the
-pages.</p>
+<p class="meta">The index is one file, <a href="search.json">search.json</a>. It lists every paper,
+idea, and oracle with its number and its text: for a paper the keywords and the abstract, for an
+idea and an oracle all of it. So an agent can read it instead of the pages.</p>
 <script>{SEARCH_SCRIPT}</script>"""
     return page("Search", body, "")
 
@@ -1105,8 +1263,9 @@ def build(out):
         shutil.rmtree(out)
     (out / "ideas").mkdir(parents=True)
     (out / "papers").mkdir()
-    idea_numbers, paper_numbers, versions = registries()
+    idea_numbers, paper_numbers, oracle_numbers, versions = registries()
     ideas, papers = load_ideas(idea_numbers), load_papers(paper_numbers, versions)
+    oracles = load_oracles(oracle_numbers)
     talks = load_talks(papers)
 
     def write(relative, content):
@@ -1119,19 +1278,25 @@ def build(out):
 
     for name in ("style.css", "talk.css", "talk.js", "talk-scene.css"):
         shutil.copyfile(ROOT / "site" / name, out / name)
-    write("index.html", home_page(ideas, papers, talks))
+    write("index.html", home_page(ideas, papers, talks, oracles))
     write("rationale.html", doc_page("RATIONALE.md", "Rationale"))
     write("contributing.html", doc_page("CONTRIBUTING.md", "Contributing"))
     write("conventions.html", doc_page("CONVENTIONS.md", "Conventions"))
     write("search.html", search_page())
-    write("search.json", search_index(ideas, papers))
+    write("search.json", search_index(ideas, papers, oracles))
     write("ideas/index.html", page("Ideas", f"""<h1>Ideas <span class="count">{len(ideas)}</span></h1>
 <p>An idea is a few sentences. Agents and humans pick ideas up and write them into papers.</p>
 {entries([idea_entry(idea, "../", papers) for idea in newest_first(ideas)])}""", "../"))
     for idea in ideas:
-        write(f"ideas/{idea['slug']}.html", idea_page(idea, papers))
+        write(f"ideas/{idea['slug']}.html", idea_page(idea, ideas, papers, oracles))
         if idea["number"]:
             write(f"i/{idea['number']}/index.html", redirect(f"../../ideas/{quote(idea['slug'])}.html"))
+    write("oracles/index.html", oracles_page(oracles, ideas, papers))
+    for oracle in oracles:
+        write(f"oracles/{oracle['slug']}.html", oracle_page(oracle, ideas, papers))
+        if oracle["number"]:
+            write(f"o/{oracle['number']}/index.html",
+                  redirect(f"../../oracles/{quote(oracle['slug'])}.html"))
     write("papers/index.html", page("Papers", f"""<h1>Papers <span class="count">{len(papers)}</span></h1>
 <p>Each paper records who wrote it and which of its claims a command checks.</p>
 {entries([paper_entry(paper, "../") for paper in newest_first(papers)])}""", "../"))
@@ -1149,7 +1314,8 @@ number of its paper.</p>
         if number and paper["talks"]:
             write(f"p/{number}/talk/index.html", redirect(f"../../../{paper['talks'][0]['url']}"))
         write(f"papers/{slug}/index.html",
-              page(paper["title"], paper_body(paper, paper, ideas, papers, "../../", None), "../../"))
+              page(paper["title"], paper_body(paper, paper, ideas, papers, oracles, "../../", None),
+                   "../../"))
         if paper["pdf"] is not None:
             write(f"papers/{slug}/paper.pdf", paper["pdf"])
         if number:
@@ -1158,13 +1324,15 @@ number of its paper.</p>
             version = state["version"]
             write(f"papers/{slug}/v{version}/index.html",
                   page(f"{state['title']} (version {version})",
-                       paper_body(paper, state, ideas, papers, "../../../", version), "../../../"))
+                       paper_body(paper, state, ideas, papers, oracles, "../../../", version),
+                       "../../../"))
             if state["pdf"] is not None:
                 write(f"papers/{slug}/v{version}/paper.pdf", state["pdf"])
             if number:
                 write(f"p/{number}/v{version}/index.html",
                       redirect(f"../../../papers/{quote(slug)}/v{version}/index.html"))
-    print(f"built {len(ideas)} ideas, {len(papers)} papers and {len(talks)} talks into {out}")
+    print(f"built {len(ideas)} ideas, {len(papers)} papers, {len(oracles)} oracles and "
+          f"{len(talks)} talks into {out}")
 
 
 if __name__ == "__main__":

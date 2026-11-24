@@ -1,6 +1,6 @@
 # Assigns sequence numbers and versions on the main branch, then builds the web site and
-# publishes it with GitHub Pages. The build only reads files. It runs nothing that an idea or a
-# paper contains.
+# publishes it with GitHub Pages. The build only reads files. It runs nothing that an idea, a
+# paper, or an oracle contains.
 name: Site
 
 on:
@@ -37,10 +37,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for attempt in 1 2 3 4 5; do
             python site/ids.py assign
-            if [ -z "$(git status --porcelain -- ideas/REGISTRY papers/REGISTRY papers/VERSIONS)" ]; then
+            if [ -z "$(git status --porcelain -- ideas/REGISTRY papers/REGISTRY oracles/REGISTRY papers/VERSIONS)" ]; then
               exit 0
             fi
-            git add ideas/REGISTRY papers/REGISTRY papers/VERSIONS
+            git add ideas/REGISTRY papers/REGISTRY oracles/REGISTRY papers/VERSIONS
             git commit -m "Assign sequence numbers and versions"
             if git push origin HEAD:main; then
               exit 0

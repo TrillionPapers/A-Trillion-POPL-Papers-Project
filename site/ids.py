@@ -3,17 +3,18 @@
 
 Usage: python site/ids.py assign | check
 
-Every idea and every paper has a sequence number. Ideas and papers are counted separately,
-from 1, in the order in which they reached the main branch. Every paper also has versions,
-counted from 1. A version is a state of the paper's directory on the main branch.
+Every idea, every paper, and every oracle has a sequence number. The three kinds are counted
+separately, from 1, in the order in which they reached the main branch. Every paper also has
+versions, counted from 1. A version is a state of the paper's directory on the main branch.
 
   ideas/REGISTRY    one line per idea:     <number> <name>
   papers/REGISTRY   one line per paper:    <number> <name>
+  oracles/REGISTRY  one line per oracle:   <number> <name>
   papers/VERSIONS   one line per version:  <number> <version> <commit> <tree> <date>
 
 `assign` appends what is new and never touches an existing line. Only the workflow on the main
 branch runs it, one run at a time, on the latest commit. So no number is given twice, and a
-version always names one state of a paper. `check` verifies the three files and changes
+version always names one state of a paper. `check` verifies the four files and changes
 nothing.
 """
 
@@ -27,8 +28,9 @@ ROOT = Path(__file__).resolve().parent.parent
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 HASH = re.compile(r"[0-9a-f]{40}([0-9a-f]{24})?")
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
-KINDS = ("ideas", "papers")
-FILES = ("ideas/REGISTRY", "papers/REGISTRY", "papers/VERSIONS")
+KINDS = ("ideas", "papers", "oracles")
+FLAT = ("ideas", "oracles")     # a contribution of these kinds is one Markdown file
+FILES = ("ideas/REGISTRY", "papers/REGISTRY", "oracles/REGISTRY", "papers/VERSIONS")
 
 
 def git(*args):
@@ -45,7 +47,7 @@ def names_on_disk(kind):
     folder = ROOT / kind
     if not folder.is_dir():
         return []
-    if kind == "ideas":
+    if kind in FLAT:
         found = [path.stem for path in folder.glob("*.md")]
     else:
         found = [path.name for path in folder.iterdir() if path.is_dir()]
@@ -124,7 +126,7 @@ def arrival_order(kind, names):
         parts = line.split("/")
         if len(parts) < 2 or parts[0] != kind:
             continue
-        if kind == "ideas":
+        if kind in FLAT:
             name = parts[1][:-3] if len(parts) == 2 and parts[1].endswith(".md") else None
         else:
             name = parts[1] if len(parts) > 2 else None
@@ -134,6 +136,9 @@ def arrival_order(kind, names):
 
 
 def append(relative, lines):
+    """Appends lines to a registry. A registry that does not exist yet is created with its
+    folder, even when it gets no line, so that all four files exist after the first run."""
+    (ROOT / relative).parent.mkdir(exist_ok=True)
     with open(ROOT / relative, "a", encoding="utf-8") as registry:
         for line in lines:
             registry.write(line + "\n")
